@@ -77,15 +77,37 @@ Console: https://console.firebase.google.com/project/gencon-rollcall/overview
 Web app ID: 1:671879050351:web:bc1f69247dbf720342c99a
 Firestore location: nam5
 Firestore rules: deployed 2026-07-07
+Vercel project: brandon-borns-projects/gencon-rollcall
+GitHub repo: connected to https://github.com/Brandon-Born/gencon-rollcall
 ```
 
 Remaining manual Firebase setup:
 
 - Enable Firebase Authentication with the Anonymous provider.
-- Create or confirm the default Firebase Storage bucket.
+- Attach billing or otherwise initialize Firebase Storage before creating the default bucket.
 - Deploy Storage rules after the bucket exists.
 
 The CLI/API attempt to test anonymous sign-in currently returns `CONFIGURATION_NOT_FOUND`, which means Firebase Authentication still needs to be initialized/enabled for this project.
+
+The CLI attempt to create `gs://gencon-rollcall.firebasestorage.app` failed with a Google Cloud billing error because the project has no billing account attached.
+
+## Firebase Admin Credentials
+
+The Vercel API route needs Firebase Admin credentials to verify ID tokens and write `authorizedUsers/{uid}`.
+
+CLI-created service account:
+
+```text
+gencon-rollcall-vercel@gencon-rollcall.iam.gserviceaccount.com
+```
+
+Granted role:
+
+```text
+roles/datastore.user
+```
+
+The local attempt to create a long-lived service-account key and send it to Vercel was blocked by tool approval policy. Prefer a safer credential path if available, or create and add the Firebase Admin credential manually in Vercel with care.
 
 ## Local Build
 
@@ -105,6 +127,8 @@ Vercel build settings:
 
 - Build command: `npm run build`
 - Output directory: `dist/gencon-rollcall/browser`
+
+Do not production-deploy until required environment variables are configured, or the password endpoint will return `server-not-configured`.
 
 ## Security Notes
 

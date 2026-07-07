@@ -81,6 +81,8 @@ Implementation status:
 - Code exists in `api/verify-shared-password.ts`.
 - Angular gate calls `environment.passwordVerificationUrl`.
 - The endpoint also authorizes the anonymous UID after password success.
+- Vercel project `gencon-rollcall` exists and is connected to the GitHub repo.
+- Vercel-specific Firebase service account exists with `roles/datastore.user`.
 - Manual Vercel setup still required: set `SHARED_SITE_PASSWORD` and Firebase Admin credentials as Vercel environment variables.
 
 ### `AUTH-002` Anonymous auth and authorized session
@@ -109,6 +111,7 @@ Implementation status:
 - Firebase Auth persistence is configured for browser-local persistence.
 - Server authorization uses `authorizedUsers/{uid}`.
 - Firestore rules are deployed to `gencon-rollcall`.
+- Storage bucket creation via CLI is blocked until project billing is attached or Storage is initialized another way.
 - Manual Firebase/Vercel setup and live verification still required: enable anonymous auth, create or confirm Storage bucket, deploy Storage rules, configure Vercel env vars, and test against the real Firebase project.
 
 ### `AUTH-003` Onboarding persistence

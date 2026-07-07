@@ -21,6 +21,7 @@ ui-debug.log
 .env
 .env.*
 !.env.example
+.vercel/
 
 # OS / editor
 .DS_Store
@@ -35,3 +36,4 @@ yarn-debug.log*
 pnpm-debug.log*
 yarn-error.log
 testem.log
+.vercel
