@@ -21,6 +21,8 @@
 
 Preferred MVP security path: callable Firebase Function validates password, signs in anonymously on the client after success, then creates a server-managed `authorizedUsers/{uid}` record or sets a custom claim.
 
+Current scaffold note: Angular uses the Firebase JavaScript SDK directly. AngularFire stable was still peered to Angular 20 when the scaffold was created; Angular 21 support was only available as an RC. Reconsider AngularFire when a stable Angular 21-compatible release is available.
+
 ## Data Model
 
 ```text

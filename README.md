@@ -6,7 +6,7 @@ The app helps the group coordinate without a constant stream of texts: members c
 
 ## Current Status
 
-This repository is at project setup stage. No Angular app has been scaffolded yet.
+Angular 21 has been scaffolded with route-level mobile screens and Firebase client placeholders. Backend password verification and real Firestore integration are not implemented yet.
 
 Start with the docs in this order:
 
@@ -46,16 +46,16 @@ Do not depend on latitude/longitude, continuous GPS, or live scraping of the Gen
 
 ## Local Development
 
-The app is not scaffolded yet. Once the Angular workspace exists, add the exact commands here.
-
-Expected shape:
-
 ```bash
 npm install
-npm run start
+npm start
 npm run test
 npm run build
 ```
+
+The app currently uses placeholder Firebase values in `src/environments/environment.ts`. Fill those values only with the public Firebase web config for the selected Firebase project. Do not place the shared site password in Angular environment files.
+
+The production build may need to run outside this Codex sandbox on this machine; the sandboxed builder aborted before diagnostics, while the same `npm run build` completed successfully outside the sandbox.
 
 ## Manual Setup Required Later
 

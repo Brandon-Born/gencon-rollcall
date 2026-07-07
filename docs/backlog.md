@@ -4,18 +4,18 @@ Track work here until a dedicated issue tracker exists.
 
 ## Now
 
-- [ ] Scaffold Angular 21 standalone app.
-- [ ] Add Firebase project configuration placeholders and environment documentation.
-- [ ] Build password gate UI.
+- [x] Scaffold Angular 21 standalone app.
+- [x] Add Firebase project configuration placeholders and environment documentation.
+- [x] Build password gate UI.
 - [ ] Implement server-side shared-password verification endpoint.
 - [ ] Enable anonymous auth and authorized session persistence.
-- [ ] Add Firestore security rules for authorized shared access.
+- [x] Add Firestore security rules for authorized shared access.
 
 ## Next
 
-- [ ] Add onboarding display-name flow.
-- [ ] Create typed data models and Firestore converters.
-- [ ] Add app shell with bottom navigation: Map, People, Rally Points, Settings.
+- [x] Add onboarding display-name flow.
+- [x] Create typed data models.
+- [x] Add app shell with bottom navigation: Map, People, Rally Points, Settings.
 - [ ] Add map config document and Firebase Storage map image loading.
 - [ ] Implement mobile map pan/zoom.
 - [ ] Implement manual pin placement with percentage coordinates.
