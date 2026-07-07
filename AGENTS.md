@@ -10,12 +10,13 @@ This is a private, mobile-first Angular/Firebase POC named **Gen Con Roll Call**
 
 Read these files before implementation:
 
-1. `docs/product-brief.md`
-2. `docs/implementation-plan.md`
-3. `docs/architecture.md`
-4. `docs/firebase-security.md`
-5. `docs/design-system.md`
-6. `docs/backlog.md`
+1. `docs/agent-start.md`
+2. `docs/backlog.md`
+3. `docs/product-brief.md`
+4. `docs/implementation-plan.md`
+5. `docs/architecture.md`
+6. `docs/firebase-security.md`
+7. `docs/design-system.md`
 
 ## Working Rules
 
@@ -26,6 +27,7 @@ Read these files before implementation:
 - Never put the shared password in client code, Firestore documents, or Storage.
 - Document Firebase setup steps instead of hiding required manual configuration.
 - Update `docs/backlog.md` when starting or completing substantive work.
+- Work the `Next 3` section in `docs/backlog.md` unless the user explicitly redirects priority.
 
 ## Verification Expectations
 

@@ -10,12 +10,13 @@ Angular 21 has been scaffolded with route-level mobile screens and Firebase clie
 
 Start with the docs in this order:
 
-1. [Product Brief](docs/product-brief.md)
-2. [Implementation Plan](docs/implementation-plan.md)
-3. [Architecture](docs/architecture.md)
-4. [Firebase and Security](docs/firebase-security.md)
-5. [Design System](docs/design-system.md)
-6. [Backlog](docs/backlog.md)
+1. [Agent Start](docs/agent-start.md)
+2. [Backlog](docs/backlog.md)
+3. [Product Brief](docs/product-brief.md)
+4. [Implementation Plan](docs/implementation-plan.md)
+5. [Architecture](docs/architecture.md)
+6. [Firebase and Security](docs/firebase-security.md)
+7. [Design System](docs/design-system.md)
 
 ## Product Principles
 
