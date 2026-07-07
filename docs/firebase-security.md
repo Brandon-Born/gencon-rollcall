@@ -14,7 +14,7 @@ Use a server-side password verification endpoint and an authorization record tie
 Flow:
 
 1. Client creates an anonymous Firebase user to obtain an ID token.
-2. Client calls `verifySharedPassword(password)` with that ID token in the `Authorization` header.
+2. Client calls `/api/verify-shared-password` with that ID token in the `Authorization` header.
 3. Backend compares the password to an environment secret.
 4. Backend writes `authorizedUsers/{uid}` with `authorized: true`, `authorizedAt`, and `lastVerifiedAt`.
 5. Firestore rules check `exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid))`.
@@ -53,9 +53,9 @@ Storage rules should require an authenticated and authorized UID before read acc
 
 ## Password Endpoint
 
-Use Firebase Functions or Cloud Run.
+Use the Vercel API route in `api/verify-shared-password.ts`.
 
-Current decision: use Firebase Functions for MVP. See `docs/firebase-functions-setup.md`.
+Current decision: use Vercel serverless functions for MVP because hosting is on Vercel. See `docs/vercel-setup.md`.
 
 Required behavior:
 

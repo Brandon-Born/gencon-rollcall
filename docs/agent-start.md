@@ -7,8 +7,9 @@ Use this file when picking up the project in a new session.
 - Angular 21 app is scaffolded.
 - Mobile route shell exists.
 - Prototype screens exist for gate, onboarding, map, people, rally points, and settings.
-- Firebase client placeholders, Hosting config, Firestore rules, and Storage rules exist.
-- Real backend auth and Firestore data flow are not implemented yet.
+- Firebase client setup, Vercel API route, Firestore rules, and Storage rules exist.
+- Shared-password verification code exists, but Firebase/Vercel production setup still needs live verification.
+- Real Firestore app data flow is not implemented yet.
 
 ## Read First
 
@@ -17,7 +18,7 @@ Use this file when picking up the project in a new session.
 3. `docs/product-brief.md`
 4. `docs/firebase-security.md`
 5. `docs/architecture.md`
-6. `docs/firebase-functions-setup.md`
+6. `docs/vercel-setup.md`
 7. `docs/design-system.md`
 
 ## Start Here
@@ -26,7 +27,7 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `AUTH-001` Finish Firebase setup for shared-password verification.
+1. `AUTH-001` Finish Vercel/Firebase setup for shared-password verification.
 2. `AUTH-002` Finish Firebase setup and live verification for anonymous authorization.
 3. `AUTH-003` Persist onboarding display name to Firestore.
 
@@ -39,7 +40,6 @@ For code changes, run:
 ```bash
 npm test
 npm run build
-npm run build:functions
 ```
 
 Also verify relevant phone-sized flows in a browser. The previous sandbox environment required `npm run build` to run outside the sandbox because the Angular builder aborted before diagnostics there.

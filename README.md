@@ -6,7 +6,7 @@ The app helps the group coordinate without a constant stream of texts: members c
 
 ## Current Status
 
-Angular 21 has been scaffolded with route-level mobile screens and Firebase client placeholders. Backend password verification and real Firestore integration are not implemented yet.
+Angular 21 has been scaffolded with route-level mobile screens, Firebase client setup, and a Vercel API route for shared-password verification. Real Firestore app data flows are not implemented yet.
 
 Start with the docs in this order:
 
@@ -16,7 +16,7 @@ Start with the docs in this order:
 4. [Implementation Plan](docs/implementation-plan.md)
 5. [Architecture](docs/architecture.md)
 6. [Firebase and Security](docs/firebase-security.md)
-7. [Firebase Functions Setup](docs/firebase-functions-setup.md)
+7. [Vercel Setup](docs/vercel-setup.md)
 8. [Design System](docs/design-system.md)
 
 ## Product Principles
@@ -36,8 +36,8 @@ Start with the docs in this order:
 - Firebase Authentication with anonymous auth
 - Firestore for shared real-time state
 - Firebase Storage for the map image
-- Firebase Functions or Cloud Run for password verification
-- Firebase Hosting
+- Vercel API route for password verification
+- Vercel hosting
 - Angular PWA support
 
 ## Map Source
@@ -53,22 +53,18 @@ npm install
 npm start
 npm run test
 npm run build
-npm run build:functions
 ```
 
-The app currently uses placeholder Firebase values in `src/environments/environment.ts`. Fill those values only with the public Firebase web config for the selected Firebase project. Do not place the shared site password in Angular environment files.
+The app uses the public Firebase Web config in `src/environments/environment.ts`. Do not place the shared site password or Firebase Admin service account values in Angular environment files.
 
 The production build may need to run outside this Codex sandbox on this machine; the sandboxed builder aborted before diagnostics, while the same `npm run build` completed successfully outside the sandbox.
 
 ## Manual Setup Required Later
 
-- Firebase project
-- Firebase Web app config
 - Anonymous Auth enabled
-- Firestore database
 - Storage bucket
-- Firebase Functions or Cloud Run secret for the shared site password
-- Firebase Hosting target
+- Vercel environment variables for `SHARED_SITE_PASSWORD` and Firebase Admin credentials
+- Vercel project linked to this repository
 - Production map image uploaded or configured
 
 ## Definition of Done for MVP

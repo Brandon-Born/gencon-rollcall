@@ -11,7 +11,7 @@
 
 ## Password Gate and Session Approach
 
-1. User submits shared password to a Firebase Function or Cloud Run endpoint.
+1. User submits shared password to the Vercel `/api/verify-shared-password` endpoint.
 2. Backend compares the submitted value to an environment secret.
 3. On success, backend enables the client to establish authorized anonymous Firebase identity.
 4. Store authorization server-side using a custom claim or an authorization record tied to the anonymous UID.
@@ -19,7 +19,7 @@
 6. Client persists Firebase auth session and local display-name cache.
 7. Sign-out clears Firebase auth and local session data.
 
-Preferred MVP security path: callable Firebase Function validates password, signs in anonymously on the client after success, then creates a server-managed `authorizedUsers/{uid}` record or sets a custom claim.
+Preferred MVP security path: the client signs in anonymously first, then a Vercel API route validates the password and creates a server-managed `authorizedUsers/{uid}` record.
 
 Current scaffold note: Angular uses the Firebase JavaScript SDK directly. AngularFire stable was still peered to Angular 20 when the scaffold was created; Angular 21 support was only available as an RC. Reconsider AngularFire when a stable Angular 21-compatible release is available.
 
@@ -98,6 +98,6 @@ RallyResponse
 
 - This is a private POC for one known group.
 - A developer can manually provide the current Gen Con map image.
-- Firebase is acceptable for auth, real-time sync, hosting, and storage.
+- Firebase is acceptable for auth, real-time sync, and storage. Vercel is the hosting and API runtime.
 - The MVP can use anonymous auth rather than user accounts.
 - Browser push notifications are out of scope unless later prioritized.

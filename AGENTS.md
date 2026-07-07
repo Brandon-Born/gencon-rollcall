@@ -16,7 +16,7 @@ Read these files before implementation:
 4. `docs/implementation-plan.md`
 5. `docs/architecture.md`
 6. `docs/firebase-security.md`
-7. `docs/firebase-functions-setup.md`
+7. `docs/vercel-setup.md`
 8. `docs/design-system.md`
 
 ## Working Rules

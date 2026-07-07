@@ -17,7 +17,7 @@ Status values:
 
 ## Next 3
 
-1. `AUTH-001` Finish Firebase setup for shared-password verification.
+1. `AUTH-001` Finish Vercel/Firebase setup for shared-password verification.
 2. `AUTH-002` Finish Firebase setup and live verification for anonymous authorization.
 3. `AUTH-003` Persist onboarding display name to Firestore.
 
@@ -44,11 +44,11 @@ Do these in order. Map/member/rally data must not become readable before the aut
 ### `FOUND-003` Firebase project placeholders
 
 - [x] Firebase client wrapper exists.
-- [x] Public Firebase web config placeholder exists.
-- [x] Firebase Hosting config exists.
+- [x] Public Firebase web config exists for `gencon-rollcall`.
+- [x] Vercel build config exists.
 - [x] Firestore rules starter exists.
 - [x] Storage rules starter exists.
-- [ ] Firebase project values are configured for a real project.
+- [x] Firebase project values are configured for a real project.
 
 Acceptance criteria:
 
@@ -59,7 +59,7 @@ Acceptance criteria:
 
 ### `AUTH-001` Server-side shared-password verification
 
-- [x] Choose Firebase Functions or Cloud Run.
+- [x] Choose password verification runtime.
 - [ ] Store the expected shared password as an environment secret.
 - [x] Add password verification endpoint.
 - [x] Avoid logging submitted passwords.
@@ -68,7 +68,7 @@ Acceptance criteria:
 
 Depends on:
 
-- `DEC-001` Firebase Functions vs Cloud Run.
+- `DEC-001` Password verification runtime.
 
 Acceptance criteria:
 
@@ -78,10 +78,10 @@ Acceptance criteria:
 
 Implementation status:
 
-- Code exists in `functions/src/index.ts`.
+- Code exists in `api/verify-shared-password.ts`.
 - Angular gate calls `environment.passwordVerificationUrl`.
 - The endpoint also authorizes the anonymous UID after password success.
-- Manual Firebase setup still required: set `SHARED_SITE_PASSWORD`, deploy `verifySharedPassword`, and configure `passwordVerificationUrl`.
+- Manual Vercel setup still required: set `SHARED_SITE_PASSWORD` and Firebase Admin credentials as Vercel environment variables.
 
 ### `AUTH-002` Anonymous auth and authorized session
 
@@ -108,7 +108,8 @@ Implementation status:
 - Code exists in `src/app/core/auth/auth-session.ts` and `src/app/core/auth/auth-guards.ts`.
 - Firebase Auth persistence is configured for browser-local persistence.
 - Server authorization uses `authorizedUsers/{uid}`.
-- Manual Firebase setup and live verification still required: enable anonymous auth, deploy rules/functions, and test with a real Firebase project.
+- Firestore rules are deployed to `gencon-rollcall`.
+- Manual Firebase/Vercel setup and live verification still required: enable anonymous auth, create or confirm Storage bucket, deploy Storage rules, configure Vercel env vars, and test against the real Firebase project.
 
 ### `AUTH-003` Onboarding persistence
 
@@ -298,8 +299,8 @@ Depends on:
 
 ### `DEPLOY-002` Deployment docs
 
-- [ ] Document Firebase project setup.
-- [ ] Document required secrets.
+- [x] Document Firebase project setup.
+- [x] Document required secrets.
 - [ ] Document map upload/config process.
 - [ ] Document deploy command.
 - [ ] Document post-deploy smoke test.
@@ -313,9 +314,9 @@ Depends on:
 
 ### `DEC-001` Password verification runtime
 
-- [x] Decide Firebase Functions vs Cloud Run.
+- [x] Decide password verification runtime.
 
-Decision: Firebase Functions. It keeps the MVP on one Firebase deployment path and is enough for a single shared-password endpoint.
+Decision: Vercel API route. The app is hosted on Vercel, and a same-origin serverless endpoint keeps the shared password and Firebase Admin credentials out of the client bundle.
 
 ### `DEC-002` Authorization model
 
