@@ -53,6 +53,8 @@ Storage rules should require an authenticated and authorized UID before read acc
 
 Use Firebase Functions or Cloud Run.
 
+Current decision: use Firebase Functions for MVP. See `docs/firebase-functions-setup.md`.
+
 Required behavior:
 
 - Read expected password from environment secret.

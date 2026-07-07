@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:functions": "npm --prefix functions run build",
+    "build:all": "npm run build && npm run build:functions",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

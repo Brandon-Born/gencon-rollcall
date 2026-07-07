@@ -17,7 +17,8 @@ Use this file when picking up the project in a new session.
 3. `docs/product-brief.md`
 4. `docs/firebase-security.md`
 5. `docs/architecture.md`
-6. `docs/design-system.md`
+6. `docs/firebase-functions-setup.md`
+7. `docs/design-system.md`
 
 ## Start Here
 
@@ -38,6 +39,7 @@ For code changes, run:
 ```bash
 npm test
 npm run build
+npm run build:functions
 ```
 
 Also verify relevant phone-sized flows in a browser. The previous sandbox environment required `npm run build` to run outside the sandbox because the Angular builder aborted before diagnostics there.

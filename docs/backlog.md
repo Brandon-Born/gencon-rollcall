@@ -17,7 +17,7 @@ Status values:
 
 ## Next 3
 
-1. `AUTH-001` Implement server-side shared-password verification.
+1. `AUTH-001` Implement server-side shared-password verification. In progress.
 2. `AUTH-002` Enable anonymous Firebase auth and authorized session persistence.
 3. `MAP-001` Load map config and protected Firebase Storage map image.
 
@@ -59,12 +59,12 @@ Acceptance criteria:
 
 ### `AUTH-001` Server-side shared-password verification
 
-- [ ] Choose Firebase Functions or Cloud Run.
+- [x] Choose Firebase Functions or Cloud Run.
 - [ ] Store the expected shared password as an environment secret.
-- [ ] Add password verification endpoint.
-- [ ] Avoid logging submitted passwords.
-- [ ] Add basic failed-attempt throttling or rate-limit note.
-- [ ] Replace the prototype gate transition with the real verification call.
+- [x] Add password verification endpoint.
+- [x] Avoid logging submitted passwords.
+- [x] Add basic failed-attempt throttling or rate-limit note.
+- [x] Replace the prototype gate transition with the real verification call.
 
 Depends on:
 
@@ -75,6 +75,12 @@ Acceptance criteria:
 - Incorrect password does not authorize the browser.
 - Correct password authorizes the browser without exposing the password in client code.
 - Network/API errors are shown as actionable UI errors.
+
+Implementation status:
+
+- Code exists in `functions/src/index.ts`.
+- Angular gate calls `environment.passwordVerificationUrl`.
+- Manual Firebase setup still required: set `SHARED_SITE_PASSWORD`, deploy `verifySharedPassword`, and configure `passwordVerificationUrl`.
 
 ### `AUTH-002` Anonymous auth and authorized session
 
@@ -299,9 +305,9 @@ Depends on:
 
 ### `DEC-001` Password verification runtime
 
-- [ ] Decide Firebase Functions vs Cloud Run.
+- [x] Decide Firebase Functions vs Cloud Run.
 
-Recommendation: Firebase Functions unless a concrete Cloud Run need appears.
+Decision: Firebase Functions. It keeps the MVP on one Firebase deployment path and is enough for a single shared-password endpoint.
 
 ### `DEC-002` Authorization model
 

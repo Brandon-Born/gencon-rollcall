@@ -16,7 +16,8 @@ Start with the docs in this order:
 4. [Implementation Plan](docs/implementation-plan.md)
 5. [Architecture](docs/architecture.md)
 6. [Firebase and Security](docs/firebase-security.md)
-7. [Design System](docs/design-system.md)
+7. [Firebase Functions Setup](docs/firebase-functions-setup.md)
+8. [Design System](docs/design-system.md)
 
 ## Product Principles
 
@@ -52,6 +53,7 @@ npm install
 npm start
 npm run test
 npm run build
+npm run build:functions
 ```
 
 The app currently uses placeholder Firebase values in `src/environments/environment.ts`. Fill those values only with the public Firebase web config for the selected Firebase project. Do not place the shared site password in Angular environment files.
