@@ -1,16 +1,21 @@
 import { Routes } from '@angular/router';
 
+import { authorizedGuard, gateGuard, onboardedGuard, onboardingGuard } from './core/auth/auth-guards';
+
 export const routes: Routes = [
   {
     path: 'gate',
+    canActivate: [gateGuard],
     loadComponent: () => import('./features/gate/gate').then((m) => m.Gate)
   },
   {
     path: 'onboarding',
+    canActivate: [onboardingGuard],
     loadComponent: () => import('./features/onboarding/onboarding').then((m) => m.Onboarding)
   },
   {
     path: 'app',
+    canActivate: [authorizedGuard, onboardedGuard],
     loadComponent: () => import('./features/shell/shell').then((m) => m.Shell),
     children: [
       {

@@ -26,9 +26,9 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `AUTH-001` Implement server-side shared-password verification.
-2. `AUTH-002` Enable anonymous Firebase auth and authorized session persistence.
-3. `MAP-001` Load map config and protected Firebase Storage map image.
+1. `AUTH-001` Finish Firebase setup for shared-password verification.
+2. `AUTH-002` Finish Firebase setup and live verification for anonymous authorization.
+3. `AUTH-003` Persist onboarding display name to Firestore.
 
 Do not skip directly to map/member/rally Firestore reads before the authorization path is real.
 

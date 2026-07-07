@@ -17,9 +17,9 @@ Status values:
 
 ## Next 3
 
-1. `AUTH-001` Implement server-side shared-password verification. In progress.
-2. `AUTH-002` Enable anonymous Firebase auth and authorized session persistence.
-3. `MAP-001` Load map config and protected Firebase Storage map image.
+1. `AUTH-001` Finish Firebase setup for shared-password verification.
+2. `AUTH-002` Finish Firebase setup and live verification for anonymous authorization.
+3. `AUTH-003` Persist onboarding display name to Firestore.
 
 Do these in order. Map/member/rally data must not become readable before the authorization path is real.
 
@@ -80,16 +80,17 @@ Implementation status:
 
 - Code exists in `functions/src/index.ts`.
 - Angular gate calls `environment.passwordVerificationUrl`.
+- The endpoint also authorizes the anonymous UID after password success.
 - Manual Firebase setup still required: set `SHARED_SITE_PASSWORD`, deploy `verifySharedPassword`, and configure `passwordVerificationUrl`.
 
 ### `AUTH-002` Anonymous auth and authorized session
 
 - [ ] Enable anonymous Firebase auth in the Firebase project.
-- [ ] Sign in anonymously after password verification.
-- [ ] Create or verify `authorizedUsers/{uid}` server-side.
-- [ ] Persist authorized sessions across reloads.
-- [ ] Add sign-out behavior that clears auth and local display-name state.
-- [ ] Add route guards for authorized and onboarded states.
+- [x] Create anonymous Firebase user before password verification to obtain an ID token.
+- [x] Create or verify `authorizedUsers/{uid}` server-side after password success.
+- [x] Persist authorized sessions across reloads.
+- [x] Add sign-out behavior that clears auth and local display-name state.
+- [x] Add route guards for authorized and onboarded states.
 
 Depends on:
 
@@ -101,6 +102,13 @@ Acceptance criteria:
 - Reloading the app keeps an authorized user inside the app.
 - Signing out returns the user to `/gate`.
 - Unauthorized users cannot read app config, map image, members, rally points, or responses.
+
+Implementation status:
+
+- Code exists in `src/app/core/auth/auth-session.ts` and `src/app/core/auth/auth-guards.ts`.
+- Firebase Auth persistence is configured for browser-local persistence.
+- Server authorization uses `authorizedUsers/{uid}`.
+- Manual Firebase setup and live verification still required: enable anonymous auth, deploy rules/functions, and test with a real Firebase project.
 
 ### `AUTH-003` Onboarding persistence
 
@@ -311,9 +319,9 @@ Decision: Firebase Functions. It keeps the MVP on one Firebase deployment path a
 
 ### `DEC-002` Authorization model
 
-- [ ] Decide authorization document vs Firebase custom claim.
+- [x] Decide authorization document vs Firebase custom claim.
 
-Recommendation: use `authorizedUsers/{uid}` for MVP because it avoids custom-claim propagation timing.
+Decision: use `authorizedUsers/{uid}` for MVP because it avoids custom-claim propagation timing.
 
 ### `DEC-003` Rally response storage
 

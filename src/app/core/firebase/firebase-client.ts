@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { FirebaseApp, FirebaseOptions, initializeApp } from 'firebase/app';
-import { Auth, getAuth } from 'firebase/auth';
-import { Firestore, getFirestore } from 'firebase/firestore';
-import { FirebaseStorage, getStorage } from 'firebase/storage';
+import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
+import type { FirebaseStorage } from 'firebase/storage';
 
 import { environment } from '../../../environments/environment';
 
@@ -12,24 +12,28 @@ export class FirebaseClient {
 
   readonly isConfigured = Boolean(environment.firebase.apiKey && environment.firebase.projectId);
 
-  getApp(): FirebaseApp {
+  async getApp(): Promise<FirebaseApp> {
     if (!this.isConfigured) {
       throw new Error('Firebase is not configured. Fill src/environments/environment.ts first.');
     }
 
+    const { initializeApp } = await import('firebase/app');
     this.app ??= initializeApp(environment.firebase as FirebaseOptions);
     return this.app;
   }
 
-  getAuth(): Auth {
-    return getAuth(this.getApp());
+  async getAuth(): Promise<Auth> {
+    const { getAuth } = await import('firebase/auth');
+    return getAuth(await this.getApp());
   }
 
-  getFirestore(): Firestore {
-    return getFirestore(this.getApp());
+  async getFirestore(): Promise<Firestore> {
+    const { getFirestore } = await import('firebase/firestore');
+    return getFirestore(await this.getApp());
   }
 
-  getStorage(): FirebaseStorage {
-    return getStorage(this.getApp());
+  async getStorage(): Promise<FirebaseStorage> {
+    const { getStorage } = await import('firebase/storage');
+    return getStorage(await this.getApp());
   }
 }

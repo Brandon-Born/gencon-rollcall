@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { AuthSession, AuthSessionFailure } from './auth-session';
 
 interface PasswordVerificationResponse {
   ok: boolean;
@@ -14,11 +15,14 @@ export type PasswordVerificationError =
   | 'invalid-password'
   | 'too-many-attempts'
   | 'server-not-configured'
+  | 'firebase-not-configured'
+  | 'auth-required'
   | 'network-error'
   | 'unknown-error';
 
 @Injectable({ providedIn: 'root' })
 export class PasswordVerification {
+  private readonly authSession = inject(AuthSession);
   private readonly http = inject(HttpClient);
 
   async verify(password: string): Promise<void> {
@@ -29,16 +33,32 @@ export class PasswordVerification {
     }
 
     try {
+      const user = await this.authSession.ensureAnonymousUser();
+      const token = await user.getIdToken();
       const response = await firstValueFrom(
-        this.http.post<PasswordVerificationResponse>(verificationUrl, { password })
+        this.http.post<PasswordVerificationResponse>(
+          verificationUrl,
+          { password },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
       );
 
       if (!response.ok) {
         throw new PasswordVerificationFailure(this.mapError(response.error));
       }
+
+      this.authSession.markAuthorized(user.uid);
     } catch (error) {
       if (error instanceof PasswordVerificationFailure) {
         throw error;
+      }
+
+      if (error instanceof AuthSessionFailure) {
+        throw new PasswordVerificationFailure(error.code);
       }
 
       if (error instanceof HttpErrorResponse) {
@@ -63,6 +83,7 @@ export class PasswordVerification {
       case 'invalid-password':
       case 'too-many-attempts':
       case 'server-not-configured':
+      case 'auth-required':
         return error;
       default:
         return 'unknown-error';

@@ -15,6 +15,7 @@ Expected request:
 ```http
 POST /verifySharedPassword
 Content-Type: application/json
+Authorization: Bearer <Firebase anonymous auth ID token>
 
 { "password": "shared site password" }
 ```
@@ -26,6 +27,8 @@ Success response:
 ```
 
 Failure responses intentionally return short error codes and never echo the submitted password.
+
+On success, the function writes `authorizedUsers/{uid}` for the UID from the Firebase ID token. This is what unlocks Firestore and Storage reads through the security rules.
 
 ## Secret
 
@@ -59,6 +62,8 @@ passwordVerificationUrl: 'https://.../verifySharedPassword'
 
 This URL is public. The password itself remains server-side in `SHARED_SITE_PASSWORD`.
 
+Anonymous Authentication must be enabled in the Firebase console before the gate can call this function, because the client sends an anonymous user's ID token with the password.
+
 ## Local Build
 
 Build the function package:
@@ -79,4 +84,4 @@ npm run build:all
 - Submitted passwords are not logged.
 - Repeated failed attempts are throttled in memory per function instance and IP.
 - In-memory throttling is a lightweight MVP guard, not a durable abuse-prevention system.
-- `AUTH-002` must add anonymous Firebase auth and server-managed authorization records before shared app data is exposed.
+- Anonymous users still cannot read shared app data until the password succeeds and `authorizedUsers/{uid}` exists.

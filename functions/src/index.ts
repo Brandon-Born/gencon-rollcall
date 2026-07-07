@@ -1,6 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { defineSecret } from 'firebase-functions/params';
 import { onRequest, type Request } from 'firebase-functions/v2/https';
@@ -15,6 +17,12 @@ const failuresByIp = new Map<string, { count: number; firstFailureAt: number }>(
 
 interface PasswordRequestBody {
   password?: unknown;
+}
+
+function bearerToken(req: Request): string | null {
+  const authorization = req.get('authorization') ?? '';
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] ?? null;
 }
 
 function requestIp(req: Request): string {
@@ -65,7 +73,7 @@ export const verifySharedPassword = onRequest(
     region: 'us-central1',
     secrets: [sharedPassword]
   },
-  (req, res) => {
+  async (req, res) => {
     if (req.method !== 'POST') {
       res.set('Allow', 'POST');
       res.status(405).json({ ok: false, error: 'method-not-allowed' });
@@ -84,6 +92,7 @@ export const verifySharedPassword = onRequest(
     const body = req.body as PasswordRequestBody | undefined;
     const submittedPassword = typeof body?.password === 'string' ? body.password : '';
     const expectedPassword = sharedPassword.value();
+    const token = bearerToken(req);
 
     if (!expectedPassword) {
       logger.error('SHARED_SITE_PASSWORD secret is not configured');
@@ -96,6 +105,30 @@ export const verifySharedPassword = onRequest(
       res.status(401).json({ ok: false, error: 'invalid-password' });
       return;
     }
+
+    if (!token) {
+      res.status(401).json({ ok: false, error: 'auth-required' });
+      return;
+    }
+
+    let uid: string;
+
+    try {
+      const decodedToken = await getAuth().verifyIdToken(token);
+      uid = decodedToken.uid;
+    } catch {
+      res.status(401).json({ ok: false, error: 'auth-required' });
+      return;
+    }
+
+    await getFirestore().doc(`authorizedUsers/${uid}`).set(
+      {
+        authorized: true,
+        authorizedAt: FieldValue.serverTimestamp(),
+        lastVerifiedAt: FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
 
     clearFailures(ip);
     res.status(200).json({ ok: true });

@@ -13,11 +13,13 @@ Use a server-side password verification endpoint and an authorization record tie
 
 Flow:
 
-1. Client calls `verifySharedPassword(password)`.
-2. Backend compares the password to an environment secret.
-3. Client signs in anonymously after success, or signs in first and passes the UID token to the function.
-4. Backend writes `authorizedUsers/{uid}` with `authorized: true`, `authorizedAt`, and optional `expiresAt`.
+1. Client creates an anonymous Firebase user to obtain an ID token.
+2. Client calls `verifySharedPassword(password)` with that ID token in the `Authorization` header.
+3. Backend compares the password to an environment secret.
+4. Backend writes `authorizedUsers/{uid}` with `authorized: true`, `authorizedAt`, and `lastVerifiedAt`.
 5. Firestore rules check `exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid))`.
+
+Creating the anonymous user first does not authorize shared-data access. The user remains blocked by Firestore and Storage rules until the password succeeds and `authorizedUsers/{uid}` exists.
 
 This avoids relying on immediate custom-claims propagation during MVP. Custom claims can replace or supplement the authorization document later.
 

@@ -187,6 +187,10 @@ export class Gate {
         return 'Too many attempts. Wait a few minutes and try again.';
       case 'server-not-configured':
         return 'The password service is missing its secret. Check Firebase setup.';
+      case 'firebase-not-configured':
+        return 'Firebase is not configured yet. Add the public Firebase web config first.';
+      case 'auth-required':
+        return 'Could not create an authorized session. Try again.';
       case 'network-error':
         return 'Could not reach the password service. Check your connection and try again.';
       default:

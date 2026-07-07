@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { AuthSession } from '../../core/auth/auth-session';
 import { SessionStore } from '../../core/session/session-store';
 
 @Component({
@@ -120,6 +121,7 @@ import { SessionStore } from '../../core/session/session-store';
   `
 })
 export class SettingsPage {
+  private readonly authSession = inject(AuthSession);
   private readonly router = inject(Router);
   private readonly session = inject(SessionStore);
 
@@ -129,8 +131,8 @@ export class SettingsPage {
     this.session.setDisplayName(this.displayName());
   }
 
-  leave(): void {
-    this.session.clear();
+  async leave(): Promise<void> {
+    await this.authSession.leaveApp();
     void this.router.navigateByUrl('/gate');
   }
 }
