@@ -29,8 +29,8 @@ Work the `Next 3` list in `docs/backlog.md`.
 Current order:
 
 1. `AUTH-001` Smoke-test correct-password authorization with the real shared password.
-2. `AUTH-003` Persist onboarding display name to Firestore.
-3. `MAP-001` Load configured static map image.
+2. `MAP-001` Load configured static map image.
+3. `PEOPLE-001` Persist status and note to Firestore.
 
 Do not skip directly to map/member/rally Firestore reads before the authorization path is real.
 

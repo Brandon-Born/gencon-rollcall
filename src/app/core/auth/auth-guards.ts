@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
-import { SessionStore } from '../session/session-store';
+import { MemberProfile } from '../members/member-profile';
 import { AuthSession } from './auth-session';
 
 export const authorizedGuard: CanActivateFn = async () => {
@@ -15,17 +15,22 @@ export const authorizedGuard: CanActivateFn = async () => {
 
 export const gateGuard: CanActivateFn = async () => {
   const authSession = inject(AuthSession);
+  const memberProfile = inject(MemberProfile);
   const router = inject(Router);
 
   await authSession.whenReady();
 
-  return authSession.isAuthorized() ? router.parseUrl('/app/map') : true;
+  if (!authSession.isAuthorized()) {
+    return true;
+  }
+
+  return await memberProfile.loadCurrentMember() ? router.parseUrl('/app/map') : router.parseUrl('/onboarding');
 };
 
 export const onboardingGuard: CanActivateFn = async () => {
   const authSession = inject(AuthSession);
+  const memberProfile = inject(MemberProfile);
   const router = inject(Router);
-  const session = inject(SessionStore);
 
   await authSession.whenReady();
 
@@ -33,13 +38,13 @@ export const onboardingGuard: CanActivateFn = async () => {
     return router.parseUrl('/gate');
   }
 
-  return session.displayName().trim() ? router.parseUrl('/app/map') : true;
+  return await memberProfile.loadCurrentMember() ? router.parseUrl('/app/map') : true;
 };
 
 export const onboardedGuard: CanActivateFn = async () => {
   const authSession = inject(AuthSession);
+  const memberProfile = inject(MemberProfile);
   const router = inject(Router);
-  const session = inject(SessionStore);
 
   await authSession.whenReady();
 
@@ -47,5 +52,5 @@ export const onboardedGuard: CanActivateFn = async () => {
     return router.parseUrl('/gate');
   }
 
-  return session.displayName().trim() ? true : router.parseUrl('/onboarding');
+  return await memberProfile.loadCurrentMember() ? true : router.parseUrl('/onboarding');
 };

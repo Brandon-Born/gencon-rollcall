@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { AuthSession } from '../../core/auth/auth-session';
+import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
 import { SessionStore } from '../../core/session/session-store';
 
 @Component({
@@ -23,7 +24,12 @@ import { SessionStore } from '../../core/session/session-store';
             (input)="displayName.set($any($event.target).value)"
           />
         </label>
-        <button type="button" (click)="saveName()">Save name</button>
+        <button type="button" [disabled]="isSavingName() || !displayName().trim()" (click)="saveName()">
+          {{ isSavingName() ? 'Saving...' : 'Save name' }}
+        </button>
+        @if (saveMessage()) {
+          <p class="save-message" [class.error]="saveMessageIsError()" role="status">{{ saveMessage() }}</p>
+        }
       </section>
 
       <section class="panel">
@@ -107,6 +113,23 @@ import { SessionStore } from '../../core/session/session-store';
       font-weight: 850;
     }
 
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .save-message {
+      margin: -4px 0 0;
+      color: var(--color-muted);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+
+    .save-message.error {
+      color: var(--color-gencon-red);
+    }
+
     .secondary {
       border: 1px solid var(--color-border);
       background: var(--color-surface);
@@ -122,17 +145,50 @@ import { SessionStore } from '../../core/session/session-store';
 })
 export class SettingsPage {
   private readonly authSession = inject(AuthSession);
+  private readonly memberProfile = inject(MemberProfile);
   private readonly router = inject(Router);
   private readonly session = inject(SessionStore);
 
   readonly displayName = signal(this.session.displayName());
+  readonly isSavingName = signal(false);
+  readonly saveMessage = signal('');
+  readonly saveMessageIsError = signal(false);
 
-  saveName(): void {
-    this.session.setDisplayName(this.displayName());
+  async saveName(): Promise<void> {
+    if (this.isSavingName()) {
+      return;
+    }
+
+    this.isSavingName.set(true);
+    this.saveMessage.set('');
+    this.saveMessageIsError.set(false);
+
+    try {
+      const member = await this.memberProfile.saveCurrentMember(this.displayName());
+      this.displayName.set(member.displayName);
+      this.saveMessage.set('Name saved.');
+    } catch (error) {
+      this.saveMessage.set(messageFor(error));
+      this.saveMessageIsError.set(true);
+    } finally {
+      this.isSavingName.set(false);
+    }
   }
 
   async leave(): Promise<void> {
     await this.authSession.leaveApp();
     void this.router.navigateByUrl('/gate');
   }
+}
+
+function messageFor(error: unknown): string {
+  if (error instanceof MemberProfileError && error.code === 'display-name-required') {
+    return 'Enter a display name before saving.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before saving.';
+  }
+
+  return 'Could not save your name. Check your connection and try again.';
 }

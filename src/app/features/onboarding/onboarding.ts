@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
+import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
 import { SessionStore } from '../../core/session/session-store';
 
 @Component({
@@ -24,9 +25,13 @@ import { SessionStore } from '../../core/session/session-store';
           />
         </label>
 
-        <button type="button" [disabled]="!displayName().trim()" (click)="continue()">
-          Enter map
+        <button type="button" [disabled]="isSaving() || !displayName().trim()" (click)="continue()">
+          {{ isSaving() ? 'Saving...' : 'Enter map' }}
         </button>
+
+        @if (errorMessage()) {
+          <p class="error" role="alert">{{ errorMessage() }}</p>
+        }
       </section>
     </main>
   `,
@@ -99,16 +104,52 @@ import { SessionStore } from '../../core/session/session-store';
     button:disabled {
       opacity: 0.52;
     }
+
+    .error {
+      margin: 12px 0 0;
+      color: var(--color-gencon-red);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
   `
 })
 export class Onboarding {
+  private readonly memberProfile = inject(MemberProfile);
   private readonly router = inject(Router);
   private readonly session = inject(SessionStore);
 
   readonly displayName = signal(this.session.displayName());
+  readonly errorMessage = signal('');
+  readonly isSaving = signal(false);
 
-  continue(): void {
-    this.session.setDisplayName(this.displayName());
-    void this.router.navigateByUrl('/app/map');
+  async continue(): Promise<void> {
+    if (this.isSaving()) {
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.errorMessage.set('');
+
+    try {
+      await this.memberProfile.saveCurrentMember(this.displayName());
+      void this.router.navigateByUrl('/app/map');
+    } catch (error) {
+      this.errorMessage.set(messageFor(error));
+    } finally {
+      this.isSaving.set(false);
+    }
   }
+}
+
+function messageFor(error: unknown): string {
+  if (error instanceof MemberProfileError && error.code === 'display-name-required') {
+    return 'Enter a display name before continuing.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'not-authorized') {
+    return 'Your session is not authorized yet. Go back and enter the shared password again.';
+  }
+
+  return 'Could not save your display name. Check your connection and try again.';
 }

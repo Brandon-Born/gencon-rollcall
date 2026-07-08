@@ -18,8 +18,8 @@ Status values:
 ## Next 3
 
 1. `AUTH-001` Smoke-test correct-password authorization with the real shared password.
-2. `AUTH-003` Persist onboarding display name to Firestore.
-3. `MAP-001` Load configured static map image.
+2. `MAP-001` Load configured static map image.
+3. `PEOPLE-001` Persist status and note to Firestore.
 
 Do these in order. Map/member/rally data must not become readable before the authorization path is real.
 
@@ -121,9 +121,9 @@ Implementation status:
 ### `AUTH-003` Onboarding persistence
 
 - [x] Prototype display-name flow exists.
-- [ ] Persist display name to `members/{uid}`.
-- [ ] Reuse existing member profile on return visits.
-- [ ] Allow display name edits from Settings.
+- [x] Persist display name to `members/{uid}`.
+- [x] Reuse existing member profile on return visits.
+- [x] Allow display name edits from Settings.
 
 Depends on:
 
@@ -133,6 +133,13 @@ Acceptance criteria:
 
 - First authorized entry asks only for display name.
 - Returning users are not asked again unless local/auth state is cleared.
+
+Implementation status:
+
+- Code exists in `src/app/core/members/member-profile.ts`, `src/app/features/onboarding/onboarding.ts`, `src/app/features/settings/settings-page.ts`, and `src/app/core/auth/auth-guards.ts`.
+- Route guards read `members/{uid}` before entering `/app`, so local display-name state does not bypass onboarding.
+- Onboarding creates the current user's member profile with default status, visibility, note, pin, and timestamps.
+- Settings saves display-name edits back to the current user's member profile.
 
 ## Milestone: Shared Map
 
