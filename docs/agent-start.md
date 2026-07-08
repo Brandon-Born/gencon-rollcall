@@ -8,7 +8,8 @@ Use this file when picking up the project in a new session.
 - Mobile route shell exists.
 - Prototype screens exist for gate, onboarding, map, people, rally points, and settings.
 - Firebase client setup, Vercel API route, and Firestore rules exist.
-- Shared-password verification code exists, but Firebase/Vercel production setup still needs live verification.
+- Production is deployed at `https://gencon-rollcall.vercel.app`.
+- Anonymous Auth and wrong-password API behavior are live-verified; correct-password authorization still needs a password-holder smoke test.
 - Real Firestore app data flow is not implemented yet.
 
 ## Read First
@@ -27,9 +28,9 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `AUTH-001` Finish Vercel/Firebase setup for shared-password verification.
-2. `AUTH-002` Finish Firebase setup and live verification for anonymous authorization.
-3. `AUTH-003` Persist onboarding display name to Firestore.
+1. `AUTH-001` Smoke-test correct-password authorization with the real shared password.
+2. `AUTH-003` Persist onboarding display name to Firestore.
+3. `MAP-001` Load configured static map image.
 
 Do not skip directly to map/member/rally Firestore reads before the authorization path is real.
 

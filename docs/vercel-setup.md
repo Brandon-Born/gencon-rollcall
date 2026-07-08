@@ -79,13 +79,19 @@ Firestore location: nam5
 Firestore rules: deployed 2026-07-07
 Vercel project: brandon-borns-projects/gencon-rollcall
 GitHub repo: connected to https://github.com/Brandon-Born/gencon-rollcall
+Production URL: https://gencon-rollcall.vercel.app
 ```
 
-Remaining manual Firebase setup:
+Verified production setup:
 
-- Enable Firebase Authentication with the Anonymous provider.
+- Firebase Anonymous Auth can create anonymous users.
+- Vercel production has `SHARED_SITE_PASSWORD`.
+- Vercel production has `FIREBASE_SERVICE_ACCOUNT_JSON`.
+- Wrong-password API smoke test returns `401 invalid-password`.
 
-The CLI/API attempt to test anonymous sign-in currently returns `CONFIGURATION_NOT_FOUND`, which means Firebase Authentication still needs to be initialized/enabled for this project.
+Remaining production verification:
+
+- Someone with the shared password should test that the correct password writes `authorizedUsers/{uid}` and enters the app.
 
 Firebase Storage is intentionally out of MVP scope now that Vercel is the host. Store the convention map as a Vercel static asset under `public/maps/` or as another static URL configured in Firestore.
 
@@ -126,7 +132,7 @@ Vercel build settings:
 - Build command: `npm run build`
 - Output directory: `dist/gencon-rollcall/browser`
 
-Do not production-deploy until required environment variables are configured, or the password endpoint will return `server-not-configured`.
+Production is deployed. Do not rotate or remove required environment variables, or the password endpoint will return `server-not-configured`.
 
 ## Security Notes
 

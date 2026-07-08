@@ -17,9 +17,9 @@ Status values:
 
 ## Next 3
 
-1. `AUTH-001` Finish Vercel/Firebase setup for shared-password verification.
-2. `AUTH-002` Finish Firebase setup and live verification for anonymous authorization.
-3. `AUTH-003` Persist onboarding display name to Firestore.
+1. `AUTH-001` Smoke-test correct-password authorization with the real shared password.
+2. `AUTH-003` Persist onboarding display name to Firestore.
+3. `MAP-001` Load configured static map image.
 
 Do these in order. Map/member/rally data must not become readable before the authorization path is real.
 
@@ -59,11 +59,12 @@ Acceptance criteria:
 ### `AUTH-001` Server-side shared-password verification
 
 - [x] Choose password verification runtime.
-- [ ] Store the expected shared password as an environment secret.
+- [x] Store the expected shared password as an environment secret.
 - [x] Add password verification endpoint.
 - [x] Avoid logging submitted passwords.
 - [x] Add basic failed-attempt throttling or rate-limit note.
 - [x] Replace the prototype gate transition with the real verification call.
+- [ ] Live-test correct shared password against production.
 
 Depends on:
 
@@ -82,11 +83,14 @@ Implementation status:
 - The endpoint also authorizes the anonymous UID after password success.
 - Vercel project `gencon-rollcall` exists and is connected to the GitHub repo.
 - Vercel-specific Firebase service account exists with `roles/datastore.user`.
-- Manual Vercel setup still required: set `SHARED_SITE_PASSWORD` and Firebase Admin credentials as Vercel environment variables.
+- Production Vercel env vars exist for `SHARED_SITE_PASSWORD` and `FIREBASE_SERVICE_ACCOUNT_JSON`.
+- Production deploy exists at `https://gencon-rollcall.vercel.app`.
+- Wrong-password smoke test returns `401 invalid-password`, confirming the API route and server config are live.
+- Correct-password authorization still needs a smoke test by someone with the shared password.
 
 ### `AUTH-002` Anonymous auth and authorized session
 
-- [ ] Enable anonymous Firebase auth in the Firebase project.
+- [x] Enable anonymous Firebase auth in the Firebase project.
 - [x] Create anonymous Firebase user before password verification to obtain an ID token.
 - [x] Create or verify `authorizedUsers/{uid}` server-side after password success.
 - [x] Persist authorized sessions across reloads.
@@ -111,7 +115,8 @@ Implementation status:
 - Server authorization uses `authorizedUsers/{uid}`.
 - Firestore rules are deployed to `gencon-rollcall`.
 - Firebase Storage is intentionally out of MVP scope; map images should be Vercel static assets.
-- Manual Firebase/Vercel setup and live verification still required: enable anonymous auth, configure Vercel env vars, and test against the real Firebase project.
+- Anonymous Auth live smoke test can create an anonymous ID token.
+- Live verification still required: correct-password path should write `authorizedUsers/{uid}` and allow guarded navigation.
 
 ### `AUTH-003` Onboarding persistence
 
