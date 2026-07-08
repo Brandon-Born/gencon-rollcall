@@ -2,8 +2,8 @@
 
 ## Goals
 
-- The shared password is never present in client JavaScript, Firestore, or Storage.
-- Unauthorized users cannot read map config, member records, rally points, or map images.
+- The shared password is never present in client JavaScript or Firestore.
+- Unauthorized users cannot read map config, member records, rally points, or responses.
 - Authorized anonymous users can read and write only the limited shared data needed by the app.
 - The app collects no unnecessary personal data.
 
@@ -19,7 +19,7 @@ Flow:
 4. Backend writes `authorizedUsers/{uid}` with `authorized: true`, `authorizedAt`, and `lastVerifiedAt`.
 5. Firestore rules check `exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid))`.
 
-Creating the anonymous user first does not authorize shared-data access. The user remains blocked by Firestore and Storage rules until the password succeeds and `authorizedUsers/{uid}` exists.
+Creating the anonymous user first does not authorize shared-data access. The user remains blocked by Firestore rules until the password succeeds and `authorizedUsers/{uid}` exists.
 
 This avoids relying on immediate custom-claims propagation during MVP. Custom claims can replace or supplement the authorization document later.
 
@@ -33,15 +33,15 @@ rallyPoints/{rallyPointId}
 rallyPoints/{rallyPointId}/responses/{uid}
 ```
 
-## Storage
+## Map Assets
 
-Store map images under a protected path such as:
+For MVP, map images are Vercel static assets, for example:
 
 ```text
-maps/current/*
+public/maps/gencon-2026.png
 ```
 
-Storage rules should require an authenticated and authorized UID before read access.
+The map image itself is not treated as sensitive. The app gates access to map config, member locations, statuses, and rally data through Firebase Auth and Firestore rules.
 
 ## Firestore Rule Intent
 

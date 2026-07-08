@@ -4,7 +4,6 @@ export const environment = {
     apiKey: 'AIzaSyCfra0x-kz-VrqLzHY6jVG115px74DTsXg',
     authDomain: 'gencon-rollcall.firebaseapp.com',
     projectId: 'gencon-rollcall',
-    storageBucket: 'gencon-rollcall.firebasestorage.app',
     messagingSenderId: '671879050351',
     appId: '1:671879050351:web:bc1f69247dbf720342c99a'
   },

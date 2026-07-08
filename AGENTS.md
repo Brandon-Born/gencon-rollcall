@@ -25,7 +25,7 @@ Read these files before implementation:
 - Prefer simple Angular standalone components and small services over broad abstractions.
 - Use manual map pins stored as relative percentage coordinates.
 - Keep GPS optional, explicit, and off by default.
-- Never put the shared password in client code, Firestore documents, or Storage.
+- Never put the shared password in client code, Firestore documents, or static assets.
 - Document Firebase setup steps instead of hiding required manual configuration.
 - Update `docs/backlog.md` when starting or completing substantive work.
 - Work the `Next 3` section in `docs/backlog.md` unless the user explicitly redirects priority.

@@ -5,7 +5,7 @@
 - Scaffold Angular 21 as a standalone-component app.
 - Use route-level lazy loading for the authenticated app shell and any setup/admin surface.
 - Use Angular signals for local UI state and observable-to-signal bridges for Firestore streams.
-- Keep Firebase access behind narrow services: auth/session, members, map config, rally points, and storage.
+- Keep Firebase access behind narrow services: auth/session, members, map config, and rally points.
 - Represent the map as an image/canvas coordinate plane, not a geographic map.
 - Store pins and rally points as relative percentages: `mapXPercent` and `mapYPercent`.
 
@@ -71,7 +71,7 @@ RallyResponse
 - `/app/people`: group status list with notes and freshness.
 - `/app/rallies`: active rally points and responses.
 - `/app/settings`: display name, hide location, sign out, optional setup link.
-- `/setup`: protected developer/admin setup for map image URL or upload, if needed for MVP.
+- `/setup`: protected developer/admin setup for map image URL selection, if needed for MVP.
 
 ## MVP Milestone Sequence
 
@@ -98,6 +98,6 @@ RallyResponse
 
 - This is a private POC for one known group.
 - A developer can manually provide the current Gen Con map image.
-- Firebase is acceptable for auth, real-time sync, and storage. Vercel is the hosting and API runtime.
+- Firebase is acceptable for auth and real-time sync. Vercel is the hosting, static map asset, and API runtime.
 - The MVP can use anonymous auth rather than user accounts.
 - Browser push notifications are out of scope unless later prioritized.

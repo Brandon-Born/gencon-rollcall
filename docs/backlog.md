@@ -47,12 +47,11 @@ Do these in order. Map/member/rally data must not become readable before the aut
 - [x] Public Firebase web config exists for `gencon-rollcall`.
 - [x] Vercel build config exists.
 - [x] Firestore rules starter exists.
-- [x] Storage rules starter exists.
 - [x] Firebase project values are configured for a real project.
 
 Acceptance criteria:
 
-- No shared password or secret appears in Angular environment files, Firestore, Storage, or docs.
+- No shared password or secret appears in Angular environment files, Firestore, static assets, or docs.
 - README names the manual setup still required.
 
 ## Milestone: Auth and Session
@@ -103,7 +102,7 @@ Acceptance criteria:
 
 - Reloading the app keeps an authorized user inside the app.
 - Signing out returns the user to `/gate`.
-- Unauthorized users cannot read app config, map image, members, rally points, or responses.
+- Unauthorized users cannot read app config, members, rally points, or responses.
 
 Implementation status:
 
@@ -111,8 +110,8 @@ Implementation status:
 - Firebase Auth persistence is configured for browser-local persistence.
 - Server authorization uses `authorizedUsers/{uid}`.
 - Firestore rules are deployed to `gencon-rollcall`.
-- Storage bucket creation via CLI is blocked until project billing is attached or Storage is initialized another way.
-- Manual Firebase/Vercel setup and live verification still required: enable anonymous auth, create or confirm Storage bucket, deploy Storage rules, configure Vercel env vars, and test against the real Firebase project.
+- Firebase Storage is intentionally out of MVP scope; map images should be Vercel static assets.
+- Manual Firebase/Vercel setup and live verification still required: enable anonymous auth, configure Vercel env vars, and test against the real Firebase project.
 
 ### `AUTH-003` Onboarding persistence
 
@@ -132,13 +131,13 @@ Acceptance criteria:
 
 ## Milestone: Shared Map
 
-### `MAP-001` Map config and protected image loading
+### `MAP-001` Map config and static image loading
 
 - [ ] Create `appConfig/current` loading service.
 - [ ] Load `mapImageUrl` and `mapDisplayName`.
-- [ ] Read map image from protected Firebase Storage path.
+- [ ] Read map image from a Vercel static asset path or configured static URL.
 - [ ] Add empty/loading/error states.
-- [ ] Document how a developer uploads or configures the current Gen Con map image.
+- [ ] Document how a developer adds or configures the current Gen Con map image.
 
 Depends on:
 
@@ -148,7 +147,7 @@ Depends on:
 Acceptance criteria:
 
 - Authorized users can see the configured map.
-- Unauthorized users cannot read the map image.
+- The map image is not treated as sensitive; shared app data remains gated by Firestore rules.
 - The UI still works when no map is configured.
 
 ### `MAP-002` Mobile map pan and zoom
@@ -335,9 +334,9 @@ Recommendation: `rallyPoints/{rallyPointId}/responses/{uid}` for simple rules an
 
 ### `DEC-004` Map setup path
 
-- [ ] Decide developer-configured URL vs protected upload screen.
+- [x] Decide developer-configured URL vs protected upload screen.
 
-Recommendation: developer-configured protected Storage object for MVP.
+Decision: use a developer-configured Vercel static asset or static URL for MVP. Firebase Storage is not worth a billing dependency for a non-sensitive convention map image.
 
 ### `DEC-005` Browser notifications
 

@@ -7,7 +7,7 @@ Use this file when picking up the project in a new session.
 - Angular 21 app is scaffolded.
 - Mobile route shell exists.
 - Prototype screens exist for gate, onboarding, map, people, rally points, and settings.
-- Firebase client setup, Vercel API route, Firestore rules, and Storage rules exist.
+- Firebase client setup, Vercel API route, and Firestore rules exist.
 - Shared-password verification code exists, but Firebase/Vercel production setup still needs live verification.
 - Real Firestore app data flow is not implemented yet.
 

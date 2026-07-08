@@ -1,6 +1,6 @@
 # Vercel Setup
 
-The MVP is hosted on Vercel. Firebase remains the data plane for Authentication, Firestore, and Storage; Vercel serves the Angular app and the shared-password API route.
+The MVP is hosted on Vercel. Firebase remains the data plane for Authentication and Firestore; Vercel serves the Angular app, static map assets, and the shared-password API route.
 
 ## Vercel Runtime
 
@@ -28,7 +28,7 @@ Success response:
 
 Failure responses intentionally return short error codes and never echo the submitted password.
 
-On success, the API route writes `authorizedUsers/{uid}` for the UID from the Firebase ID token. This unlocks Firestore and Storage reads through the security rules.
+On success, the API route writes `authorizedUsers/{uid}` for the UID from the Firebase ID token. This unlocks Firestore reads through the security rules.
 
 ## Vercel Environment Variables
 
@@ -54,7 +54,7 @@ FIREBASE_PRIVATE_KEY
 
 When using `FIREBASE_PRIVATE_KEY`, keep the escaped newline sequences intact or configure it as a multiline secret in Vercel. The API route normalizes `\n` sequences.
 
-Do not put `SHARED_SITE_PASSWORD` or service account values in Angular environment files, Firestore, Storage, `.env`, README examples, screenshots, logs, or test fixtures.
+Do not put `SHARED_SITE_PASSWORD` or service account values in Angular environment files, Firestore, `.env`, README examples, screenshots, logs, or test fixtures.
 
 ## Angular Configuration
 
@@ -84,12 +84,10 @@ GitHub repo: connected to https://github.com/Brandon-Born/gencon-rollcall
 Remaining manual Firebase setup:
 
 - Enable Firebase Authentication with the Anonymous provider.
-- Attach billing or otherwise initialize Firebase Storage before creating the default bucket.
-- Deploy Storage rules after the bucket exists.
 
 The CLI/API attempt to test anonymous sign-in currently returns `CONFIGURATION_NOT_FOUND`, which means Firebase Authentication still needs to be initialized/enabled for this project.
 
-The CLI attempt to create `gs://gencon-rollcall.firebasestorage.app` failed with a Google Cloud billing error because the project has no billing account attached.
+Firebase Storage is intentionally out of MVP scope now that Vercel is the host. Store the convention map as a Vercel static asset under `public/maps/` or as another static URL configured in Firestore.
 
 ## Firebase Admin Credentials
 

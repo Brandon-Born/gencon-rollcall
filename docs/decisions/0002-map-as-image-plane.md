@@ -17,4 +17,4 @@ The Indiana Convention Center is an indoor venue where GPS is unreliable. The pr
 - The MVP avoids geographic map APIs.
 - Coordinates remain stable across phone sizes and zoom levels.
 - The app needs good pan/zoom and tap-coordinate handling.
-- A developer or protected setup flow must provide the current map image.
+- A developer must provide the current map image as a Vercel static asset or configured static URL.

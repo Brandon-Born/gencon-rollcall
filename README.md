@@ -35,14 +35,14 @@ Start with the docs in this order:
 - Angular signals where appropriate
 - Firebase Authentication with anonymous auth
 - Firestore for shared real-time state
-- Firebase Storage for the map image
+- Vercel static assets for the map image
 - Vercel API route for password verification
 - Vercel hosting
 - Angular PWA support
 
 ## Map Source
 
-Treat [https://www.gencon.com/map](https://www.gencon.com/map) as the canonical source to review for the current official Gen Con map. For MVP implementation, store a static convention-map image in Firebase Storage and render it as an image/canvas surface with relative percentage coordinates.
+Treat [https://www.gencon.com/map](https://www.gencon.com/map) as the canonical source to review for the current official Gen Con map. For MVP implementation, store a static convention-map image in Vercel public assets and render it as an image/canvas surface with relative percentage coordinates.
 
 Do not depend on latitude/longitude, continuous GPS, or live scraping of the Gen Con page for MVP.
 
@@ -62,10 +62,9 @@ The production build may need to run outside this Codex sandbox on this machine;
 ## Manual Setup Required Later
 
 - Anonymous Auth enabled
-- Storage bucket
 - Vercel environment variables for `SHARED_SITE_PASSWORD` and Firebase Admin credentials
 - Vercel project linked to this repository
-- Production map image uploaded or configured
+- Production map image added under `public/maps/` or configured by URL
 
 ## Definition of Done for MVP
 

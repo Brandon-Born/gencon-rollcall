@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import type { FirebaseStorage } from 'firebase/storage';
 
 import { environment } from '../../../environments/environment';
 
@@ -30,10 +29,5 @@ export class FirebaseClient {
   async getFirestore(): Promise<Firestore> {
     const { getFirestore } = await import('firebase/firestore');
     return getFirestore(await this.getApp());
-  }
-
-  async getStorage(): Promise<FirebaseStorage> {
-    const { getStorage } = await import('firebase/storage');
-    return getStorage(await this.getApp());
   }
 }
