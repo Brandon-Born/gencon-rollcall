@@ -18,9 +18,9 @@ Status values:
 
 ## Next 3
 
-1. `MAP-002` Mobile map pan and zoom.
-2. `PEOPLE-002` Real-time people list.
-3. `MAP-003` Manual pin placement.
+1. `MAP-003` Manual pin placement.
+2. `MAP-004` Hide location.
+3. `RALLY-001` Create rally points.
 
 Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
 
@@ -259,10 +259,17 @@ Acceptance criteria:
 
 ### `PEOPLE-002` Real-time people list
 
-- [ ] Replace seeded people data with Firestore members stream.
-- [ ] Show display name, status, note, and last-updated freshness.
-- [ ] Visually distinguish stale/offline updates.
-- [ ] Keep list scannable on phone screens.
+- [x] Replace seeded people data with Firestore members stream.
+- [x] Show display name, status, note, and last-updated freshness.
+- [x] Visually distinguish stale/offline updates.
+- [x] Keep list scannable on phone screens.
+
+Implementation status:
+
+- Code exists in `src/app/core/members/member-profile.ts` and `src/app/features/people/people-page.ts`.
+- The People page subscribes to the authorized `members` collection in real time and renders display name, status, note, last-updated freshness, and hidden-location state.
+- Stale updates and offline members have distinct row treatment while preserving text labels for accessibility.
+- Browser QA covered a 390px-wide viewport with emulator-backed gate/onboarding/people flow, hidden-location member visibility, stale/offline row states, no horizontal overflow, and a live Firestore member update without refresh.
 
 Depends on:
 

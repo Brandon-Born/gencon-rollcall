@@ -1,54 +1,128 @@
-import { Component } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 
-const people = [
-  { initials: 'AC', name: 'Alex Carter', status: 'Available', note: 'At Exhibit Hall', updated: '9:40 AM', tone: 'green' },
-  { initials: 'JW', name: 'Jamie Wu', status: 'Gaming', note: 'Board gaming area', updated: '9:38 AM', tone: 'blue' },
-  { initials: 'MK', name: 'Morgan K.', status: 'Heading somewhere', note: 'On my way from Hall D', updated: '9:35 AM', tone: 'gold' },
-  { initials: 'LD', name: 'Lee D.', status: 'Offline', note: 'Out for the afternoon', updated: '9:28 AM', tone: 'gray' }
-];
+import { MemberProfile } from '../../core/members/member-profile';
+import type { Member } from '../../core/models/member';
+import { type MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
+
+interface PersonListItem {
+  id: string;
+  displayName: string;
+  initials: string;
+  status: MemberStatus;
+  statusLabel: string;
+  note: string;
+  freshnessLabel: string;
+  updatedAtIso: string;
+  locationVisible: boolean;
+  tone: string;
+  isOffline: boolean;
+  isStale: boolean;
+  sortTime: number;
+}
+
+const staleAfterMs = 60 * 60 * 1000;
+const minuteMs = 60 * 1000;
+const hourMs = 60 * minuteMs;
+const dayMs = 24 * hourMs;
 
 @Component({
   selector: 'app-people-page',
   template: `
     <main class="page">
       <header>
-        <h1>People</h1>
-        <p>Recent statuses and notes from the crew.</p>
+        <div>
+          <p>Group status</p>
+          <h1>People</h1>
+        </div>
+        @if (!isLoading() && people().length) {
+          <span class="summary">{{ summaryLabel() }}</span>
+        }
       </header>
 
-      <section class="list" aria-label="Group status list">
-        @for (person of people; track person.initials) {
-          <article class="person">
-            <span class="avatar" [class]="person.tone">{{ person.initials }}</span>
-            <div>
-              <div class="row">
-                <strong>{{ person.name }}</strong>
-                <time>{{ person.updated }}</time>
+      @if (isLoading()) {
+        <section class="state" aria-live="polite">
+          <span class="state-icon" aria-hidden="true"></span>
+          <strong>Loading people</strong>
+          <p>Subscribing to the group status list.</p>
+        </section>
+      } @else if (loadError()) {
+        <section class="state error" role="alert">
+          <strong>People unavailable</strong>
+          <p>{{ errorMessage() }}</p>
+          <button type="button" (click)="reloadPeople()">Try again</button>
+        </section>
+      } @else if (!people().length) {
+        <section class="state">
+          <strong>No one is listed yet</strong>
+          <p>Members appear here after they finish onboarding.</p>
+        </section>
+      } @else {
+        <section class="list" aria-label="Group status list">
+          @for (person of people(); track person.id) {
+            <article class="person" [class.offline]="person.isOffline" [class.stale]="person.isStale">
+              <span class="avatar" [class]="person.tone" aria-hidden="true">{{ person.initials }}</span>
+              <div class="person-body">
+                <div class="row">
+                  <strong>{{ person.displayName }}</strong>
+                  <time [attr.datetime]="person.updatedAtIso">{{ person.freshnessLabel }}</time>
+                </div>
+
+                <p class="status">
+                  <span class="status-dot" [class]="person.tone" aria-hidden="true"></span>
+                  {{ person.statusLabel }}
+                </p>
+
+                <p class="note">{{ person.note || 'No note yet.' }}</p>
+
+                @if (!person.locationVisible) {
+                  <p class="meta">Location hidden</p>
+                }
               </div>
-              <p class="status">{{ person.status }}</p>
-              <p>{{ person.note }}</p>
-            </div>
-          </article>
-        }
-      </section>
+            </article>
+          }
+        </section>
+      }
     </main>
   `,
   styles: `
     .page {
       min-height: 100svh;
-      padding: 22px 16px;
+      padding: 18px 14px 22px;
       background: var(--color-bg);
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    header p {
+      margin: 0 0 3px;
+      color: var(--color-muted);
+      font-size: 12px;
+      font-weight: 800;
     }
 
     h1 {
       margin: 0;
       color: var(--color-text);
       font-size: 28px;
+      line-height: 1.08;
     }
 
-    header p {
-      margin: 6px 0 18px;
+    .summary {
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
       color: var(--color-muted);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
     }
 
     .list {
@@ -58,12 +132,21 @@ const people = [
 
     .person {
       display: grid;
-      grid-template-columns: 52px 1fr;
-      gap: 13px;
+      grid-template-columns: 50px minmax(0, 1fr);
+      gap: 12px;
       padding: 14px;
       border: 1px solid var(--color-border);
       border-radius: 14px;
       background: var(--color-surface);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    }
+
+    .person.stale {
+      background: linear-gradient(90deg, rgba(249, 115, 22, 0.07), var(--color-surface) 42%);
+    }
+
+    .person.offline {
+      opacity: 0.72;
     }
 
     .avatar {
@@ -73,7 +156,9 @@ const people = [
       place-items: center;
       border: 3px solid var(--color-map-blue);
       border-radius: 999px;
+      background: var(--color-surface);
       color: var(--color-text);
+      font-size: 15px;
       font-weight: 900;
     }
 
@@ -81,44 +166,310 @@ const people = [
       border-color: var(--color-green);
     }
 
+    .avatar.blue {
+      border-color: var(--color-map-blue);
+    }
+
     .avatar.gold {
       border-color: var(--color-gold);
+    }
+
+    .avatar.orange,
+    .avatar.red {
+      border-color: var(--color-orange);
     }
 
     .avatar.gray {
       border-color: var(--color-muted);
     }
 
+    .status-dot.green {
+      background: var(--color-green);
+    }
+
+    .status-dot.blue {
+      background: var(--color-map-blue);
+    }
+
+    .status-dot.gold {
+      background: var(--color-gold);
+    }
+
+    .status-dot.orange,
+    .status-dot.red {
+      background: var(--color-orange);
+    }
+
+    .status-dot.gray {
+      background: var(--color-muted);
+    }
+
+    .person-body {
+      min-width: 0;
+    }
+
     .row {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
 
     strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
       color: var(--color-text);
       font-size: 16px;
+      line-height: 1.2;
     }
 
     time {
+      flex: 0 0 auto;
       color: var(--color-muted);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
     }
 
     p {
       margin: 4px 0 0;
       color: var(--color-muted);
       font-size: 14px;
+      line-height: 1.35;
     }
 
     .status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
       color: var(--color-text);
-      font-weight: 800;
+      font-weight: 850;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+    }
+
+    .note {
+      overflow-wrap: anywhere;
+    }
+
+    .meta {
+      color: var(--color-muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .state {
+      min-height: 280px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 10px;
+      padding: 28px;
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      text-align: center;
+    }
+
+    .state strong {
+      font-size: 18px;
+    }
+
+    .state p {
+      max-width: 22rem;
+      margin: 0;
+    }
+
+    .state button {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--color-gencon-red);
+      color: white;
+      font-size: 14px;
+      font-weight: 850;
+    }
+
+    .state-icon {
+      width: 36px;
+      height: 36px;
+      border: 4px solid rgba(47, 128, 237, 0.2);
+      border-top-color: var(--color-map-blue);
+      border-radius: 999px;
+      animation: spin 900ms linear infinite;
+    }
+
+    .state.error {
+      border-color: rgba(214, 56, 47, 0.28);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .state-icon {
+        animation: none;
+      }
     }
   `
 })
 export class PeoplePage {
-  readonly people = people;
+  private readonly memberProfile = inject(MemberProfile);
+  private readonly destroyRef = inject(DestroyRef);
+  private peopleUnsubscribe: (() => void) | null = null;
+  private isDestroyed = false;
+
+  readonly members = signal<Member[]>([]);
+  readonly now = signal(new Date());
+  readonly isLoading = signal(true);
+  readonly loadError = signal(false);
+  readonly people = computed(() => {
+    const now = this.now();
+
+    return this.members()
+      .map((member) => toPersonListItem(member, now))
+      .sort((first, second) => {
+        if (first.isOffline !== second.isOffline) {
+          return first.isOffline ? 1 : -1;
+        }
+
+        return second.sortTime - first.sortTime || first.displayName.localeCompare(second.displayName);
+      });
+  });
+  readonly summaryLabel = computed(() => {
+    const people = this.people();
+    const activeCount = people.filter((person) => !person.isOffline).length;
+
+    return `${activeCount}/${people.length} active`;
+  });
+  readonly errorMessage = computed(() =>
+    this.loadError() ? 'Could not read the group list. Check your session and connection, then try again.' : ''
+  );
+
+  constructor() {
+    const interval = window.setInterval(() => this.now.set(new Date()), minuteMs);
+
+    this.destroyRef.onDestroy(() => {
+      this.isDestroyed = true;
+      window.clearInterval(interval);
+      this.peopleUnsubscribe?.();
+      this.peopleUnsubscribe = null;
+    });
+
+    void this.startMembersStream();
+  }
+
+  reloadPeople(): void {
+    void this.startMembersStream();
+  }
+
+  private async startMembersStream(): Promise<void> {
+    this.peopleUnsubscribe?.();
+    this.peopleUnsubscribe = null;
+    this.isLoading.set(true);
+    this.loadError.set(false);
+
+    try {
+      const unsubscribe = await this.memberProfile.watchMembers(
+        (members) => {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.members.set(members);
+          this.isLoading.set(false);
+          this.loadError.set(false);
+        },
+        () => {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.isLoading.set(false);
+          this.loadError.set(true);
+        }
+      );
+
+      if (this.isDestroyed) {
+        unsubscribe();
+        return;
+      }
+
+      this.peopleUnsubscribe = unsubscribe;
+    } catch {
+      if (!this.isDestroyed) {
+        this.isLoading.set(false);
+        this.loadError.set(true);
+      }
+    }
+  }
+}
+
+function toPersonListItem(member: Member, now: Date): PersonListItem {
+  const updatedAt = validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : member.joinedAt;
+  const diffMs = Math.max(0, now.getTime() - updatedAt.getTime());
+  const isOffline = member.status === 'offline';
+
+  return {
+    id: member.id,
+    displayName: member.displayName || 'Unnamed member',
+    initials: initialsFor(member.displayName),
+    status: member.status,
+    statusLabel: statusLabel(member.status),
+    note: member.note,
+    freshnessLabel: freshnessLabel(updatedAt, now),
+    updatedAtIso: updatedAt.toISOString(),
+    locationVisible: member.locationVisible,
+    tone: toneForStatus(member.status),
+    isOffline,
+    isStale: !isOffline && diffMs >= staleAfterMs,
+    sortTime: updatedAt.getTime()
+  };
+}
+
+function initialsFor(displayName: string): string {
+  const initials = displayName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+
+  return initials || '?';
+}
+
+function freshnessLabel(updatedAt: Date, now: Date): string {
+  const diffMs = Math.max(0, now.getTime() - updatedAt.getTime());
+
+  if (diffMs < minuteMs) {
+    return 'Just now';
+  }
+
+  if (diffMs < hourMs) {
+    return `${Math.floor(diffMs / minuteMs)}m ago`;
+  }
+
+  if (diffMs < dayMs) {
+    return `${Math.floor(diffMs / hourMs)}h ago`;
+  }
+
+  return updatedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function toneForStatus(status: MemberStatus): string {
+  return STATUS_OPTIONS.find((option) => option.value === status)?.tone ?? 'gray';
+}
+
+function validDate(value: Date): boolean {
+  return value instanceof Date && Number.isFinite(value.getTime());
 }

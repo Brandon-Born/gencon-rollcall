@@ -133,6 +133,26 @@ export class MemberProfile {
     throw new MemberProfileError('member-not-found');
   }
 
+  async watchMembers(onMembers: (members: Member[]) => void, onError: (error: unknown) => void): Promise<() => void> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      onError(new MemberProfileError('not-authorized'));
+      return () => undefined;
+    }
+
+    const { collection, onSnapshot } = await import('firebase/firestore');
+    const membersRef = collection(await this.firebase.getFirestore(), 'members');
+
+    return onSnapshot(
+      membersRef,
+      (snapshot) => {
+        onMembers(snapshot.docs.map((document) => this.toMember(document.id, document.data())));
+      },
+      onError
+    );
+  }
+
   clearLoadedMember(): void {
     this.loadedUid = null;
     this.member.set(null);
