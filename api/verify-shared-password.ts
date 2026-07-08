@@ -1,8 +1,7 @@
-import { timingSafeEqual } from 'node:crypto';
-
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+const { timingSafeEqual } = require('node:crypto') as typeof import('node:crypto');
+const { cert, getApps, initializeApp } = require('firebase-admin/app') as typeof import('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth') as typeof import('firebase-admin/auth');
+const { FieldValue, getFirestore } = require('firebase-admin/firestore') as typeof import('firebase-admin/firestore');
 
 interface RequestLike {
   method?: string;
@@ -152,7 +151,7 @@ function initFirebaseAdmin(): boolean {
   return true;
 }
 
-export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
+async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ ok: false, error: 'method-not-allowed' });
@@ -212,3 +211,5 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
   clearFailures(ip);
   res.status(200).json({ ok: true });
 }
+
+module.exports = handler;
