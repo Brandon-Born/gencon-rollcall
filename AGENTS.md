@@ -28,6 +28,7 @@ Read these files before implementation:
 - Never put the shared password in client code, Firestore documents, or static assets.
 - Document Firebase setup steps instead of hiding required manual configuration.
 - Update `docs/backlog.md` when starting or completing substantive work.
+- After completing a backlog item, commit the completed work and push it to the current branch before moving to the next backlog item.
 - Work the `Next 3` section in `docs/backlog.md` unless the user explicitly redirects priority.
 
 ## Verification Expectations

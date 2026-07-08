@@ -88,12 +88,30 @@ Verified production setup:
 - Vercel production has `SHARED_SITE_PASSWORD`.
 - Vercel production has `FIREBASE_SERVICE_ACCOUNT_JSON`.
 - Wrong-password API smoke test returns `401 invalid-password`.
-
-Remaining production verification:
-
-- Someone with the shared password should test that the correct password writes `authorizedUsers/{uid}` and enters the app.
+- Correct-password production smoke test passed: a password-holder could log in and create a user.
 
 Firebase Storage is intentionally out of MVP scope now that Vercel is the host. Store the convention map as a Vercel static asset under `public/maps/` or as another static URL configured in Firestore.
+
+## Map Image Configuration
+
+Add the reviewed convention map image to Vercel static assets, for example:
+
+```text
+public/maps/gencon-2026.png
+```
+
+After deployment, configure the single Firestore document that authorized clients read:
+
+```text
+Collection: appConfig
+Document: current
+
+mapImageUrl: "/maps/gencon-2026.png"
+mapDisplayName: "Gen Con Indy 2026"
+updatedAt: <server timestamp>
+```
+
+The map image itself is not treated as sensitive, but the `appConfig/current` document remains gated by Firestore rules so unauthorized visitors cannot read shared app configuration. If no document or image URL is configured, the app shows an empty map state instead of exposing seeded data.
 
 ## Firebase Admin Credentials
 

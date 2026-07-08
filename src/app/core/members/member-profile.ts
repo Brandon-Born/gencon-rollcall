@@ -94,6 +94,45 @@ export class MemberProfile {
     return await this.loadCurrentMember({ force: true }) ?? this.fallbackMember(uid, trimmedName);
   }
 
+  async saveCurrentStatus(status: MemberStatus, note: string): Promise<Member> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      throw new MemberProfileError('not-authorized');
+    }
+
+    const normalizedNote = normalizeNote(note);
+    const { doc, serverTimestamp, updateDoc } = await import('firebase/firestore');
+    const memberRef = doc(await this.firebase.getFirestore(), 'members', uid);
+
+    await updateDoc(memberRef, {
+      status,
+      note: normalizedNote,
+      lastUpdatedAt: serverTimestamp()
+    });
+
+    const savedMember = await this.loadCurrentMember({ force: true });
+
+    if (savedMember) {
+      return savedMember;
+    }
+
+    const existingMember = this.member();
+
+    if (existingMember) {
+      const fallbackMember = {
+        ...existingMember,
+        status,
+        note: normalizedNote,
+        lastUpdatedAt: new Date()
+      };
+      this.member.set(fallbackMember);
+      return fallbackMember;
+    }
+
+    throw new MemberProfileError('member-not-found');
+  }
+
   clearLoadedMember(): void {
     this.loadedUid = null;
     this.member.set(null);
@@ -132,7 +171,7 @@ export class MemberProfile {
   }
 }
 
-export type MemberProfileErrorCode = 'display-name-required' | 'not-authorized';
+export type MemberProfileErrorCode = 'display-name-required' | 'not-authorized' | 'member-not-found';
 
 export class MemberProfileError extends Error {
   constructor(readonly code: MemberProfileErrorCode) {
@@ -142,6 +181,10 @@ export class MemberProfileError extends Error {
 
 function normalizeDisplayName(displayName: string): string {
   return displayName.trim().replace(/\s+/g, ' ').slice(0, 32);
+}
+
+function normalizeNote(note: string): string {
+  return note.trim().replace(/\s+/g, ' ').slice(0, 80);
 }
 
 function avatarStyleFor(uid: string, displayName: string): string {

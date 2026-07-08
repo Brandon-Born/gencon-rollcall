@@ -9,7 +9,7 @@ Use this file when picking up the project in a new session.
 - Prototype screens exist for gate, onboarding, map, people, rally points, and settings.
 - Firebase client setup, Vercel API route, and Firestore rules exist.
 - Production is deployed at `https://gencon-rollcall.vercel.app`.
-- Anonymous Auth and wrong-password API behavior are live-verified; correct-password authorization still needs a password-holder smoke test.
+- Anonymous Auth, wrong-password API behavior, and correct-password login/member creation are live-verified.
 - Firestore-backed member onboarding profiles are implemented.
 - Local Firebase Auth/Firestore emulator smoke tests work through Vercel dev with `local-dev-password`.
 
@@ -29,11 +29,11 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `AUTH-001` Smoke-test correct-password authorization with the real shared password.
-2. `MAP-001` Load configured static map image.
-3. `PEOPLE-001` Persist status and note to Firestore.
+1. `PEOPLE-001` Persist status and note to Firestore.
+2. `MAP-002` Mobile map pan and zoom.
+3. `PEOPLE-002` Real-time people list.
 
-Do not skip directly to map/member/rally Firestore reads before the authorization path is real.
+Keep shared map/member/rally data behind the existing authorization checks.
 
 ## Verification
 
@@ -58,5 +58,6 @@ Use `local-dev-password`.
 ## Update Rules
 
 - Update `docs/backlog.md` whenever starting or completing substantive work.
+- After completing a backlog item, commit the completed work and push it to the current branch before moving to the next backlog item.
 - Add acceptance criteria to backlog items only when they clarify security, privacy, ordering, or user-visible completion.
 - Keep docs lean; this project does not need a heavy process.

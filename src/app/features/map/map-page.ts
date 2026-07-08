@@ -1,5 +1,7 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
+import { AppConfigService, type AppConfigLoadError } from '../../core/app-config/app-config';
+import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
 
 interface MapPin {
@@ -17,46 +19,67 @@ interface MapPin {
       <header>
         <div>
           <p>Gen Con Roll Call</p>
-          <h1>Shared map</h1>
+          <h1>{{ mapTitle() }}</h1>
         </div>
         <button type="button">Hide me</button>
       </header>
 
-      <section class="map-frame" aria-label="Convention map prototype">
-        <div class="map-art">
-          <span class="street top">Georgia Street</span>
-          <span class="street bottom">Capitol Avenue</span>
-          <div class="hall hall-a">Hall A</div>
-          <div class="hall hall-b">Hall B</div>
-          <div class="hall hall-c">Hall C</div>
-          <div class="hall exhibit">Exhibit Hall</div>
-          <div class="hall event">Event Hall</div>
-          <div class="hall hall-d">Hall D</div>
-          <div class="hall hall-e">Hall E</div>
-          <div class="concourse">Grand Concourse</div>
+      <section class="map-frame" [attr.aria-label]="mapFrameLabel()">
+        @if (isMapLoading()) {
+          <div class="map-state">
+            <span class="map-state-icon" aria-hidden="true"></span>
+            <strong>Loading map</strong>
+            <p>Checking the current convention map configuration.</p>
+          </div>
+        } @else if (mapLoadError()) {
+          <div class="map-state map-state-error">
+            <strong>Map unavailable</strong>
+            <p>{{ mapLoadErrorMessage() }}</p>
+            <button type="button" (click)="reloadMapConfig()">Try again</button>
+          </div>
+        } @else if (!configuredMapUrl()) {
+          <div class="map-state">
+            <strong>No map configured yet</strong>
+            <p>Add a static map asset and set <code>appConfig/current</code> before placing pins.</p>
+          </div>
+        } @else if (mapImageFailed()) {
+          <div class="map-state map-state-error">
+            <strong>Map image did not load</strong>
+            <p>Check that <code>{{ configuredMapUrl() }}</code> is a deployed static asset or reachable URL.</p>
+            <button type="button" (click)="retryMapImage()">Retry image</button>
+          </div>
+        } @else {
+          <div class="map-art">
+            <img
+              [src]="configuredMapUrl()"
+              [alt]="mapTitle()"
+              (load)="markMapImageLoaded()"
+              (error)="markMapImageFailed()"
+            />
 
-          @for (pin of pins; track pin.initials) {
-            <button
-              type="button"
-              class="pin"
-              [class]="pin.status"
-              [style.left.%]="pin.x"
-              [style.top.%]="pin.y"
-              [attr.aria-label]="pin.name + ', ' + labelFor(pin.status)"
-            >
-              {{ pin.initials }}
-            </button>
-          }
-        </div>
+            @for (pin of pins; track pin.initials) {
+              <button
+                type="button"
+                class="pin"
+                [class]="pin.status"
+                [style.left.%]="pin.x"
+                [style.top.%]="pin.y"
+                [attr.aria-label]="pin.name + ', ' + labelFor(pin.status)"
+              >
+                {{ pin.initials }}
+              </button>
+            }
+          </div>
+        }
       </section>
 
-      <section class="status-sheet">
+      <form class="status-sheet" (submit)="saveStatus($event)">
         <div class="sheet-header">
           <div>
             <p>Your status</p>
             <strong>{{ selectedStatusLabel() }}</strong>
           </div>
-          <span>Updated just now</span>
+          <span class="status-meta" [class.error]="statusSaveIsError()">{{ statusMetaLabel() }}</span>
         </div>
 
         <div class="status-grid" aria-label="Choose status">
@@ -64,7 +87,8 @@ interface MapPin {
             <button
               type="button"
               [class.active]="selectedStatus() === status.value"
-              (click)="selectedStatus.set(status.value)"
+              [disabled]="isStatusLoading() || isStatusSaving()"
+              (click)="selectStatus(status.value)"
             >
               {{ status.label }}
             </button>
@@ -72,16 +96,28 @@ interface MapPin {
         </div>
 
         <label>
-          <span>Note</span>
+          <span class="note-label">
+            <span>Note</span>
+            <small>{{ noteLength() }}/80</small>
+          </span>
           <input
             type="text"
             maxlength="80"
             placeholder="Booth 2110, skywalk, running late..."
             [value]="note()"
-            (input)="note.set($any($event.target).value)"
+            [disabled]="isStatusLoading() || isStatusSaving()"
+            (input)="updateNote($any($event.target).value)"
           />
         </label>
-      </section>
+
+        <button type="submit" class="status-save" [disabled]="!canSaveStatus()">
+          {{ isStatusSaving() ? 'Saving...' : 'Save update' }}
+        </button>
+
+        @if (statusSaveMessage()) {
+          <p class="save-message" [class.error]="statusSaveIsError()" role="status">{{ statusSaveMessage() }}</p>
+        }
+      </form>
     </main>
   `,
   styles: `
@@ -135,10 +171,14 @@ interface MapPin {
       box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
     }
 
-    .map-art {
+    .map-art,
+    .map-state {
       position: relative;
       height: 100%;
       width: 100%;
+    }
+
+    .map-art {
       background:
         linear-gradient(rgba(47, 128, 237, 0.07) 1px, transparent 1px),
         linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px),
@@ -146,98 +186,62 @@ interface MapPin {
       background-size: 28px 28px;
     }
 
-    .street {
-      position: absolute;
-      right: 18px;
-      left: 18px;
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .map-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 28px;
+      background:
+        linear-gradient(rgba(47, 128, 237, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px),
+        #f6f8fb;
+      background-size: 28px 28px;
+      color: var(--color-text);
+      text-align: center;
+    }
+
+    .map-state-icon {
+      width: 38px;
+      height: 38px;
+      border: 4px solid rgba(47, 128, 237, 0.2);
+      border-top-color: var(--color-map-blue);
+      border-radius: 999px;
+      animation: spin 900ms linear infinite;
+    }
+
+    .map-state strong {
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .map-state p {
+      max-width: 24rem;
+      margin: 0;
       color: var(--color-muted);
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: 0.06em;
-      text-align: center;
-      text-transform: uppercase;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.42;
     }
 
-    .street.top {
-      top: 10px;
-    }
-
-    .street.bottom {
-      bottom: 10px;
-    }
-
-    .hall,
-    .concourse {
-      position: absolute;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(47, 128, 237, 0.18);
-      color: #11315f;
-      font-weight: 900;
-      text-align: center;
-      text-transform: uppercase;
-    }
-
-    .hall {
-      background: #c7d9ee;
-    }
-
-    .hall-a {
-      top: 16%;
-      left: 6%;
-      width: 21%;
-      height: 17%;
-    }
-
-    .hall-b {
-      top: 36%;
-      left: 6%;
-      width: 21%;
-      height: 17%;
-    }
-
-    .hall-c {
-      top: 62%;
-      left: 6%;
-      width: 24%;
-      height: 18%;
-    }
-
-    .exhibit {
-      top: 16%;
-      left: 36%;
-      width: 30%;
-      height: 20%;
-    }
-
-    .event {
-      top: 58%;
-      left: 36%;
-      width: 30%;
-      height: 20%;
-    }
-
-    .hall-d {
-      top: 31%;
-      right: 6%;
-      width: 19%;
-      height: 17%;
-    }
-
-    .hall-e {
-      top: 61%;
-      right: 6%;
-      width: 19%;
-      height: 17%;
-    }
-
-    .concourse {
-      top: 39%;
-      left: 30%;
-      width: 38%;
-      height: 16%;
-      background: rgba(255, 255, 255, 0.74);
-      border-style: dashed;
+    .map-state button {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--color-gencon-red);
+      color: white;
+      font-size: 13px;
+      font-weight: 850;
     }
 
     .pin {
@@ -297,6 +301,10 @@ interface MapPin {
       font-weight: 700;
     }
 
+    .status-meta.error {
+      color: var(--color-gencon-red);
+    }
+
     .status-grid {
       display: flex;
       gap: 8px;
@@ -323,12 +331,26 @@ interface MapPin {
       color: var(--color-gencon-red);
     }
 
+    .status-grid button:disabled,
+    .status-save:disabled,
+    input:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
     label {
       display: grid;
       gap: 7px;
       color: var(--color-muted);
       font-size: 12px;
       font-weight: 800;
+    }
+
+    .note-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
     input {
@@ -340,13 +362,89 @@ interface MapPin {
       font-size: 15px;
       font-weight: 600;
     }
+
+    .status-save {
+      min-height: 44px;
+      margin-top: 14px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--color-gencon-red);
+      color: white;
+      font-size: 15px;
+      font-weight: 850;
+    }
+
+    .save-message {
+      margin: 10px 0 0;
+      color: var(--color-muted);
+      font-size: 13px;
+    }
+
+    .save-message.error {
+      color: var(--color-gencon-red);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .map-state-icon {
+        animation: none;
+      }
+    }
   `
 })
 export class MapPage {
+  private readonly appConfig = inject(AppConfigService);
+  private readonly memberProfile = inject(MemberProfile);
+
   readonly statuses = STATUS_OPTIONS;
   readonly selectedStatus = signal<MemberStatus>('available');
   readonly selectedStatusLabel = computed(() => statusLabel(this.selectedStatus()));
   readonly note = signal('');
+  readonly noteLength = computed(() => this.note().length);
+  readonly isStatusLoading = signal(false);
+  readonly isStatusSaving = signal(false);
+  readonly statusSaveMessage = signal('');
+  readonly statusSaveIsError = signal(false);
+  readonly lastSavedStatus = signal<MemberStatus>('available');
+  readonly lastSavedNote = signal('');
+  readonly hasUnsavedStatusChanges = computed(
+    () => this.selectedStatus() !== this.lastSavedStatus() || normalizeNote(this.note()) !== this.lastSavedNote()
+  );
+  readonly canSaveStatus = computed(
+    () => !this.isStatusLoading() && !this.isStatusSaving() && this.hasUnsavedStatusChanges()
+  );
+  readonly statusMetaLabel = computed(() => {
+    if (this.isStatusLoading()) {
+      return 'Loading profile...';
+    }
+
+    if (this.isStatusSaving()) {
+      return 'Saving...';
+    }
+
+    if (this.statusSaveIsError()) {
+      return 'Needs retry';
+    }
+
+    if (this.hasUnsavedStatusChanges()) {
+      return 'Unsaved changes';
+    }
+
+    return 'Updated just now';
+  });
+  readonly mapImageFailed = signal(false);
+  readonly isMapLoading = this.appConfig.isLoading;
+  readonly mapLoadError = this.appConfig.error;
+  readonly configuredMapUrl = computed(() => this.appConfig.config()?.mapImageUrl ?? '');
+  readonly mapTitle = computed(() => this.appConfig.config()?.mapDisplayName ?? 'Shared map');
+  readonly mapFrameLabel = computed(() => `${this.mapTitle()} image plane`);
+  readonly mapLoadErrorMessage = computed(() => messageForMapError(this.mapLoadError()));
 
   readonly pins: readonly MapPin[] = [
     { initials: 'JW', name: 'Jamie Wu', x: 39, y: 27, status: 'available' },
@@ -355,7 +453,122 @@ export class MapPage {
     { initials: 'AC', name: 'Alex Carter', x: 57, y: 54, status: 'available' }
   ];
 
+  constructor() {
+    void this.reloadMapConfig();
+    void this.loadStatusDraft();
+  }
+
+  async loadStatusDraft(): Promise<void> {
+    this.isStatusLoading.set(true);
+    this.statusSaveMessage.set('');
+    this.statusSaveIsError.set(false);
+
+    try {
+      const member = await this.memberProfile.loadCurrentMember();
+
+      if (!member) {
+        throw new MemberProfileError('member-not-found');
+      }
+
+      this.selectedStatus.set(member.status);
+      this.note.set(normalizeNote(member.note));
+      this.lastSavedStatus.set(member.status);
+      this.lastSavedNote.set(normalizeNote(member.note));
+    } catch (error) {
+      this.statusSaveMessage.set(messageForMemberError(error));
+      this.statusSaveIsError.set(true);
+    } finally {
+      this.isStatusLoading.set(false);
+    }
+  }
+
+  async reloadMapConfig(): Promise<void> {
+    this.mapImageFailed.set(false);
+    await this.appConfig.loadCurrentConfig({ force: true });
+  }
+
+  retryMapImage(): void {
+    this.mapImageFailed.set(false);
+  }
+
+  markMapImageLoaded(): void {
+    this.mapImageFailed.set(false);
+  }
+
+  markMapImageFailed(): void {
+    this.mapImageFailed.set(true);
+  }
+
+  selectStatus(status: MemberStatus): void {
+    this.selectedStatus.set(status);
+    this.clearStatusMessage();
+  }
+
+  updateNote(value: string): void {
+    this.note.set(value.slice(0, 80));
+    this.clearStatusMessage();
+  }
+
+  async saveStatus(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+
+    if (!this.canSaveStatus()) {
+      return;
+    }
+
+    this.isStatusSaving.set(true);
+    this.statusSaveMessage.set('');
+    this.statusSaveIsError.set(false);
+
+    try {
+      const member = await this.memberProfile.saveCurrentStatus(this.selectedStatus(), this.note());
+      const savedNote = normalizeNote(member.note);
+      this.selectedStatus.set(member.status);
+      this.note.set(savedNote);
+      this.lastSavedStatus.set(member.status);
+      this.lastSavedNote.set(savedNote);
+      this.statusSaveMessage.set('Status saved.');
+    } catch (error) {
+      this.statusSaveMessage.set(messageForMemberError(error));
+      this.statusSaveIsError.set(true);
+    } finally {
+      this.isStatusSaving.set(false);
+    }
+  }
+
   labelFor(status: MemberStatus): string {
     return statusLabel(status);
   }
+
+  private clearStatusMessage(): void {
+    this.statusSaveMessage.set('');
+    this.statusSaveIsError.set(false);
+  }
+}
+
+function messageForMapError(error: AppConfigLoadError | null): string {
+  switch (error) {
+    case 'firebase-not-configured':
+      return 'Firebase is not configured yet. Add the public Firebase web config first.';
+    case 'load-failed':
+      return 'Could not read appConfig/current. Check your connection and authorization, then try again.';
+    default:
+      return '';
+  }
+}
+
+function normalizeNote(note: string): string {
+  return note.trim().replace(/\s+/g, ' ').slice(0, 80);
+}
+
+function messageForMemberError(error: unknown): string {
+  if (error instanceof MemberProfileError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before saving.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'member-not-found') {
+    return 'Your profile is not ready yet. Finish onboarding before saving status.';
+  }
+
+  return 'Could not save your status. Check your connection and try again.';
 }

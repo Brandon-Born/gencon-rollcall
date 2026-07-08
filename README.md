@@ -86,9 +86,23 @@ The app uses the public Firebase Web config in `src/environments/environment.ts`
 
 The production build may need to run outside this Codex sandbox on this machine; the sandboxed builder aborted before diagnostics, while the same `npm run build` completed successfully outside the sandbox.
 
-## Manual Setup Required Later
+## Manual Map Setup
 
-- Production map image added under `public/maps/` or configured by URL
+Store the reviewed convention map as a Vercel static asset, for example:
+
+```text
+public/maps/gencon-2026.png
+```
+
+Then create or update Firestore `appConfig/current`:
+
+```text
+mapImageUrl: "/maps/gencon-2026.png"
+mapDisplayName: "Gen Con Indy 2026"
+updatedAt: <server timestamp>
+```
+
+The map image is not sensitive, but the Firestore config remains readable only to authorized users.
 
 ## Definition of Done for MVP
 

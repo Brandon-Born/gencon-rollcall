@@ -5,6 +5,7 @@ This is the project tracker until a dedicated issue tracker exists.
 Keep this file practical:
 
 - Update item status when starting or finishing substantive work.
+- Commit and push after completing each backlog item.
 - Add acceptance criteria only where order, security, privacy, or user-visible behavior matters.
 - Do not add story points, owners, or process labels unless the project outgrows this file.
 
@@ -17,11 +18,11 @@ Status values:
 
 ## Next 3
 
-1. `AUTH-001` Smoke-test correct-password authorization with the real shared password.
-2. `MAP-001` Load configured static map image.
-3. `PEOPLE-001` Persist status and note to Firestore.
+1. `MAP-002` Mobile map pan and zoom.
+2. `PEOPLE-002` Real-time people list.
+3. `MAP-003` Manual pin placement.
 
-Do these in order. Map/member/rally data must not become readable before the authorization path is real.
+Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
 
 ## Milestone: Foundation
 
@@ -65,7 +66,7 @@ Acceptance criteria:
 - [x] Add basic failed-attempt throttling or rate-limit note.
 - [x] Replace the prototype gate transition with the real verification call.
 - [x] Add local emulator smoke path for correct-password authorization.
-- [ ] Live-test correct shared password against production.
+- [x] Live-test correct shared password against production.
 
 Depends on:
 
@@ -88,7 +89,7 @@ Implementation status:
 - Production deploy exists at `https://gencon-rollcall.vercel.app`.
 - Wrong-password smoke test returns `401 invalid-password`, confirming the API route and server config are live.
 - Local emulator smoke test verifies correct-password authorization writes `authorizedUsers/{uid}` without touching production Firebase.
-- Correct-password authorization still needs a smoke test by someone with the shared password.
+- Correct-password production smoke test passed: a password-holder could log in and create a user.
 
 ### `AUTH-002` Anonymous auth and authorized session
 
@@ -118,7 +119,7 @@ Implementation status:
 - Firestore rules are deployed to `gencon-rollcall`.
 - Firebase Storage is intentionally out of MVP scope; map images should be Vercel static assets.
 - Anonymous Auth live smoke test can create an anonymous ID token.
-- Live verification still required: correct-password path should write `authorizedUsers/{uid}` and allow guarded navigation.
+- Correct-password live smoke test confirms guarded navigation and member creation work in production.
 
 ### `AUTH-003` Onboarding persistence
 
@@ -147,11 +148,18 @@ Implementation status:
 
 ### `MAP-001` Map config and static image loading
 
-- [ ] Create `appConfig/current` loading service.
-- [ ] Load `mapImageUrl` and `mapDisplayName`.
-- [ ] Read map image from a Vercel static asset path or configured static URL.
-- [ ] Add empty/loading/error states.
-- [ ] Document how a developer adds or configures the current Gen Con map image.
+- [x] Create `appConfig/current` loading service.
+- [x] Load `mapImageUrl` and `mapDisplayName`.
+- [x] Read map image from a Vercel static asset path or configured static URL.
+- [x] Add empty/loading/error states.
+- [x] Document how a developer adds or configures the current Gen Con map image.
+
+Implementation status:
+
+- Code exists in `src/app/core/app-config/app-config.ts` and `src/app/features/map/map-page.ts`.
+- The map page reads `appConfig/current`, uses `mapDisplayName` as the page title, and renders `mapImageUrl` as the image plane when configured.
+- Missing config, Firestore load failures, and image load failures have distinct user-visible states.
+- Developer setup steps are documented in `README.md` and `docs/vercel-setup.md`.
 
 Depends on:
 
@@ -219,11 +227,19 @@ Acceptance criteria:
 
 ### `PEOPLE-001` Member status and note editing
 
-- [ ] Save selected status to Firestore.
-- [ ] Save optional note to Firestore.
-- [ ] Enforce short note length.
-- [ ] Update `lastUpdatedAt` with server timestamp.
-- [ ] Show loading/error state for failed saves.
+- [x] Save selected status to Firestore.
+- [x] Save optional note to Firestore.
+- [x] Enforce short note length.
+- [x] Update `lastUpdatedAt` with server timestamp.
+- [x] Show loading/error state for failed saves.
+
+Implementation status:
+
+- Code exists in `src/app/core/members/member-profile.ts` and `src/app/features/map/map-page.ts`.
+- The map status sheet loads the current user's saved status and note, tracks unsaved changes, and writes updates to `members/{uid}`.
+- Saves update `lastUpdatedAt` with a Firestore server timestamp.
+- Notes are limited to 80 characters in the UI and normalized again before saving.
+- The sheet shows loading, saving, unsaved, success, and retry/error states.
 
 Depends on:
 
