@@ -4,6 +4,9 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:local": "ng serve --configuration local",
+    "emulators": "JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH firebase emulators:start --only auth,firestore",
+    "dev:emulators": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=gencon-rollcall LOCAL_SHARED_SITE_PASSWORD=local-dev-password vercel dev",
     "build": "ng build",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
     "watch": "ng build --watch --configuration development",

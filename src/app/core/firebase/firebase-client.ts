@@ -8,6 +8,8 @@ import { environment } from '../../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class FirebaseClient {
   private app: FirebaseApp | null = null;
+  private authEmulatorConnected = false;
+  private firestoreEmulatorConnected = false;
 
   readonly isConfigured = Boolean(environment.firebase.apiKey && environment.firebase.projectId);
 
@@ -22,12 +24,34 @@ export class FirebaseClient {
   }
 
   async getAuth(): Promise<Auth> {
-    const { getAuth } = await import('firebase/auth');
-    return getAuth(await this.getApp());
+    const { connectAuthEmulator, getAuth } = await import('firebase/auth');
+    const auth = getAuth(await this.getApp());
+
+    if (environment.firebaseEmulators.enabled && !this.authEmulatorConnected) {
+      connectAuthEmulator(
+        auth,
+        `http://${environment.firebaseEmulators.authHost}:${environment.firebaseEmulators.authPort}`,
+        { disableWarnings: true }
+      );
+      this.authEmulatorConnected = true;
+    }
+
+    return auth;
   }
 
   async getFirestore(): Promise<Firestore> {
-    const { getFirestore } = await import('firebase/firestore');
-    return getFirestore(await this.getApp());
+    const { connectFirestoreEmulator, getFirestore } = await import('firebase/firestore');
+    const firestore = getFirestore(await this.getApp());
+
+    if (environment.firebaseEmulators.enabled && !this.firestoreEmulatorConnected) {
+      connectFirestoreEmulator(
+        firestore,
+        environment.firebaseEmulators.firestoreHost,
+        environment.firebaseEmulators.firestorePort
+      );
+      this.firestoreEmulatorConnected = true;
+    }
+
+    return firestore;
   }
 }

@@ -64,6 +64,7 @@ Acceptance criteria:
 - [x] Avoid logging submitted passwords.
 - [x] Add basic failed-attempt throttling or rate-limit note.
 - [x] Replace the prototype gate transition with the real verification call.
+- [x] Add local emulator smoke path for correct-password authorization.
 - [ ] Live-test correct shared password against production.
 
 Depends on:
@@ -86,6 +87,7 @@ Implementation status:
 - Production Vercel env vars exist for `SHARED_SITE_PASSWORD` and `FIREBASE_SERVICE_ACCOUNT_JSON`.
 - Production deploy exists at `https://gencon-rollcall.vercel.app`.
 - Wrong-password smoke test returns `401 invalid-password`, confirming the API route and server config are live.
+- Local emulator smoke test verifies correct-password authorization writes `authorizedUsers/{uid}` without touching production Firebase.
 - Correct-password authorization still needs a smoke test by someone with the shared password.
 
 ### `AUTH-002` Anonymous auth and authorized session
@@ -315,6 +317,7 @@ Depends on:
 
 - [x] Document Firebase project setup.
 - [x] Document required secrets.
+- [x] Document local emulator smoke-test path.
 - [ ] Document map upload/config process.
 - [ ] Document deploy command.
 - [ ] Document post-deploy smoke test.

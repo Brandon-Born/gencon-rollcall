@@ -125,8 +125,19 @@ function serviceAccountFromEnv(): ServiceAccount | null {
   };
 }
 
+function isUsingFirebaseEmulators(): boolean {
+  return Boolean(process.env['FIRESTORE_EMULATOR_HOST'] || process.env['FIREBASE_AUTH_EMULATOR_HOST']);
+}
+
 function initFirebaseAdmin(): boolean {
   if (getApps().length > 0) {
+    return true;
+  }
+
+  if (isUsingFirebaseEmulators()) {
+    initializeApp({
+      projectId: process.env['FIREBASE_PROJECT_ID'] || 'gencon-rollcall'
+    });
     return true;
   }
 
@@ -158,7 +169,9 @@ async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
     return;
   }
 
-  const expectedPassword = process.env['SHARED_SITE_PASSWORD'];
+  const expectedPassword = isUsingFirebaseEmulators()
+    ? process.env['LOCAL_SHARED_SITE_PASSWORD'] ?? process.env['SHARED_SITE_PASSWORD']
+    : process.env['SHARED_SITE_PASSWORD'];
 
   if (!expectedPassword || !initFirebaseAdmin()) {
     res.status(500).json({ ok: false, error: 'server-not-configured' });

@@ -1,5 +1,6 @@
 {
   "buildCommand": "npm run build",
+  "devCommand": "npm run start:local -- --host 127.0.0.1 --port $PORT",
   "outputDirectory": "dist/gencon-rollcall/browser",
   "rewrites": [
     {

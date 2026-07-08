@@ -10,7 +10,8 @@ Use this file when picking up the project in a new session.
 - Firebase client setup, Vercel API route, and Firestore rules exist.
 - Production is deployed at `https://gencon-rollcall.vercel.app`.
 - Anonymous Auth and wrong-password API behavior are live-verified; correct-password authorization still needs a password-holder smoke test.
-- Real Firestore app data flow is not implemented yet.
+- Firestore-backed member onboarding profiles are implemented.
+- Local Firebase Auth/Firestore emulator smoke tests work through Vercel dev with `local-dev-password`.
 
 ## Read First
 
@@ -44,6 +45,15 @@ npm run build
 ```
 
 Also verify relevant phone-sized flows in a browser. The previous sandbox environment required `npm run build` to run outside the sandbox because the Angular builder aborted before diagnostics there.
+
+For auth/member smoke tests without production Firebase data, run:
+
+```bash
+npm run emulators
+npm run dev:emulators
+```
+
+Use `local-dev-password`.
 
 ## Update Rules
 

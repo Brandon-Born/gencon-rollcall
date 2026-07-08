@@ -6,7 +6,7 @@ The app helps the group coordinate without a constant stream of texts: members c
 
 ## Current Status
 
-Angular 21 has been scaffolded with route-level mobile screens, Firebase client setup, and a Vercel API route for shared-password verification. Real Firestore app data flows are not implemented yet.
+Angular 21 has been scaffolded with route-level mobile screens, Firebase client setup, a Vercel API route for shared-password verification, and Firestore-backed onboarding profiles. Map, status, people, and rally data flows are still pending.
 
 Start with the docs in this order:
 
@@ -55,15 +55,39 @@ npm run test
 npm run build
 ```
 
-The app uses the public Firebase Web config in `src/environments/environment.ts`. Do not place the shared site password or Firebase Admin service account values in Angular environment files.
+For local smoke tests without touching production Firebase data, use the Firebase emulators:
+
+```bash
+npm run emulators
+```
+
+This script uses the Homebrew OpenJDK path at `/opt/homebrew/opt/openjdk@21`.
+
+In a second terminal:
+
+```bash
+npm run dev:emulators
+```
+
+Then open the local Vercel URL and use the local-only shared password:
+
+```text
+local-dev-password
+```
+
+Verified local emulator smoke coverage:
+
+- Anonymous Auth creates an emulator user.
+- Wrong password returns `401`.
+- `local-dev-password` writes `authorizedUsers/{uid}` in emulator Firestore.
+- An authorized user can write and read `members/{uid}` through Firestore rules.
+
+The app uses the public Firebase Web config in `src/environments/environment.ts`. Do not place the production shared site password or Firebase Admin service account values in Angular environment files.
 
 The production build may need to run outside this Codex sandbox on this machine; the sandboxed builder aborted before diagnostics, while the same `npm run build` completed successfully outside the sandbox.
 
 ## Manual Setup Required Later
 
-- Anonymous Auth enabled
-- Vercel environment variables for `SHARED_SITE_PASSWORD` and Firebase Admin credentials
-- Vercel project linked to this repository
 - Production map image added under `public/maps/` or configured by URL
 
 ## Definition of Done for MVP

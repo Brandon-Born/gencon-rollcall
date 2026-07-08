@@ -127,6 +127,51 @@ Run tests:
 npm test
 ```
 
+## Local Emulator Smoke Tests
+
+Use this path when testing gate, onboarding, and member-profile behavior without creating production Firebase users or Firestore documents.
+
+Terminal 1:
+
+```bash
+npm run emulators
+```
+
+This script uses Homebrew OpenJDK at:
+
+```text
+/opt/homebrew/opt/openjdk@21
+```
+
+Terminal 2:
+
+```bash
+npm run dev:emulators
+```
+
+Open the local Vercel URL printed by `vercel dev`.
+
+Local-only shared password:
+
+```text
+local-dev-password
+```
+
+What this does:
+
+- Angular uses `src/environments/environment.local.ts`.
+- Firebase Auth connects to `127.0.0.1:9099`.
+- Firestore connects to `127.0.0.1:8080`.
+- The Vercel API route sees `FIREBASE_AUTH_EMULATOR_HOST` and `FIRESTORE_EMULATOR_HOST`, so Firebase Admin writes `authorizedUsers/{uid}` to emulator Firestore without service-account credentials.
+
+Verified local emulator smoke test:
+
+- Anonymous Auth creates an emulator user.
+- Wrong password returns `401`.
+- `local-dev-password` returns `200` from `/api/verify-shared-password`.
+- `authorizedUsers/{uid}` is written in emulator Firestore.
+- An authorized user can write and read `members/{uid}` through Firestore rules.
+
 Vercel build settings:
 
 - Build command: `npm run build`
