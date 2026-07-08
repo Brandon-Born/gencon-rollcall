@@ -174,11 +174,18 @@ Acceptance criteria:
 
 ### `MAP-002` Mobile map pan and zoom
 
-- [ ] Implement pinch zoom.
-- [ ] Implement drag pan.
-- [ ] Keep controls usable on phone screens.
-- [ ] Prevent page scroll conflicts while interacting with the map.
-- [ ] Add reset/fit control if needed.
+- [x] Implement pinch zoom.
+- [x] Implement drag pan.
+- [x] Keep controls usable on phone screens.
+- [x] Prevent page scroll conflicts while interacting with the map.
+- [x] Add reset/fit control if needed.
+
+Implementation status:
+
+- Code exists in `src/app/features/map/map-page.ts`.
+- The map image is rendered inside a touch-isolated viewport with pinch, drag pan, wheel zoom, zoom buttons, and Fit/Reset behavior.
+- The transformed map layer is clamped to the viewport and pins keep a stable visual size while zooming.
+- Browser QA covered a 390px-wide viewport with emulator-backed gate/onboarding/map flow, no horizontal overflow, reachable status sheet and bottom nav, drag pan, reset, and CDP touch pinch.
 
 Depends on:
 

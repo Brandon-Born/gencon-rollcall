@@ -12,6 +12,28 @@ interface MapPin {
   status: MemberStatus;
 }
 
+interface MapPoint {
+  x: number;
+  y: number;
+}
+
+interface MapGestureStart {
+  distance: number;
+  midpoint: MapPoint;
+  scale: number;
+  translateX: number;
+  translateY: number;
+}
+
+interface MapView {
+  scale: number;
+  translateX: number;
+  translateY: number;
+}
+
+const MIN_MAP_SCALE = 1;
+const MAX_MAP_SCALE = 4;
+
 @Component({
   selector: 'app-map-page',
   template: `
@@ -49,26 +71,54 @@ interface MapPin {
             <button type="button" (click)="retryMapImage()">Retry image</button>
           </div>
         } @else {
-          <div class="map-art">
-            <img
-              [src]="configuredMapUrl()"
-              [alt]="mapTitle()"
-              (load)="markMapImageLoaded()"
-              (error)="markMapImageFailed()"
-            />
+          <div
+            #mapViewport
+            class="map-viewport"
+            [class.dragging]="isMapDragging()"
+            (pointerdown)="startMapPointer($event)"
+            (pointermove)="moveMapPointer($event)"
+            (pointerup)="endMapPointer($event)"
+            (pointercancel)="endMapPointer($event)"
+            (lostpointercapture)="endMapPointer($event)"
+            (wheel)="zoomMapWithWheel($event)"
+          >
+            <div class="map-art" [style.transform]="mapTransform()">
+              <img
+                [src]="configuredMapUrl()"
+                [alt]="mapTitle()"
+                draggable="false"
+                (load)="markMapImageLoaded()"
+                (error)="markMapImageFailed()"
+              />
 
-            @for (pin of pins; track pin.initials) {
-              <button
-                type="button"
-                class="pin"
-                [class]="pin.status"
-                [style.left.%]="pin.x"
-                [style.top.%]="pin.y"
-                [attr.aria-label]="pin.name + ', ' + labelFor(pin.status)"
-              >
-                {{ pin.initials }}
-              </button>
-            }
+              @for (pin of pins; track pin.initials) {
+                <button
+                  type="button"
+                  class="pin"
+                  [class]="pin.status"
+                  [style.left.%]="pin.x"
+                  [style.top.%]="pin.y"
+                  [style.transform]="pinTransform()"
+                  [attr.aria-label]="pin.name + ', ' + labelFor(pin.status)"
+                >
+                  {{ pin.initials }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="map-controls" role="group" aria-label="Map zoom controls">
+            <button type="button" (click)="zoomMapBy(mapViewport, 0.8)" aria-label="Zoom out">−</button>
+            <button
+              type="button"
+              class="map-reset"
+              [disabled]="isMapViewAtRest()"
+              [attr.aria-label]="mapResetAriaLabel()"
+              (click)="resetMapView()"
+            >
+              {{ mapResetLabel() }}
+            </button>
+            <button type="button" (click)="zoomMapBy(mapViewport, 1.25)" aria-label="Zoom in">+</button>
           </div>
         }
       </section>
@@ -162,13 +212,27 @@ interface MapPin {
     }
 
     .map-frame {
+      position: relative;
       overflow: hidden;
-      height: min(58svh, 560px);
-      min-height: 390px;
+      height: clamp(320px, 52svh, 560px);
       border: 1px solid var(--color-border);
       border-radius: 16px;
       background: var(--color-surface);
       box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+    }
+
+    .map-viewport {
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+      touch-action: none;
+      overscroll-behavior: contain;
+      cursor: grab;
+    }
+
+    .map-viewport.dragging {
+      cursor: grabbing;
     }
 
     .map-art,
@@ -184,6 +248,8 @@ interface MapPin {
         linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px),
         #f6f8fb;
       background-size: 28px 28px;
+      transform-origin: 0 0;
+      will-change: transform;
     }
 
     img {
@@ -192,6 +258,8 @@ interface MapPin {
       height: 100%;
       object-fit: contain;
       object-position: center;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .map-state {
@@ -248,7 +316,6 @@ interface MapPin {
       position: absolute;
       width: 46px;
       height: 46px;
-      transform: translate(-50%, -50%);
       border: 3px solid var(--color-map-blue);
       border-radius: 999px;
       background: var(--color-surface);
@@ -270,6 +337,46 @@ interface MapPin {
     .pin.offline,
     .pin.hotel-resting {
       border-color: var(--color-muted);
+    }
+
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: 44px minmax(74px, auto) 44px;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid rgba(216, 222, 232, 0.9);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+      backdrop-filter: blur(12px);
+    }
+
+    .map-controls button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .map-controls .map-reset {
+      padding: 0 12px;
+      color: var(--color-map-blue);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .map-controls button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
     }
 
     .status-sheet {
@@ -396,11 +503,20 @@ interface MapPin {
         animation: none;
       }
     }
+
+    @media (min-height: 760px) {
+      .map-frame {
+        min-height: 390px;
+      }
+    }
   `
 })
 export class MapPage {
   private readonly appConfig = inject(AppConfigService);
   private readonly memberProfile = inject(MemberProfile);
+  private readonly activeMapPointers = new Map<number, MapPoint>();
+  private lastDragPoint: MapPoint | null = null;
+  private gestureStart: MapGestureStart | null = null;
 
   readonly statuses = STATUS_OPTIONS;
   readonly selectedStatus = signal<MemberStatus>('available');
@@ -445,6 +561,23 @@ export class MapPage {
   readonly mapTitle = computed(() => this.appConfig.config()?.mapDisplayName ?? 'Shared map');
   readonly mapFrameLabel = computed(() => `${this.mapTitle()} image plane`);
   readonly mapLoadErrorMessage = computed(() => messageForMapError(this.mapLoadError()));
+  readonly mapScale = signal(1);
+  readonly mapTranslateX = signal(0);
+  readonly mapTranslateY = signal(0);
+  readonly isMapDragging = signal(false);
+  readonly mapTransform = computed(
+    () =>
+      `translate3d(${formatViewValue(this.mapTranslateX())}px, ${formatViewValue(
+        this.mapTranslateY()
+      )}px, 0) scale(${formatViewValue(this.mapScale())})`
+  );
+  readonly pinTransform = computed(() => `translate(-50%, -50%) scale(${formatViewValue(1 / this.mapScale())})`);
+  readonly mapZoomLabel = computed(() => `${Math.round(this.mapScale() * 100)}%`);
+  readonly isMapViewAtRest = computed(
+    () => this.mapScale() === 1 && this.mapTranslateX() === 0 && this.mapTranslateY() === 0
+  );
+  readonly mapResetLabel = computed(() => this.isMapViewAtRest() ? 'Fit' : 'Reset');
+  readonly mapResetAriaLabel = computed(() => `Reset map view. Current zoom ${this.mapZoomLabel()}.`);
 
   readonly pins: readonly MapPin[] = [
     { initials: 'JW', name: 'Jamie Wu', x: 39, y: 27, status: 'available' },
@@ -484,6 +617,7 @@ export class MapPage {
 
   async reloadMapConfig(): Promise<void> {
     this.mapImageFailed.set(false);
+    this.resetMapView();
     await this.appConfig.loadCurrentConfig({ force: true });
   }
 
@@ -493,10 +627,152 @@ export class MapPage {
 
   markMapImageLoaded(): void {
     this.mapImageFailed.set(false);
+    this.resetMapView();
   }
 
   markMapImageFailed(): void {
     this.mapImageFailed.set(true);
+    this.resetMapView();
+  }
+
+  startMapPointer(event: PointerEvent): void {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    const viewport = event.currentTarget;
+
+    if (!(viewport instanceof HTMLElement)) {
+      return;
+    }
+
+    event.preventDefault();
+    viewport.setPointerCapture(event.pointerId);
+    this.activeMapPointers.set(event.pointerId, pointFromPointerEvent(event, viewport));
+    this.isMapDragging.set(true);
+
+    if (this.activeMapPointers.size >= 2) {
+      this.gestureStart = this.createGestureStart();
+      this.lastDragPoint = null;
+      return;
+    }
+
+    this.gestureStart = null;
+    this.lastDragPoint = pointFromPointerEvent(event, viewport);
+  }
+
+  moveMapPointer(event: PointerEvent): void {
+    if (!this.activeMapPointers.has(event.pointerId)) {
+      return;
+    }
+
+    const viewport = event.currentTarget;
+
+    if (!(viewport instanceof HTMLElement)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.activeMapPointers.set(event.pointerId, pointFromPointerEvent(event, viewport));
+
+    if (this.activeMapPointers.size >= 2) {
+      const metrics = pointerMetrics([...this.activeMapPointers.values()]);
+
+      if (!metrics) {
+        return;
+      }
+
+      this.gestureStart ??= this.createGestureStart();
+
+      if (!this.gestureStart || this.gestureStart.distance === 0) {
+        return;
+      }
+
+      const nextScale = clampScale(this.gestureStart.scale * (metrics.distance / this.gestureStart.distance));
+      const contentX = (this.gestureStart.midpoint.x - this.gestureStart.translateX) / this.gestureStart.scale;
+      const contentY = (this.gestureStart.midpoint.y - this.gestureStart.translateY) / this.gestureStart.scale;
+      this.applyMapView(
+        {
+          scale: nextScale,
+          translateX: metrics.midpoint.x - contentX * nextScale,
+          translateY: metrics.midpoint.y - contentY * nextScale
+        },
+        viewport
+      );
+      return;
+    }
+
+    const point = pointFromPointerEvent(event, viewport);
+
+    if (!this.lastDragPoint) {
+      this.lastDragPoint = point;
+      return;
+    }
+
+    this.applyMapView(
+      {
+        scale: this.mapScale(),
+        translateX: this.mapTranslateX() + point.x - this.lastDragPoint.x,
+        translateY: this.mapTranslateY() + point.y - this.lastDragPoint.y
+      },
+      viewport
+    );
+    this.lastDragPoint = point;
+  }
+
+  endMapPointer(event: PointerEvent): void {
+    const viewport = event.currentTarget;
+
+    if (viewport instanceof HTMLElement && viewport.hasPointerCapture(event.pointerId)) {
+      viewport.releasePointerCapture(event.pointerId);
+    }
+
+    this.activeMapPointers.delete(event.pointerId);
+
+    if (this.activeMapPointers.size >= 2) {
+      this.gestureStart = this.createGestureStart();
+      this.lastDragPoint = null;
+      return;
+    }
+
+    this.gestureStart = null;
+
+    if (this.activeMapPointers.size === 1) {
+      this.lastDragPoint = [...this.activeMapPointers.values()][0] ?? null;
+      return;
+    }
+
+    this.lastDragPoint = null;
+    this.isMapDragging.set(false);
+  }
+
+  zoomMapWithWheel(event: WheelEvent): void {
+    const viewport = event.currentTarget;
+
+    if (!(viewport instanceof HTMLElement)) {
+      return;
+    }
+
+    event.preventDefault();
+    const factor = Math.min(1.35, Math.max(0.74, Math.exp(-event.deltaY * 0.002)));
+    this.zoomMapAt(viewport, factor, pointFromWheelEvent(event, viewport));
+  }
+
+  zoomMapBy(viewport: HTMLElement, factor: number): void {
+    this.zoomMapAt(viewport, factor, {
+      x: viewport.clientWidth / 2,
+      y: viewport.clientHeight / 2
+    });
+  }
+
+  resetMapView(): void {
+    this.activeMapPointers.clear();
+    this.lastDragPoint = null;
+    this.gestureStart = null;
+    this.isMapDragging.set(false);
+    this.mapScale.set(1);
+    this.mapTranslateX.set(0);
+    this.mapTranslateY.set(0);
   }
 
   selectStatus(status: MemberStatus): void {
@@ -544,6 +820,44 @@ export class MapPage {
     this.statusSaveMessage.set('');
     this.statusSaveIsError.set(false);
   }
+
+  private createGestureStart(): MapGestureStart | null {
+    const metrics = pointerMetrics([...this.activeMapPointers.values()]);
+
+    if (!metrics) {
+      return null;
+    }
+
+    return {
+      distance: metrics.distance,
+      midpoint: metrics.midpoint,
+      scale: this.mapScale(),
+      translateX: this.mapTranslateX(),
+      translateY: this.mapTranslateY()
+    };
+  }
+
+  private zoomMapAt(viewport: HTMLElement, factor: number, focalPoint: MapPoint): void {
+    const nextScale = clampScale(this.mapScale() * factor);
+    const contentX = (focalPoint.x - this.mapTranslateX()) / this.mapScale();
+    const contentY = (focalPoint.y - this.mapTranslateY()) / this.mapScale();
+
+    this.applyMapView(
+      {
+        scale: nextScale,
+        translateX: focalPoint.x - contentX * nextScale,
+        translateY: focalPoint.y - contentY * nextScale
+      },
+      viewport
+    );
+  }
+
+  private applyMapView(view: MapView, viewport: HTMLElement): void {
+    const nextView = constrainMapView(view, viewport.clientWidth, viewport.clientHeight);
+    this.mapScale.set(nextView.scale);
+    this.mapTranslateX.set(nextView.translateX);
+    this.mapTranslateY.set(nextView.translateY);
+  }
 }
 
 function messageForMapError(error: AppConfigLoadError | null): string {
@@ -571,4 +885,72 @@ function messageForMemberError(error: unknown): string {
   }
 
   return 'Could not save your status. Check your connection and try again.';
+}
+
+function pointFromPointerEvent(event: PointerEvent, viewport: HTMLElement): MapPoint {
+  const rect = viewport.getBoundingClientRect();
+
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+function pointFromWheelEvent(event: WheelEvent, viewport: HTMLElement): MapPoint {
+  const rect = viewport.getBoundingClientRect();
+
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+function pointerMetrics(points: readonly MapPoint[]): { distance: number; midpoint: MapPoint } | null {
+  const first = points[0];
+  const second = points[1];
+
+  if (!first || !second) {
+    return null;
+  }
+
+  return {
+    distance: Math.hypot(second.x - first.x, second.y - first.y),
+    midpoint: {
+      x: (first.x + second.x) / 2,
+      y: (first.y + second.y) / 2
+    }
+  };
+}
+
+function constrainMapView(view: MapView, viewportWidth: number, viewportHeight: number): MapView {
+  const scale = clampScale(view.scale);
+
+  if (scale === 1 || viewportWidth <= 0 || viewportHeight <= 0) {
+    return {
+      scale,
+      translateX: 0,
+      translateY: 0
+    };
+  }
+
+  const minTranslateX = viewportWidth - viewportWidth * scale;
+  const minTranslateY = viewportHeight - viewportHeight * scale;
+
+  return {
+    scale,
+    translateX: clamp(view.translateX, minTranslateX, 0),
+    translateY: clamp(view.translateY, minTranslateY, 0)
+  };
+}
+
+function clampScale(scale: number): number {
+  return clamp(scale, MIN_MAP_SCALE, MAX_MAP_SCALE);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatViewValue(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
 }
