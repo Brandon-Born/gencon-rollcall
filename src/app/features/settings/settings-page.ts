@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { AuthSession } from '../../core/auth/auth-session';
@@ -24,20 +24,44 @@ import { SessionStore } from '../../core/session/session-store';
             (input)="displayName.set($any($event.target).value)"
           />
         </label>
-        <button type="button" [disabled]="isSavingName() || !displayName().trim()" (click)="saveName()">
+        <button
+          type="button"
+          [disabled]="isSavingName() || !displayName().trim()"
+          (click)="saveName()"
+        >
           {{ isSavingName() ? 'Saving...' : 'Save name' }}
         </button>
         @if (saveMessage()) {
-          <p class="save-message" [class.error]="saveMessageIsError()" role="status">{{ saveMessage() }}</p>
+          <p class="save-message" [class.error]="saveMessageIsError()" role="status">
+            {{ saveMessage() }}
+          </p>
         }
       </section>
 
       <section class="panel">
         <div>
           <strong>Location visibility</strong>
-          <p>Hide your map pin while staying visible in the people list.</p>
+          <p>
+            {{
+              locationVisible()
+                ? 'Hide your map pin while staying visible in the people list.'
+                : 'Your map pin is hidden. Tap the map anytime to share a new pin.'
+            }}
+          </p>
         </div>
-        <button type="button" class="secondary">Hide my location</button>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="isHidingLocation() || !locationVisible()"
+          (click)="hideLocation()"
+        >
+          {{ locationButtonLabel() }}
+        </button>
+        @if (locationMessage()) {
+          <p class="save-message" [class.error]="locationMessageIsError()" role="status">
+            {{ locationMessage() }}
+          </p>
+        }
       </section>
 
       <button type="button" class="danger" (click)="leave()">Leave app</button>
@@ -141,7 +165,7 @@ import { SessionStore } from '../../core/session/session-store';
       margin-top: 18px;
       background: #151821;
     }
-  `
+  `,
 })
 export class SettingsPage {
   private readonly authSession = inject(AuthSession);
@@ -153,6 +177,21 @@ export class SettingsPage {
   readonly isSavingName = signal(false);
   readonly saveMessage = signal('');
   readonly saveMessageIsError = signal(false);
+  readonly locationVisible = signal(true);
+  readonly isHidingLocation = signal(false);
+  readonly locationMessage = signal('');
+  readonly locationMessageIsError = signal(false);
+  readonly locationButtonLabel = computed(() => {
+    if (this.isHidingLocation()) {
+      return 'Hiding...';
+    }
+
+    return this.locationVisible() ? 'Hide my location' : 'Location hidden';
+  });
+
+  constructor() {
+    void this.loadLocationState();
+  }
 
   async saveName(): Promise<void> {
     if (this.isSavingName()) {
@@ -179,6 +218,42 @@ export class SettingsPage {
     await this.authSession.leaveApp();
     void this.router.navigateByUrl('/gate');
   }
+
+  async hideLocation(): Promise<void> {
+    if (this.isHidingLocation() || !this.locationVisible()) {
+      return;
+    }
+
+    this.isHidingLocation.set(true);
+    this.locationMessage.set('');
+    this.locationMessageIsError.set(false);
+
+    try {
+      const member = await this.memberProfile.hideCurrentLocation();
+      this.locationVisible.set(member.locationVisible);
+      this.locationMessage.set('Location hidden. Your status and note still appear in People.');
+    } catch (error) {
+      this.locationMessage.set(locationMessageFor(error));
+      this.locationMessageIsError.set(true);
+    } finally {
+      this.isHidingLocation.set(false);
+    }
+  }
+
+  private async loadLocationState(): Promise<void> {
+    try {
+      const member = await this.memberProfile.loadCurrentMember();
+
+      if (member) {
+        this.locationVisible.set(member.locationVisible);
+      }
+    } catch {
+      this.locationMessage.set(
+        'Could not load your location visibility. Check your connection and try again.',
+      );
+      this.locationMessageIsError.set(true);
+    }
+  }
 }
 
 function messageFor(error: unknown): string {
@@ -191,4 +266,16 @@ function messageFor(error: unknown): string {
   }
 
   return 'Could not save your name. Check your connection and try again.';
+}
+
+function locationMessageFor(error: unknown): string {
+  if (error instanceof MemberProfileError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before changing visibility.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'member-not-found') {
+    return 'Your profile is not ready yet. Finish onboarding before changing visibility.';
+  }
+
+  return 'Could not hide your location. Check your connection and try again.';
 }

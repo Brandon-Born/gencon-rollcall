@@ -225,9 +225,16 @@ Acceptance criteria:
 
 ### `MAP-004` Hide location
 
-- [ ] Add hide-location control.
-- [ ] Clear or obscure the user's map coordinates.
-- [ ] Keep the user visible in People with status and note.
+- [x] Add hide-location control.
+- [x] Clear or obscure the user's map coordinates.
+- [x] Keep the user visible in People with status and note.
+
+Implementation status:
+
+- Code exists in `src/app/core/members/member-profile.ts`, `src/app/features/map/map-page.ts`, and `src/app/features/settings/settings-page.ts`.
+- The map and Settings surfaces can hide the current user's location by setting `locationVisible: false` and clearing `mapXPercent`/`mapYPercent`.
+- Placing a new map pin shares location again through the existing pin-save path.
+- Browser QA covered a 390px-wide emulator-backed gate/onboarding/map flow with pin placement, hide-location, hidden pin removal, Settings hidden state, and People visibility with status plus hidden-location label.
 
 Depends on:
 

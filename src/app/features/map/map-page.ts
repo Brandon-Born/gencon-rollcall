@@ -1,4 +1,12 @@
-import { Component, DestroyRef, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 
 import { AppConfigService, type AppConfigLoadError } from '../../core/app-config/app-config';
 import { AuthSession } from '../../core/auth/auth-session';
@@ -71,7 +79,13 @@ const dayMs = 24 * hourMs;
           <p>Gen Con Roll Call</p>
           <h1>{{ mapTitle() }}</h1>
         </div>
-        <button type="button">Hide me</button>
+        <button
+          type="button"
+          [disabled]="isLocationHiding() || currentMemberLocationHidden()"
+          (click)="hideCurrentLocation()"
+        >
+          {{ locationButtonLabel() }}
+        </button>
       </header>
 
       <section class="map-frame" [attr.aria-label]="mapFrameLabel()">
@@ -90,12 +104,17 @@ const dayMs = 24 * hourMs;
         } @else if (!configuredMapUrl()) {
           <div class="map-state">
             <strong>No map configured yet</strong>
-            <p>Add a static map asset and set <code>appConfig/current</code> before placing pins.</p>
+            <p>
+              Add a static map asset and set <code>appConfig/current</code> before placing pins.
+            </p>
           </div>
         } @else if (mapImageFailed()) {
           <div class="map-state map-state-error">
             <strong>Map image did not load</strong>
-            <p>Check that <code>{{ configuredMapUrl() }}</code> is a deployed static asset or reachable URL.</p>
+            <p>
+              Check that <code>{{ configuredMapUrl() }}</code> is a deployed static asset or
+              reachable URL.
+            </p>
             <button type="button" (click)="retryMapImage()">Retry image</button>
           </div>
         } @else {
@@ -129,7 +148,9 @@ const dayMs = 24 * hourMs;
                   [style.left.%]="pin.renderX"
                   [style.top.%]="pin.renderY"
                   [style.transform]="pinTransform()"
-                  [attr.aria-label]="pin.name + ', ' + pin.statusLabel + ', updated ' + pin.freshnessLabel"
+                  [attr.aria-label]="
+                    pin.name + ', ' + pin.statusLabel + ', updated ' + pin.freshnessLabel
+                  "
                   (pointerdown)="$event.stopPropagation()"
                   (click)="selectPin(pin.id)"
                 >
@@ -140,7 +161,9 @@ const dayMs = 24 * hourMs;
           </div>
 
           <div class="map-controls" role="group" aria-label="Map zoom controls">
-            <button type="button" (click)="zoomMapBy(mapViewport, 0.8)" aria-label="Zoom out">−</button>
+            <button type="button" (click)="zoomMapBy(mapViewport, 0.8)" aria-label="Zoom out">
+              −
+            </button>
             <button
               type="button"
               class="map-reset"
@@ -150,7 +173,9 @@ const dayMs = 24 * hourMs;
             >
               {{ mapResetLabel() }}
             </button>
-            <button type="button" (click)="zoomMapBy(mapViewport, 1.25)" aria-label="Zoom in">+</button>
+            <button type="button" (click)="zoomMapBy(mapViewport, 1.25)" aria-label="Zoom in">
+              +
+            </button>
           </div>
 
           @if (selectedPin(); as pin) {
@@ -168,7 +193,9 @@ const dayMs = 24 * hourMs;
                 <p>{{ pin.statusLabel }}</p>
                 <time [attr.datetime]="pin.updatedAtIso">Updated {{ pin.freshnessLabel }}</time>
               </div>
-              <button type="button" aria-label="Close pin details" (click)="clearSelectedPin()">×</button>
+              <button type="button" aria-label="Close pin details" (click)="clearSelectedPin()">
+                ×
+              </button>
             </aside>
           }
 
@@ -184,7 +211,9 @@ const dayMs = 24 * hourMs;
             <p>Your status</p>
             <strong>{{ selectedStatusLabel() }}</strong>
           </div>
-          <span class="status-meta" [class.error]="statusSaveIsError()">{{ statusMetaLabel() }}</span>
+          <span class="status-meta" [class.error]="statusSaveIsError()">{{
+            statusMetaLabel()
+          }}</span>
         </div>
 
         <div class="status-grid" aria-label="Choose status">
@@ -220,7 +249,9 @@ const dayMs = 24 * hourMs;
         </button>
 
         @if (statusSaveMessage()) {
-          <p class="save-message" [class.error]="statusSaveIsError()" role="status">{{ statusSaveMessage() }}</p>
+          <p class="save-message" [class.error]="statusSaveIsError()" role="status">
+            {{ statusSaveMessage() }}
+          </p>
         }
       </form>
     </main>
@@ -266,6 +297,11 @@ const dayMs = 24 * hourMs;
       font-weight: 800;
     }
 
+    header button:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
     .map-frame {
       position: relative;
       overflow: hidden;
@@ -300,8 +336,7 @@ const dayMs = 24 * hourMs;
     .map-art {
       background:
         linear-gradient(rgba(47, 128, 237, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px),
-        #f6f8fb;
+        linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px), #f6f8fb;
       background-size: 28px 28px;
       transform-origin: 0 0;
       will-change: transform;
@@ -326,8 +361,7 @@ const dayMs = 24 * hourMs;
       padding: 28px;
       background:
         linear-gradient(rgba(47, 128, 237, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px),
-        #f6f8fb;
+        linear-gradient(90deg, rgba(47, 128, 237, 0.07) 1px, transparent 1px), #f6f8fb;
       background-size: 28px 28px;
       color: var(--color-text);
       text-align: center;
@@ -682,7 +716,7 @@ const dayMs = 24 * hourMs;
         min-height: 390px;
       }
     }
-  `
+  `,
 })
 export class MapPage {
   private readonly appConfig = inject(AppConfigService);
@@ -720,6 +754,21 @@ export class MapPage {
 
   readonly statuses = STATUS_OPTIONS;
   readonly members = signal<Member[]>([]);
+  readonly currentMember = computed(() => {
+    const currentUid = this.authSession.user()?.uid;
+    return this.members().find((member) => member.id === currentUid) ?? this.memberProfile.member();
+  });
+  readonly currentMemberLocationHidden = computed(
+    () => this.currentMember()?.locationVisible === false,
+  );
+  readonly isLocationHiding = signal(false);
+  readonly locationButtonLabel = computed(() => {
+    if (this.isLocationHiding()) {
+      return 'Hiding...';
+    }
+
+    return this.currentMemberLocationHidden() ? 'Hidden' : 'Hide me';
+  });
   readonly now = signal(new Date());
   readonly selectedStatus = signal<MemberStatus>('available');
   readonly selectedStatusLabel = computed(() => statusLabel(this.selectedStatus()));
@@ -732,10 +781,12 @@ export class MapPage {
   readonly lastSavedStatus = signal<MemberStatus>('available');
   readonly lastSavedNote = signal('');
   readonly hasUnsavedStatusChanges = computed(
-    () => this.selectedStatus() !== this.lastSavedStatus() || normalizeNote(this.note()) !== this.lastSavedNote()
+    () =>
+      this.selectedStatus() !== this.lastSavedStatus() ||
+      normalizeNote(this.note()) !== this.lastSavedNote(),
   );
   readonly canSaveStatus = computed(
-    () => !this.isStatusLoading() && !this.isStatusSaving() && this.hasUnsavedStatusChanges()
+    () => !this.isStatusLoading() && !this.isStatusSaving() && this.hasUnsavedStatusChanges(),
   );
   readonly statusMetaLabel = computed(() => {
     if (this.isStatusLoading()) {
@@ -778,23 +829,27 @@ export class MapPage {
   readonly mapTransform = computed(
     () =>
       `translate3d(${formatViewValue(this.mapTranslateX())}px, ${formatViewValue(
-        this.mapTranslateY()
-      )}px, 0) scale(${formatViewValue(this.mapScale())})`
+        this.mapTranslateY(),
+      )}px, 0) scale(${formatViewValue(this.mapScale())})`,
   );
-  readonly pinTransform = computed(() => `translate(-50%, -50%) scale(${formatViewValue(1 / this.mapScale())})`);
+  readonly pinTransform = computed(
+    () => `translate(-50%, -50%) scale(${formatViewValue(1 / this.mapScale())})`,
+  );
   readonly mapZoomLabel = computed(() => `${Math.round(this.mapScale() * 100)}%`);
   readonly isMapViewAtRest = computed(
-    () => this.mapScale() === 1 && this.mapTranslateX() === 0 && this.mapTranslateY() === 0
+    () => this.mapScale() === 1 && this.mapTranslateX() === 0 && this.mapTranslateY() === 0,
   );
-  readonly mapResetLabel = computed(() => this.isMapViewAtRest() ? 'Fit' : 'Reset');
-  readonly mapResetAriaLabel = computed(() => `Reset map view. Current zoom ${this.mapZoomLabel()}.`);
+  readonly mapResetLabel = computed(() => (this.isMapViewAtRest() ? 'Fit' : 'Reset'));
+  readonly mapResetAriaLabel = computed(
+    () => `Reset map view. Current zoom ${this.mapZoomLabel()}.`,
+  );
   readonly mapImageBounds = computed(() =>
     mapImageBoundsFor(
       this.mapViewportWidth(),
       this.mapViewportHeight(),
       this.mapImageNaturalWidth(),
-      this.mapImageNaturalHeight()
-    )
+      this.mapImageNaturalHeight(),
+    ),
   );
   readonly pins = computed(() => {
     const bounds = this.mapImageBounds();
@@ -806,14 +861,14 @@ export class MapPage {
     return this.members()
       .filter(
         (member) =>
-          member.locationVisible &&
-          member.mapXPercent !== null &&
-          member.mapYPercent !== null
+          member.locationVisible && member.mapXPercent !== null && member.mapYPercent !== null,
       )
       .map((member) => toMapPin(member, bounds, viewportWidth, viewportHeight, now, currentUid))
       .sort((first, second) => Number(first.isCurrentMember) - Number(second.isCurrentMember));
   });
-  readonly selectedPin = computed(() => this.pins().find((pin) => pin.id === this.selectedPinId()) ?? null);
+  readonly selectedPin = computed(
+    () => this.pins().find((pin) => pin.id === this.selectedPinId()) ?? null,
+  );
 
   constructor() {
     const interval = window.setInterval(() => this.now.set(new Date()), minuteMs);
@@ -924,7 +979,7 @@ export class MapPage {
       start: point,
       latest: point,
       maxDistance: 0,
-      hadMultiplePointers: false
+      hadMultiplePointers: false,
     };
   }
 
@@ -947,7 +1002,7 @@ export class MapPage {
       this.tapCandidate.latest = point;
       this.tapCandidate.maxDistance = Math.max(
         this.tapCandidate.maxDistance,
-        distanceBetween(this.tapCandidate.start, point)
+        distanceBetween(this.tapCandidate.start, point),
       );
     }
 
@@ -968,16 +1023,20 @@ export class MapPage {
         return;
       }
 
-      const nextScale = clampScale(this.gestureStart.scale * (metrics.distance / this.gestureStart.distance));
-      const contentX = (this.gestureStart.midpoint.x - this.gestureStart.translateX) / this.gestureStart.scale;
-      const contentY = (this.gestureStart.midpoint.y - this.gestureStart.translateY) / this.gestureStart.scale;
+      const nextScale = clampScale(
+        this.gestureStart.scale * (metrics.distance / this.gestureStart.distance),
+      );
+      const contentX =
+        (this.gestureStart.midpoint.x - this.gestureStart.translateX) / this.gestureStart.scale;
+      const contentY =
+        (this.gestureStart.midpoint.y - this.gestureStart.translateY) / this.gestureStart.scale;
       this.applyMapView(
         {
           scale: nextScale,
           translateX: metrics.midpoint.x - contentX * nextScale,
-          translateY: metrics.midpoint.y - contentY * nextScale
+          translateY: metrics.midpoint.y - contentY * nextScale,
         },
-        viewport
+        viewport,
       );
       return;
     }
@@ -991,9 +1050,9 @@ export class MapPage {
       {
         scale: this.mapScale(),
         translateX: this.mapTranslateX() + point.x - this.lastDragPoint.x,
-        translateY: this.mapTranslateY() + point.y - this.lastDragPoint.y
+        translateY: this.mapTranslateY() + point.y - this.lastDragPoint.y,
       },
-      viewport
+      viewport,
     );
     this.lastDragPoint = point;
   }
@@ -1050,7 +1109,7 @@ export class MapPage {
   zoomMapBy(viewport: HTMLElement, factor: number): void {
     this.zoomMapAt(viewport, factor, {
       x: viewport.clientWidth / 2,
-      y: viewport.clientHeight / 2
+      y: viewport.clientHeight / 2,
     });
   }
 
@@ -1110,6 +1169,31 @@ export class MapPage {
     }
   }
 
+  async hideCurrentLocation(): Promise<void> {
+    if (this.isLocationHiding() || this.currentMemberLocationHidden()) {
+      return;
+    }
+
+    this.isLocationHiding.set(true);
+    this.pinSaveMessage.set('Hiding location...');
+    this.pinSaveIsError.set(false);
+
+    try {
+      const member = await this.memberProfile.hideCurrentLocation();
+      this.selectedPinId.set(null);
+      this.pinSaveMessage.set(
+        member.locationVisible
+          ? 'Location visibility unchanged.'
+          : 'Location hidden. Tap the map to share a new pin.',
+      );
+    } catch (error) {
+      this.pinSaveMessage.set(messageForHideLocationError(error));
+      this.pinSaveIsError.set(true);
+    } finally {
+      this.isLocationHiding.set(false);
+    }
+  }
+
   labelFor(status: MemberStatus): string {
     return statusLabel(status);
   }
@@ -1117,7 +1201,7 @@ export class MapPage {
   private async savePinAtViewportPoint(point: MapPoint, viewport: HTMLElement): Promise<void> {
     const mapPercent = this.mapPercentFromViewportPoint(point, viewport);
 
-    if (!mapPercent || this.isPinSaving()) {
+    if (!mapPercent || this.isPinSaving() || this.isLocationHiding()) {
       return;
     }
 
@@ -1158,7 +1242,7 @@ export class MapPage {
 
           this.pinSaveMessage.set('Could not load group pins. Check your session and connection.');
           this.pinSaveIsError.set(true);
-        }
+        },
       );
 
       if (this.isDestroyed) {
@@ -1196,7 +1280,12 @@ export class MapPage {
 
     const bounds =
       this.mapImageBounds() ??
-      mapImageBoundsFor(viewport.clientWidth, viewport.clientHeight, viewport.clientWidth, viewport.clientHeight);
+      mapImageBoundsFor(
+        viewport.clientWidth,
+        viewport.clientHeight,
+        viewport.clientWidth,
+        viewport.clientHeight,
+      );
 
     if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
       return null;
@@ -1204,12 +1293,12 @@ export class MapPage {
 
     const contentPoint = {
       x: (point.x - this.mapTranslateX()) / this.mapScale(),
-      y: (point.y - this.mapTranslateY()) / this.mapScale()
+      y: (point.y - this.mapTranslateY()) / this.mapScale(),
     };
 
     return {
       x: clamp(((contentPoint.x - bounds.left) / bounds.width) * 100, 0, 100),
-      y: clamp(((contentPoint.y - bounds.top) / bounds.height) * 100, 0, 100)
+      y: clamp(((contentPoint.y - bounds.top) / bounds.height) * 100, 0, 100),
     };
   }
 
@@ -1225,7 +1314,7 @@ export class MapPage {
       midpoint: metrics.midpoint,
       scale: this.mapScale(),
       translateX: this.mapTranslateX(),
-      translateY: this.mapTranslateY()
+      translateY: this.mapTranslateY(),
     };
   }
 
@@ -1238,9 +1327,9 @@ export class MapPage {
       {
         scale: nextScale,
         translateX: focalPoint.x - contentX * nextScale,
-        translateY: focalPoint.y - contentY * nextScale
+        translateY: focalPoint.y - contentY * nextScale,
       },
-      viewport
+      viewport,
     );
   }
 
@@ -1291,17 +1380,35 @@ function messageForPinError(error: unknown): string {
   return 'Could not save your pin. Check your connection and try again.';
 }
 
+function messageForHideLocationError(error: unknown): string {
+  if (error instanceof MemberProfileError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before changing visibility.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'member-not-found') {
+    return 'Your profile is not ready yet. Finish onboarding before changing visibility.';
+  }
+
+  return 'Could not hide your location. Check your connection and try again.';
+}
+
 function toMapPin(
   member: Member,
   bounds: MapImageBounds | null,
   viewportWidth: number,
   viewportHeight: number,
   now: Date,
-  currentUid: string
+  currentUid: string,
 ): MapPin {
   const xPercent = member.mapXPercent ?? 0;
   const yPercent = member.mapYPercent ?? 0;
-  const renderPoint = renderPercentForMapPoint(xPercent, yPercent, bounds, viewportWidth, viewportHeight);
+  const renderPoint = renderPercentForMapPoint(
+    xPercent,
+    yPercent,
+    bounds,
+    viewportWidth,
+    viewportHeight,
+  );
   const updatedAt = validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : member.joinedAt;
 
   return {
@@ -1316,7 +1423,7 @@ function toMapPin(
     statusLabel: statusLabel(member.status),
     freshnessLabel: freshnessLabel(updatedAt, now),
     updatedAtIso: updatedAt.toISOString(),
-    isCurrentMember: member.id === currentUid
+    isCurrentMember: member.id === currentUid,
   };
 }
 
@@ -1325,18 +1432,18 @@ function renderPercentForMapPoint(
   yPercent: number,
   bounds: MapImageBounds | null,
   viewportWidth: number,
-  viewportHeight: number
+  viewportHeight: number,
 ): MapPoint {
   if (!bounds || viewportWidth <= 0 || viewportHeight <= 0) {
     return {
       x: clamp(xPercent, 0, 100),
-      y: clamp(yPercent, 0, 100)
+      y: clamp(yPercent, 0, 100),
     };
   }
 
   return {
     x: ((bounds.left + bounds.width * (clamp(xPercent, 0, 100) / 100)) / viewportWidth) * 100,
-    y: ((bounds.top + bounds.height * (clamp(yPercent, 0, 100) / 100)) / viewportHeight) * 100
+    y: ((bounds.top + bounds.height * (clamp(yPercent, 0, 100) / 100)) / viewportHeight) * 100,
   };
 }
 
@@ -1344,7 +1451,7 @@ function mapImageBoundsFor(
   viewportWidth: number,
   viewportHeight: number,
   naturalWidth: number,
-  naturalHeight: number
+  naturalHeight: number,
 ): MapImageBounds | null {
   if (viewportWidth <= 0 || viewportHeight <= 0 || naturalWidth <= 0 || naturalHeight <= 0) {
     return null;
@@ -1361,7 +1468,7 @@ function mapImageBoundsFor(
       left: (viewportWidth - width) / 2,
       top: 0,
       width,
-      height
+      height,
     };
   }
 
@@ -1372,7 +1479,7 @@ function mapImageBoundsFor(
     left: 0,
     top: (viewportHeight - height) / 2,
     width,
-    height
+    height,
   };
 }
 
@@ -1381,7 +1488,7 @@ function pointFromPointerEvent(event: PointerEvent, viewport: HTMLElement): MapP
 
   return {
     x: event.clientX - rect.left,
-    y: event.clientY - rect.top
+    y: event.clientY - rect.top,
   };
 }
 
@@ -1394,11 +1501,13 @@ function pointFromWheelEvent(event: WheelEvent, viewport: HTMLElement): MapPoint
 
   return {
     x: event.clientX - rect.left,
-    y: event.clientY - rect.top
+    y: event.clientY - rect.top,
   };
 }
 
-function pointerMetrics(points: readonly MapPoint[]): { distance: number; midpoint: MapPoint } | null {
+function pointerMetrics(
+  points: readonly MapPoint[],
+): { distance: number; midpoint: MapPoint } | null {
   const first = points[0];
   const second = points[1];
 
@@ -1410,8 +1519,8 @@ function pointerMetrics(points: readonly MapPoint[]): { distance: number; midpoi
     distance: Math.hypot(second.x - first.x, second.y - first.y),
     midpoint: {
       x: (first.x + second.x) / 2,
-      y: (first.y + second.y) / 2
-    }
+      y: (first.y + second.y) / 2,
+    },
   };
 }
 
@@ -1422,7 +1531,7 @@ function constrainMapView(view: MapView, viewportWidth: number, viewportHeight: 
     return {
       scale,
       translateX: 0,
-      translateY: 0
+      translateY: 0,
     };
   }
 
@@ -1432,7 +1541,7 @@ function constrainMapView(view: MapView, viewportWidth: number, viewportHeight: 
   return {
     scale,
     translateX: clamp(view.translateX, minTranslateX, 0),
-    translateY: clamp(view.translateY, minTranslateY, 0)
+    translateY: clamp(view.translateY, minTranslateY, 0),
   };
 }
 
@@ -1445,7 +1554,9 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function formatViewValue(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
 }
 
 function initialsFor(displayName: string): string {

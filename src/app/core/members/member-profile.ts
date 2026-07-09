@@ -70,9 +70,9 @@ export class MemberProfile {
           {
             displayName: trimmedName,
             avatarStyle: snapshot.data()['avatarStyle'] ?? avatarStyleFor(uid, trimmedName),
-            lastUpdatedAt: serverTimestamp()
+            lastUpdatedAt: serverTimestamp(),
           },
-          { merge: true }
+          { merge: true },
         );
         return;
       }
@@ -86,12 +86,12 @@ export class MemberProfile {
         mapYPercent: null,
         locationVisible: true,
         joinedAt: serverTimestamp(),
-        lastUpdatedAt: serverTimestamp()
+        lastUpdatedAt: serverTimestamp(),
       });
     });
 
     this.session.setDisplayName(trimmedName);
-    return await this.loadCurrentMember({ force: true }) ?? this.fallbackMember(uid, trimmedName);
+    return (await this.loadCurrentMember({ force: true })) ?? this.fallbackMember(uid, trimmedName);
   }
 
   async saveCurrentStatus(status: MemberStatus, note: string): Promise<Member> {
@@ -108,7 +108,7 @@ export class MemberProfile {
     await updateDoc(memberRef, {
       status,
       note: normalizedNote,
-      lastUpdatedAt: serverTimestamp()
+      lastUpdatedAt: serverTimestamp(),
     });
 
     const savedMember = await this.loadCurrentMember({ force: true });
@@ -124,7 +124,7 @@ export class MemberProfile {
         ...existingMember,
         status,
         note: normalizedNote,
-        lastUpdatedAt: new Date()
+        lastUpdatedAt: new Date(),
       };
       this.member.set(fallbackMember);
       return fallbackMember;
@@ -149,7 +149,7 @@ export class MemberProfile {
       mapXPercent: normalizedX,
       mapYPercent: normalizedY,
       locationVisible: true,
-      lastUpdatedAt: serverTimestamp()
+      lastUpdatedAt: serverTimestamp(),
     });
 
     const savedMember = await this.loadCurrentMember({ force: true });
@@ -166,7 +166,7 @@ export class MemberProfile {
         mapXPercent: normalizedX,
         mapYPercent: normalizedY,
         locationVisible: true,
-        lastUpdatedAt: new Date()
+        lastUpdatedAt: new Date(),
       };
       this.member.set(fallbackMember);
       return fallbackMember;
@@ -175,7 +175,50 @@ export class MemberProfile {
     throw new MemberProfileError('member-not-found');
   }
 
-  async watchMembers(onMembers: (members: Member[]) => void, onError: (error: unknown) => void): Promise<() => void> {
+  async hideCurrentLocation(): Promise<Member> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      throw new MemberProfileError('not-authorized');
+    }
+
+    const { doc, serverTimestamp, updateDoc } = await import('firebase/firestore');
+    const memberRef = doc(await this.firebase.getFirestore(), 'members', uid);
+
+    await updateDoc(memberRef, {
+      mapXPercent: null,
+      mapYPercent: null,
+      locationVisible: false,
+      lastUpdatedAt: serverTimestamp(),
+    });
+
+    const savedMember = await this.loadCurrentMember({ force: true });
+
+    if (savedMember) {
+      return savedMember;
+    }
+
+    const existingMember = this.member();
+
+    if (existingMember) {
+      const fallbackMember = {
+        ...existingMember,
+        mapXPercent: null,
+        mapYPercent: null,
+        locationVisible: false,
+        lastUpdatedAt: new Date(),
+      };
+      this.member.set(fallbackMember);
+      return fallbackMember;
+    }
+
+    throw new MemberProfileError('member-not-found');
+  }
+
+  async watchMembers(
+    onMembers: (members: Member[]) => void,
+    onError: (error: unknown) => void,
+  ): Promise<() => void> {
     const uid = this.authSession.user()?.uid;
 
     if (!uid || !this.authSession.isAuthorized()) {
@@ -191,7 +234,7 @@ export class MemberProfile {
       (snapshot) => {
         onMembers(snapshot.docs.map((document) => this.toMember(document.id, document.data())));
       },
-      onError
+      onError,
     );
   }
 
@@ -204,14 +247,15 @@ export class MemberProfile {
     return {
       id,
       displayName: stringValue(data['displayName']),
-      avatarStyle: stringValue(data['avatarStyle']) || avatarStyleFor(id, stringValue(data['displayName'])),
+      avatarStyle:
+        stringValue(data['avatarStyle']) || avatarStyleFor(id, stringValue(data['displayName'])),
       status: memberStatusValue(data['status']),
       note: stringValue(data['note']),
       mapXPercent: numberOrNull(data['mapXPercent']),
       mapYPercent: numberOrNull(data['mapYPercent']),
       locationVisible: data['locationVisible'] !== false,
       joinedAt: dateValue(data['joinedAt']),
-      lastUpdatedAt: dateValue(data['lastUpdatedAt'])
+      lastUpdatedAt: dateValue(data['lastUpdatedAt']),
     };
   }
 
@@ -228,12 +272,13 @@ export class MemberProfile {
       mapYPercent: null,
       locationVisible: true,
       joinedAt: now,
-      lastUpdatedAt: now
+      lastUpdatedAt: now,
     };
   }
 }
 
-export type MemberProfileErrorCode = 'display-name-required' | 'not-authorized' | 'member-not-found';
+export type MemberProfileErrorCode =
+  'display-name-required' | 'not-authorized' | 'member-not-found';
 
 export class MemberProfileError extends Error {
   constructor(readonly code: MemberProfileErrorCode) {
