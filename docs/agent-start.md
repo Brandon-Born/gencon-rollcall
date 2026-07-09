@@ -29,9 +29,9 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `PEOPLE-001` Persist status and note to Firestore.
-2. `MAP-002` Mobile map pan and zoom.
-3. `PEOPLE-002` Real-time people list.
+1. `MAP-004` Hide location.
+2. `RALLY-001` Create rally points.
+3. `RALLY-002` Rally responses.
 
 Keep shared map/member/rally data behind the existing authorization checks.
 

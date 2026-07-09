@@ -18,9 +18,9 @@ Status values:
 
 ## Next 3
 
-1. `MAP-003` Manual pin placement.
-2. `MAP-004` Hide location.
-3. `RALLY-001` Create rally points.
+1. `MAP-004` Hide location.
+2. `RALLY-001` Create rally points.
+3. `RALLY-002` Rally responses.
 
 Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
 
@@ -198,11 +198,19 @@ Acceptance criteria:
 
 ### `MAP-003` Manual pin placement
 
-- [ ] Convert tap/press position to relative percentage coordinates.
-- [ ] Save current user's pin to their member document.
-- [ ] Render all visible member pins.
-- [ ] Show initials, display name, status, and last-updated timestamp.
-- [ ] Keep pin coordinates stable across viewport sizes and zoom levels.
+- [x] Convert tap/press position to relative percentage coordinates.
+- [x] Save current user's pin to their member document.
+- [x] Render all visible member pins.
+- [x] Show initials, display name, status, and last-updated timestamp.
+- [x] Keep pin coordinates stable across viewport sizes and zoom levels.
+
+Implementation status:
+
+- Code exists in `src/app/core/members/member-profile.ts` and `src/app/features/map/map-page.ts`.
+- The map page subscribes to Firestore members in real time and renders pins for members with `locationVisible: true` and saved `mapXPercent`/`mapYPercent` values.
+- Tapping the configured map image writes the current user's pin as image-relative percentage coordinates and updates `lastUpdatedAt`.
+- Pin detail shows initials, display name, status, and freshness, and pins keep stable visual size while pan/zoom transforms change.
+- Browser QA covered a 390px-wide emulator-backed map flow with tap-to-place, Firestore percentage persistence, live second-member pin rendering without refresh, selected marker details, and zoomed pin stability.
 
 Depends on:
 

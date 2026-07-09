@@ -1,15 +1,24 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 
 import { AppConfigService, type AppConfigLoadError } from '../../core/app-config/app-config';
+import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
+import type { Member } from '../../core/models/member';
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
 
 interface MapPin {
+  id: string;
   initials: string;
   name: string;
-  x: number;
-  y: number;
+  xPercent: number;
+  yPercent: number;
+  renderX: number;
+  renderY: number;
   status: MemberStatus;
+  statusLabel: string;
+  freshnessLabel: string;
+  updatedAtIso: string;
+  isCurrentMember: boolean;
 }
 
 interface MapPoint {
@@ -31,8 +40,27 @@ interface MapView {
   translateY: number;
 }
 
+interface MapImageBounds {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface MapTapCandidate {
+  pointerId: number;
+  start: MapPoint;
+  latest: MapPoint;
+  maxDistance: number;
+  hadMultiplePointers: boolean;
+}
+
 const MIN_MAP_SCALE = 1;
 const MAX_MAP_SCALE = 4;
+const TAP_MOVE_TOLERANCE_PX = 8;
+const minuteMs = 60 * 1000;
+const hourMs = 60 * minuteMs;
+const dayMs = 24 * hourMs;
 
 @Component({
   selector: 'app-map-page',
@@ -87,19 +115,23 @@ const MAX_MAP_SCALE = 4;
                 [src]="configuredMapUrl()"
                 [alt]="mapTitle()"
                 draggable="false"
-                (load)="markMapImageLoaded()"
+                (load)="markMapImageLoaded($event)"
                 (error)="markMapImageFailed()"
               />
 
-              @for (pin of pins; track pin.initials) {
+              @for (pin of pins(); track pin.id) {
                 <button
                   type="button"
                   class="pin"
-                  [class]="pin.status"
-                  [style.left.%]="pin.x"
-                  [style.top.%]="pin.y"
+                  [attr.data-status]="pin.status"
+                  [class.current]="pin.isCurrentMember"
+                  [class.selected]="selectedPin()?.id === pin.id"
+                  [style.left.%]="pin.renderX"
+                  [style.top.%]="pin.renderY"
                   [style.transform]="pinTransform()"
-                  [attr.aria-label]="pin.name + ', ' + labelFor(pin.status)"
+                  [attr.aria-label]="pin.name + ', ' + pin.statusLabel + ', updated ' + pin.freshnessLabel"
+                  (pointerdown)="$event.stopPropagation()"
+                  (click)="selectPin(pin.id)"
                 >
                   {{ pin.initials }}
                 </button>
@@ -120,6 +152,29 @@ const MAX_MAP_SCALE = 4;
             </button>
             <button type="button" (click)="zoomMapBy(mapViewport, 1.25)" aria-label="Zoom in">+</button>
           </div>
+
+          @if (selectedPin(); as pin) {
+            <aside class="pin-detail" aria-live="polite">
+              <span
+                class="pin-detail-avatar"
+                [attr.data-status]="pin.status"
+                [class.current]="pin.isCurrentMember"
+                aria-hidden="true"
+              >
+                {{ pin.initials }}
+              </span>
+              <div>
+                <strong>{{ pin.name }}</strong>
+                <p>{{ pin.statusLabel }}</p>
+                <time [attr.datetime]="pin.updatedAtIso">Updated {{ pin.freshnessLabel }}</time>
+              </div>
+              <button type="button" aria-label="Close pin details" (click)="clearSelectedPin()">×</button>
+            </aside>
+          }
+
+          <p class="map-hint" [class.error]="pinSaveIsError()" role="status">
+            {{ pinSaveMessage() || 'Tap the map to place or move your pin.' }}
+          </p>
         }
       </section>
 
@@ -314,6 +369,7 @@ const MAX_MAP_SCALE = 4;
 
     .pin {
       position: absolute;
+      z-index: 2;
       width: 46px;
       height: 46px;
       border: 3px solid var(--color-map-blue);
@@ -325,18 +381,135 @@ const MAX_MAP_SCALE = 4;
       font-weight: 900;
     }
 
-    .pin.available {
+    .pin.current {
+      outline: 3px solid rgba(47, 128, 237, 0.18);
+      outline-offset: 3px;
+    }
+
+    .pin.selected {
+      z-index: 4;
+      box-shadow:
+        0 0 0 4px rgba(255, 255, 255, 0.85),
+        0 10px 24px rgba(15, 23, 42, 0.24);
+    }
+
+    .pin[data-status='available'],
+    .pin-detail-avatar[data-status='available'] {
       border-color: var(--color-green);
     }
 
-    .pin.heading-somewhere,
-    .pin.vendor-hall {
+    .pin[data-status='heading-somewhere'],
+    .pin[data-status='vendor-hall'],
+    .pin-detail-avatar[data-status='heading-somewhere'],
+    .pin-detail-avatar[data-status='vendor-hall'] {
       border-color: var(--color-gold);
     }
 
-    .pin.offline,
-    .pin.hotel-resting {
+    .pin[data-status='food-drinks'],
+    .pin[data-status='need-break'],
+    .pin-detail-avatar[data-status='food-drinks'],
+    .pin-detail-avatar[data-status='need-break'] {
+      border-color: var(--color-orange);
+    }
+
+    .pin[data-status='offline'],
+    .pin[data-status='hotel-resting'],
+    .pin-detail-avatar[data-status='offline'],
+    .pin-detail-avatar[data-status='hotel-resting'] {
       border-color: var(--color-muted);
+    }
+
+    .pin-detail {
+      position: absolute;
+      right: 10px;
+      bottom: 50px;
+      left: 10px;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) 38px;
+      gap: 11px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(216, 222, 232, 0.92);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+      backdrop-filter: blur(12px);
+    }
+
+    .pin-detail-avatar {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 3px solid var(--color-map-blue);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .pin-detail-avatar.current {
+      outline: 3px solid rgba(47, 128, 237, 0.18);
+      outline-offset: 2px;
+    }
+
+    .pin-detail strong {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--color-text);
+      font-size: 15px;
+      line-height: 1.15;
+    }
+
+    .pin-detail p,
+    .pin-detail time {
+      display: block;
+      margin: 3px 0 0;
+      color: var(--color-muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .pin-detail p {
+      color: var(--color-text);
+    }
+
+    .pin-detail button {
+      min-width: 38px;
+      min-height: 38px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(102, 112, 133, 0.1);
+      color: var(--color-muted);
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .map-hint {
+      position: absolute;
+      right: 12px;
+      bottom: 10px;
+      left: 12px;
+      z-index: 4;
+      margin: 0;
+      padding: 8px 10px;
+      border: 1px solid rgba(216, 222, 232, 0.9);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--color-muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .map-hint.error {
+      color: var(--color-gencon-red);
     }
 
     .map-controls {
@@ -513,12 +686,41 @@ const MAX_MAP_SCALE = 4;
 })
 export class MapPage {
   private readonly appConfig = inject(AppConfigService);
+  private readonly authSession = inject(AuthSession);
   private readonly memberProfile = inject(MemberProfile);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly activeMapPointers = new Map<number, MapPoint>();
   private lastDragPoint: MapPoint | null = null;
   private gestureStart: MapGestureStart | null = null;
+  private tapCandidate: MapTapCandidate | null = null;
+  private mapViewportElement: HTMLElement | null = null;
+  private viewportResizeObserver: ResizeObserver | null = null;
+  private membersUnsubscribe: (() => void) | null = null;
+  private isDestroyed = false;
+
+  @ViewChild('mapViewport')
+  set mapViewport(element: ElementRef<HTMLElement> | undefined) {
+    this.viewportResizeObserver?.disconnect();
+    this.viewportResizeObserver = null;
+    this.mapViewportElement = element?.nativeElement ?? null;
+
+    if (!this.mapViewportElement) {
+      this.mapViewportWidth.set(0);
+      this.mapViewportHeight.set(0);
+      return;
+    }
+
+    this.updateMapViewportSize();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this.viewportResizeObserver = new ResizeObserver(() => this.updateMapViewportSize());
+      this.viewportResizeObserver.observe(this.mapViewportElement);
+    }
+  }
 
   readonly statuses = STATUS_OPTIONS;
+  readonly members = signal<Member[]>([]);
+  readonly now = signal(new Date());
   readonly selectedStatus = signal<MemberStatus>('available');
   readonly selectedStatusLabel = computed(() => statusLabel(this.selectedStatus()));
   readonly note = signal('');
@@ -564,7 +766,15 @@ export class MapPage {
   readonly mapScale = signal(1);
   readonly mapTranslateX = signal(0);
   readonly mapTranslateY = signal(0);
+  readonly mapViewportWidth = signal(0);
+  readonly mapViewportHeight = signal(0);
+  readonly mapImageNaturalWidth = signal(0);
+  readonly mapImageNaturalHeight = signal(0);
   readonly isMapDragging = signal(false);
+  readonly isPinSaving = signal(false);
+  readonly pinSaveMessage = signal('');
+  readonly pinSaveIsError = signal(false);
+  readonly selectedPinId = signal<string | null>(null);
   readonly mapTransform = computed(
     () =>
       `translate3d(${formatViewValue(this.mapTranslateX())}px, ${formatViewValue(
@@ -578,17 +788,48 @@ export class MapPage {
   );
   readonly mapResetLabel = computed(() => this.isMapViewAtRest() ? 'Fit' : 'Reset');
   readonly mapResetAriaLabel = computed(() => `Reset map view. Current zoom ${this.mapZoomLabel()}.`);
+  readonly mapImageBounds = computed(() =>
+    mapImageBoundsFor(
+      this.mapViewportWidth(),
+      this.mapViewportHeight(),
+      this.mapImageNaturalWidth(),
+      this.mapImageNaturalHeight()
+    )
+  );
+  readonly pins = computed(() => {
+    const bounds = this.mapImageBounds();
+    const viewportWidth = this.mapViewportWidth();
+    const viewportHeight = this.mapViewportHeight();
+    const now = this.now();
+    const currentUid = this.authSession.user()?.uid ?? '';
 
-  readonly pins: readonly MapPin[] = [
-    { initials: 'JW', name: 'Jamie Wu', x: 39, y: 27, status: 'available' },
-    { initials: 'MK', name: 'Morgan K.', x: 69, y: 35, status: 'heading-somewhere' },
-    { initials: 'TS', name: 'Taylor S.', x: 29, y: 69, status: 'gaming' },
-    { initials: 'AC', name: 'Alex Carter', x: 57, y: 54, status: 'available' }
-  ];
+    return this.members()
+      .filter(
+        (member) =>
+          member.locationVisible &&
+          member.mapXPercent !== null &&
+          member.mapYPercent !== null
+      )
+      .map((member) => toMapPin(member, bounds, viewportWidth, viewportHeight, now, currentUid))
+      .sort((first, second) => Number(first.isCurrentMember) - Number(second.isCurrentMember));
+  });
+  readonly selectedPin = computed(() => this.pins().find((pin) => pin.id === this.selectedPinId()) ?? null);
 
   constructor() {
+    const interval = window.setInterval(() => this.now.set(new Date()), minuteMs);
+
+    this.destroyRef.onDestroy(() => {
+      this.isDestroyed = true;
+      window.clearInterval(interval);
+      this.viewportResizeObserver?.disconnect();
+      this.viewportResizeObserver = null;
+      this.membersUnsubscribe?.();
+      this.membersUnsubscribe = null;
+    });
+
     void this.reloadMapConfig();
     void this.loadStatusDraft();
+    void this.startMembersStream();
   }
 
   async loadStatusDraft(): Promise<void> {
@@ -625,18 +866,32 @@ export class MapPage {
     this.mapImageFailed.set(false);
   }
 
-  markMapImageLoaded(): void {
+  markMapImageLoaded(event: Event): void {
+    const image = event.target;
+
+    if (image instanceof HTMLImageElement) {
+      this.mapImageNaturalWidth.set(image.naturalWidth);
+      this.mapImageNaturalHeight.set(image.naturalHeight);
+    }
+
     this.mapImageFailed.set(false);
+    this.updateMapViewportSize();
     this.resetMapView();
   }
 
   markMapImageFailed(): void {
     this.mapImageFailed.set(true);
+    this.mapImageNaturalWidth.set(0);
+    this.mapImageNaturalHeight.set(0);
     this.resetMapView();
   }
 
   startMapPointer(event: PointerEvent): void {
     if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    if (isPinTarget(event.target)) {
       return;
     }
 
@@ -648,17 +903,29 @@ export class MapPage {
 
     event.preventDefault();
     viewport.setPointerCapture(event.pointerId);
-    this.activeMapPointers.set(event.pointerId, pointFromPointerEvent(event, viewport));
+    const point = pointFromPointerEvent(event, viewport);
+    this.activeMapPointers.set(event.pointerId, point);
     this.isMapDragging.set(true);
 
     if (this.activeMapPointers.size >= 2) {
+      if (this.tapCandidate) {
+        this.tapCandidate.hadMultiplePointers = true;
+      }
+
       this.gestureStart = this.createGestureStart();
       this.lastDragPoint = null;
       return;
     }
 
     this.gestureStart = null;
-    this.lastDragPoint = pointFromPointerEvent(event, viewport);
+    this.lastDragPoint = point;
+    this.tapCandidate = {
+      pointerId: event.pointerId,
+      start: point,
+      latest: point,
+      maxDistance: 0,
+      hadMultiplePointers: false
+    };
   }
 
   moveMapPointer(event: PointerEvent): void {
@@ -673,9 +940,22 @@ export class MapPage {
     }
 
     event.preventDefault();
-    this.activeMapPointers.set(event.pointerId, pointFromPointerEvent(event, viewport));
+    const point = pointFromPointerEvent(event, viewport);
+    this.activeMapPointers.set(event.pointerId, point);
+
+    if (this.tapCandidate?.pointerId === event.pointerId) {
+      this.tapCandidate.latest = point;
+      this.tapCandidate.maxDistance = Math.max(
+        this.tapCandidate.maxDistance,
+        distanceBetween(this.tapCandidate.start, point)
+      );
+    }
 
     if (this.activeMapPointers.size >= 2) {
+      if (this.tapCandidate) {
+        this.tapCandidate.hadMultiplePointers = true;
+      }
+
       const metrics = pointerMetrics([...this.activeMapPointers.values()]);
 
       if (!metrics) {
@@ -702,8 +982,6 @@ export class MapPage {
       return;
     }
 
-    const point = pointFromPointerEvent(event, viewport);
-
     if (!this.lastDragPoint) {
       this.lastDragPoint = point;
       return;
@@ -722,6 +1000,13 @@ export class MapPage {
 
   endMapPointer(event: PointerEvent): void {
     const viewport = event.currentTarget;
+    const wasTapCandidate =
+      viewport instanceof HTMLElement &&
+      this.activeMapPointers.size === 1 &&
+      this.tapCandidate?.pointerId === event.pointerId &&
+      !this.tapCandidate.hadMultiplePointers &&
+      this.tapCandidate.maxDistance <= TAP_MOVE_TOLERANCE_PX;
+    const tapPoint = wasTapCandidate ? pointFromPointerEvent(event, viewport as HTMLElement) : null;
 
     if (viewport instanceof HTMLElement && viewport.hasPointerCapture(event.pointerId)) {
       viewport.releasePointerCapture(event.pointerId);
@@ -744,6 +1029,10 @@ export class MapPage {
 
     this.lastDragPoint = null;
     this.isMapDragging.set(false);
+
+    if (tapPoint && viewport instanceof HTMLElement) {
+      void this.savePinAtViewportPoint(tapPoint, viewport);
+    }
   }
 
   zoomMapWithWheel(event: WheelEvent): void {
@@ -769,10 +1058,19 @@ export class MapPage {
     this.activeMapPointers.clear();
     this.lastDragPoint = null;
     this.gestureStart = null;
+    this.tapCandidate = null;
     this.isMapDragging.set(false);
     this.mapScale.set(1);
     this.mapTranslateX.set(0);
     this.mapTranslateY.set(0);
+  }
+
+  selectPin(pinId: string): void {
+    this.selectedPinId.set(pinId);
+  }
+
+  clearSelectedPin(): void {
+    this.selectedPinId.set(null);
   }
 
   selectStatus(status: MemberStatus): void {
@@ -816,9 +1114,103 @@ export class MapPage {
     return statusLabel(status);
   }
 
+  private async savePinAtViewportPoint(point: MapPoint, viewport: HTMLElement): Promise<void> {
+    const mapPercent = this.mapPercentFromViewportPoint(point, viewport);
+
+    if (!mapPercent || this.isPinSaving()) {
+      return;
+    }
+
+    this.isPinSaving.set(true);
+    this.pinSaveMessage.set('Saving pin...');
+    this.pinSaveIsError.set(false);
+
+    try {
+      const member = await this.memberProfile.saveCurrentPin(mapPercent.x, mapPercent.y);
+      this.selectedPinId.set(member.id);
+      this.pinSaveMessage.set('Pin saved.');
+    } catch (error) {
+      this.pinSaveMessage.set(messageForPinError(error));
+      this.pinSaveIsError.set(true);
+    } finally {
+      this.isPinSaving.set(false);
+    }
+  }
+
+  private async startMembersStream(): Promise<void> {
+    this.membersUnsubscribe?.();
+    this.membersUnsubscribe = null;
+
+    try {
+      const unsubscribe = await this.memberProfile.watchMembers(
+        (members) => {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.members.set(members);
+          this.pinSaveIsError.set(false);
+        },
+        () => {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.pinSaveMessage.set('Could not load group pins. Check your session and connection.');
+          this.pinSaveIsError.set(true);
+        }
+      );
+
+      if (this.isDestroyed) {
+        unsubscribe();
+        return;
+      }
+
+      this.membersUnsubscribe = unsubscribe;
+    } catch {
+      if (!this.isDestroyed) {
+        this.pinSaveMessage.set('Could not load group pins. Check your session and connection.');
+        this.pinSaveIsError.set(true);
+      }
+    }
+  }
+
   private clearStatusMessage(): void {
     this.statusSaveMessage.set('');
     this.statusSaveIsError.set(false);
+  }
+
+  private updateMapViewportSize(): void {
+    if (!this.mapViewportElement) {
+      this.mapViewportWidth.set(0);
+      this.mapViewportHeight.set(0);
+      return;
+    }
+
+    this.mapViewportWidth.set(this.mapViewportElement.clientWidth);
+    this.mapViewportHeight.set(this.mapViewportElement.clientHeight);
+  }
+
+  private mapPercentFromViewportPoint(point: MapPoint, viewport: HTMLElement): MapPoint | null {
+    this.updateMapViewportSize();
+
+    const bounds =
+      this.mapImageBounds() ??
+      mapImageBoundsFor(viewport.clientWidth, viewport.clientHeight, viewport.clientWidth, viewport.clientHeight);
+
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
+      return null;
+    }
+
+    const contentPoint = {
+      x: (point.x - this.mapTranslateX()) / this.mapScale(),
+      y: (point.y - this.mapTranslateY()) / this.mapScale()
+    };
+
+    return {
+      x: clamp(((contentPoint.x - bounds.left) / bounds.width) * 100, 0, 100),
+      y: clamp(((contentPoint.y - bounds.top) / bounds.height) * 100, 0, 100)
+    };
   }
 
   private createGestureStart(): MapGestureStart | null {
@@ -887,6 +1279,103 @@ function messageForMemberError(error: unknown): string {
   return 'Could not save your status. Check your connection and try again.';
 }
 
+function messageForPinError(error: unknown): string {
+  if (error instanceof MemberProfileError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before placing your pin.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'member-not-found') {
+    return 'Your profile is not ready yet. Finish onboarding before placing your pin.';
+  }
+
+  return 'Could not save your pin. Check your connection and try again.';
+}
+
+function toMapPin(
+  member: Member,
+  bounds: MapImageBounds | null,
+  viewportWidth: number,
+  viewportHeight: number,
+  now: Date,
+  currentUid: string
+): MapPin {
+  const xPercent = member.mapXPercent ?? 0;
+  const yPercent = member.mapYPercent ?? 0;
+  const renderPoint = renderPercentForMapPoint(xPercent, yPercent, bounds, viewportWidth, viewportHeight);
+  const updatedAt = validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : member.joinedAt;
+
+  return {
+    id: member.id,
+    initials: initialsFor(member.displayName),
+    name: member.displayName || 'Unnamed member',
+    xPercent,
+    yPercent,
+    renderX: renderPoint.x,
+    renderY: renderPoint.y,
+    status: member.status,
+    statusLabel: statusLabel(member.status),
+    freshnessLabel: freshnessLabel(updatedAt, now),
+    updatedAtIso: updatedAt.toISOString(),
+    isCurrentMember: member.id === currentUid
+  };
+}
+
+function renderPercentForMapPoint(
+  xPercent: number,
+  yPercent: number,
+  bounds: MapImageBounds | null,
+  viewportWidth: number,
+  viewportHeight: number
+): MapPoint {
+  if (!bounds || viewportWidth <= 0 || viewportHeight <= 0) {
+    return {
+      x: clamp(xPercent, 0, 100),
+      y: clamp(yPercent, 0, 100)
+    };
+  }
+
+  return {
+    x: ((bounds.left + bounds.width * (clamp(xPercent, 0, 100) / 100)) / viewportWidth) * 100,
+    y: ((bounds.top + bounds.height * (clamp(yPercent, 0, 100) / 100)) / viewportHeight) * 100
+  };
+}
+
+function mapImageBoundsFor(
+  viewportWidth: number,
+  viewportHeight: number,
+  naturalWidth: number,
+  naturalHeight: number
+): MapImageBounds | null {
+  if (viewportWidth <= 0 || viewportHeight <= 0 || naturalWidth <= 0 || naturalHeight <= 0) {
+    return null;
+  }
+
+  const viewportRatio = viewportWidth / viewportHeight;
+  const imageRatio = naturalWidth / naturalHeight;
+
+  if (viewportRatio > imageRatio) {
+    const height = viewportHeight;
+    const width = height * imageRatio;
+
+    return {
+      left: (viewportWidth - width) / 2,
+      top: 0,
+      width,
+      height
+    };
+  }
+
+  const width = viewportWidth;
+  const height = width / imageRatio;
+
+  return {
+    left: 0,
+    top: (viewportHeight - height) / 2,
+    width,
+    height
+  };
+}
+
 function pointFromPointerEvent(event: PointerEvent, viewport: HTMLElement): MapPoint {
   const rect = viewport.getBoundingClientRect();
 
@@ -894,6 +1383,10 @@ function pointFromPointerEvent(event: PointerEvent, viewport: HTMLElement): MapP
     x: event.clientX - rect.left,
     y: event.clientY - rect.top
   };
+}
+
+function distanceBetween(first: MapPoint, second: MapPoint): number {
+  return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
 function pointFromWheelEvent(event: WheelEvent, viewport: HTMLElement): MapPoint {
@@ -953,4 +1446,42 @@ function clamp(value: number, min: number, max: number): number {
 
 function formatViewValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function initialsFor(displayName: string): string {
+  const initials = displayName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+
+  return initials || '?';
+}
+
+function freshnessLabel(updatedAt: Date, now: Date): string {
+  const diffMs = Math.max(0, now.getTime() - updatedAt.getTime());
+
+  if (diffMs < minuteMs) {
+    return 'just now';
+  }
+
+  if (diffMs < hourMs) {
+    return `${Math.floor(diffMs / minuteMs)}m ago`;
+  }
+
+  if (diffMs < dayMs) {
+    return `${Math.floor(diffMs / hourMs)}h ago`;
+  }
+
+  return updatedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function validDate(value: Date): boolean {
+  return value instanceof Date && Number.isFinite(value.getTime());
+}
+
+function isPinTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && target.closest('.pin') !== null;
 }

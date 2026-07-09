@@ -133,6 +133,48 @@ export class MemberProfile {
     throw new MemberProfileError('member-not-found');
   }
 
+  async saveCurrentPin(mapXPercent: number, mapYPercent: number): Promise<Member> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      throw new MemberProfileError('not-authorized');
+    }
+
+    const { doc, serverTimestamp, updateDoc } = await import('firebase/firestore');
+    const normalizedX = normalizePinPercent(mapXPercent);
+    const normalizedY = normalizePinPercent(mapYPercent);
+    const memberRef = doc(await this.firebase.getFirestore(), 'members', uid);
+
+    await updateDoc(memberRef, {
+      mapXPercent: normalizedX,
+      mapYPercent: normalizedY,
+      locationVisible: true,
+      lastUpdatedAt: serverTimestamp()
+    });
+
+    const savedMember = await this.loadCurrentMember({ force: true });
+
+    if (savedMember) {
+      return savedMember;
+    }
+
+    const existingMember = this.member();
+
+    if (existingMember) {
+      const fallbackMember = {
+        ...existingMember,
+        mapXPercent: normalizedX,
+        mapYPercent: normalizedY,
+        locationVisible: true,
+        lastUpdatedAt: new Date()
+      };
+      this.member.set(fallbackMember);
+      return fallbackMember;
+    }
+
+    throw new MemberProfileError('member-not-found');
+  }
+
   async watchMembers(onMembers: (members: Member[]) => void, onError: (error: unknown) => void): Promise<() => void> {
     const uid = this.authSession.user()?.uid;
 
@@ -205,6 +247,10 @@ function normalizeDisplayName(displayName: string): string {
 
 function normalizeNote(note: string): string {
   return note.trim().replace(/\s+/g, ' ').slice(0, 80);
+}
+
+function normalizePinPercent(value: number): number {
+  return Math.round(Math.min(100, Math.max(0, value)) * 1000) / 1000;
 }
 
 function avatarStyleFor(uid: string, displayName: string): string {
