@@ -12,6 +12,8 @@ import { AppConfigService, type AppConfigLoadError } from '../../core/app-config
 import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
 import type { Member } from '../../core/models/member';
+import type { RallyPoint } from '../../core/models/rally-point';
+import { RallyPointError, RallyPoints } from '../../core/rallies/rally-points';
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
 
 interface MapPin {
@@ -27,6 +29,19 @@ interface MapPin {
   freshnessLabel: string;
   updatedAtIso: string;
   isCurrentMember: boolean;
+}
+
+interface MapRallyMarker {
+  id: string;
+  title: string;
+  note: string;
+  creatorName: string;
+  xPercent: number;
+  yPercent: number;
+  renderX: number;
+  renderY: number;
+  scheduledLabel: string;
+  scheduledIso: string | null;
 }
 
 interface MapPoint {
@@ -79,13 +94,23 @@ const dayMs = 24 * hourMs;
           <p>Gen Con Roll Call</p>
           <h1>{{ mapTitle() }}</h1>
         </div>
-        <button
-          type="button"
-          [disabled]="isLocationHiding() || currentMemberLocationHidden()"
-          (click)="hideCurrentLocation()"
-        >
-          {{ locationButtonLabel() }}
-        </button>
+        <div class="header-actions">
+          <button
+            type="button"
+            class="primary-action"
+            [disabled]="isRallyDraftOpen()"
+            (click)="openRallyForm()"
+          >
+            New rally
+          </button>
+          <button
+            type="button"
+            [disabled]="isLocationHiding() || currentMemberLocationHidden()"
+            (click)="hideCurrentLocation()"
+          >
+            {{ locationButtonLabel() }}
+          </button>
+        </div>
       </header>
 
       <section class="map-frame" [attr.aria-label]="mapFrameLabel()">
@@ -157,6 +182,36 @@ const dayMs = 24 * hourMs;
                   {{ pin.initials }}
                 </button>
               }
+
+              @for (rally of rallyMarkers(); track rally.id) {
+                <button
+                  type="button"
+                  class="rally-marker"
+                  [class.selected]="selectedRally()?.id === rally.id"
+                  [style.left.%]="rally.renderX"
+                  [style.top.%]="rally.renderY"
+                  [style.transform]="pinTransform()"
+                  [attr.aria-label]="
+                    'Rally point: ' + rally.title + ', created by ' + rally.creatorName
+                  "
+                  (pointerdown)="$event.stopPropagation()"
+                  (click)="selectRally(rally.id)"
+                >
+                  RP
+                </button>
+              }
+
+              @if (pendingRallyMarker(); as pendingRally) {
+                <span
+                  class="rally-marker pending"
+                  [style.left.%]="pendingRally.renderX"
+                  [style.top.%]="pendingRally.renderY"
+                  [style.transform]="pinTransform()"
+                  aria-hidden="true"
+                >
+                  +
+                </span>
+              }
             </div>
           </div>
 
@@ -197,63 +252,152 @@ const dayMs = 24 * hourMs;
                 ×
               </button>
             </aside>
+          } @else if (selectedRally(); as rally) {
+            <aside class="pin-detail rally-detail" aria-live="polite">
+              <span class="rally-detail-avatar" aria-hidden="true">RP</span>
+              <div>
+                <strong>{{ rally.title }}</strong>
+                <p>Created by {{ rally.creatorName }}</p>
+                @if (rally.scheduledIso) {
+                  <time [attr.datetime]="rally.scheduledIso">{{ rally.scheduledLabel }}</time>
+                } @else {
+                  <time>No time set</time>
+                }
+              </div>
+              <button type="button" aria-label="Close rally details" (click)="clearSelectedRally()">
+                ×
+              </button>
+            </aside>
           }
 
-          <p class="map-hint" [class.error]="pinSaveIsError()" role="status">
-            {{ pinSaveMessage() || 'Tap the map to place or move your pin.' }}
+          <p class="map-hint" [class.error]="mapHintIsError()" role="status">
+            {{ mapHintMessage() }}
           </p>
         }
       </section>
 
-      <form class="status-sheet" (submit)="saveStatus($event)">
-        <div class="sheet-header">
-          <div>
-            <p>Your status</p>
-            <strong>{{ selectedStatusLabel() }}</strong>
+      @if (isRallyDraftOpen()) {
+        <form class="status-sheet rally-sheet" (submit)="saveRally($event)">
+          <div class="sheet-header">
+            <div>
+              <p>New rally point</p>
+              <strong>{{ rallyDraftTitle() || 'Choose a meetup spot' }}</strong>
+            </div>
+            <span class="status-meta" [class.error]="rallySaveIsError()">{{
+              pendingRallyPoint() ? 'Spot selected' : 'Tap map'
+            }}</span>
           </div>
-          <span class="status-meta" [class.error]="statusSaveIsError()">{{
-            statusMetaLabel()
-          }}</span>
-        </div>
 
-        <div class="status-grid" aria-label="Choose status">
-          @for (status of statuses; track status.value) {
+          <label>
+            <span>Title</span>
+            <input
+              type="text"
+              maxlength="48"
+              placeholder="Food court, demo table, hotel lobby..."
+              [value]="rallyTitle()"
+              [disabled]="isRallySaving()"
+              (input)="updateRallyTitle($any($event.target).value)"
+            />
+          </label>
+
+          <label>
+            <span class="note-label">
+              <span>Note</span>
+              <small>{{ rallyNoteLength() }}/120</small>
+            </span>
+            <input
+              type="text"
+              maxlength="120"
+              placeholder="Meet near the info desk after this event."
+              [value]="rallyNote()"
+              [disabled]="isRallySaving()"
+              (input)="updateRallyNote($any($event.target).value)"
+            />
+          </label>
+
+          <label>
+            <span>Optional time</span>
+            <input
+              type="datetime-local"
+              [value]="rallyScheduledTimeInput()"
+              [disabled]="isRallySaving()"
+              (input)="updateRallyScheduledTime($any($event.target).value)"
+            />
+          </label>
+
+          <p class="rally-coordinate">{{ rallyCoordinateLabel() }}</p>
+
+          <div class="form-actions">
             <button
               type="button"
-              [class.active]="selectedStatus() === status.value"
-              [disabled]="isStatusLoading() || isStatusSaving()"
-              (click)="selectStatus(status.value)"
+              class="secondary-action"
+              [disabled]="isRallySaving()"
+              (click)="cancelRallyForm()"
             >
-              {{ status.label }}
+              Cancel
             </button>
+            <button type="submit" class="status-save" [disabled]="!canSaveRally()">
+              {{ isRallySaving() ? 'Creating...' : 'Create rally' }}
+            </button>
+          </div>
+
+          @if (rallySaveMessage()) {
+            <p class="save-message" [class.error]="rallySaveIsError()" role="status">
+              {{ rallySaveMessage() }}
+            </p>
           }
-        </div>
+        </form>
+      } @else {
+        <form class="status-sheet" (submit)="saveStatus($event)">
+          <div class="sheet-header">
+            <div>
+              <p>Your status</p>
+              <strong>{{ selectedStatusLabel() }}</strong>
+            </div>
+            <span class="status-meta" [class.error]="statusSaveIsError()">{{
+              statusMetaLabel()
+            }}</span>
+          </div>
 
-        <label>
-          <span class="note-label">
-            <span>Note</span>
-            <small>{{ noteLength() }}/80</small>
-          </span>
-          <input
-            type="text"
-            maxlength="80"
-            placeholder="Booth 2110, skywalk, running late..."
-            [value]="note()"
-            [disabled]="isStatusLoading() || isStatusSaving()"
-            (input)="updateNote($any($event.target).value)"
-          />
-        </label>
+          <div class="status-grid" aria-label="Choose status">
+            @for (status of statuses; track status.value) {
+              <button
+                type="button"
+                [class.active]="selectedStatus() === status.value"
+                [disabled]="isStatusLoading() || isStatusSaving()"
+                (click)="selectStatus(status.value)"
+              >
+                {{ status.label }}
+              </button>
+            }
+          </div>
 
-        <button type="submit" class="status-save" [disabled]="!canSaveStatus()">
-          {{ isStatusSaving() ? 'Saving...' : 'Save update' }}
-        </button>
+          <label>
+            <span class="note-label">
+              <span>Note</span>
+              <small>{{ noteLength() }}/80</small>
+            </span>
+            <input
+              type="text"
+              maxlength="80"
+              placeholder="Booth 2110, skywalk, running late..."
+              [value]="note()"
+              [disabled]="isStatusLoading() || isStatusSaving()"
+              (input)="updateNote($any($event.target).value)"
+            />
+          </label>
 
-        @if (statusSaveMessage()) {
-          <p class="save-message" [class.error]="statusSaveIsError()" role="status">
-            {{ statusSaveMessage() }}
-          </p>
-        }
-      </form>
+          <button type="submit" class="status-save" [disabled]="!canSaveStatus()">
+            {{ isStatusSaving() ? 'Saving...' : 'Save update' }}
+          </button>
+
+          @if (statusSaveMessage()) {
+            <p class="save-message" [class.error]="statusSaveIsError()" role="status">
+              {{ statusSaveMessage() }}
+            </p>
+          }
+        </form>
+      }
     </main>
   `,
   styles: `
@@ -269,6 +413,11 @@ const dayMs = 24 * hourMs;
       justify-content: space-between;
       gap: 16px;
       margin-bottom: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
     }
 
     header p,
@@ -297,9 +446,9 @@ const dayMs = 24 * hourMs;
       font-weight: 800;
     }
 
-    header button:disabled {
-      cursor: not-allowed;
-      opacity: 0.58;
+    .primary-action {
+      background: var(--color-gencon-red);
+      color: white;
     }
 
     .map-frame {
@@ -677,16 +826,20 @@ const dayMs = 24 * hourMs;
       font-weight: 600;
     }
 
-    .status-save {
+    .status-save,
+    .secondary-action {
       min-height: 44px;
-      margin-top: 14px;
       padding: 0 16px;
-      border: 0;
       border-radius: 10px;
-      background: var(--color-gencon-red);
-      color: white;
       font-size: 15px;
       font-weight: 850;
+    }
+
+    .status-save {
+      margin-top: 14px;
+      border: 0;
+      background: var(--color-gencon-red);
+      color: white;
     }
 
     .save-message {
@@ -722,6 +875,7 @@ export class MapPage {
   private readonly appConfig = inject(AppConfigService);
   private readonly authSession = inject(AuthSession);
   private readonly memberProfile = inject(MemberProfile);
+  private readonly rallyPointsService = inject(RallyPoints);
   private readonly destroyRef = inject(DestroyRef);
   private readonly activeMapPointers = new Map<number, MapPoint>();
   private lastDragPoint: MapPoint | null = null;
@@ -730,6 +884,7 @@ export class MapPage {
   private mapViewportElement: HTMLElement | null = null;
   private viewportResizeObserver: ResizeObserver | null = null;
   private membersUnsubscribe: (() => void) | null = null;
+  private rallyPointsUnsubscribe: (() => void) | null = null;
   private isDestroyed = false;
 
   @ViewChild('mapViewport')
@@ -754,6 +909,7 @@ export class MapPage {
 
   readonly statuses = STATUS_OPTIONS;
   readonly members = signal<Member[]>([]);
+  readonly rallyPoints = signal<RallyPoint[]>([]);
   readonly currentMember = computed(() => {
     const currentUid = this.authSession.user()?.uid;
     return this.members().find((member) => member.id === currentUid) ?? this.memberProfile.member();
@@ -826,6 +982,23 @@ export class MapPage {
   readonly pinSaveMessage = signal('');
   readonly pinSaveIsError = signal(false);
   readonly selectedPinId = signal<string | null>(null);
+  readonly selectedRallyId = signal<string | null>(null);
+  readonly isRallyDraftOpen = signal(false);
+  readonly pendingRallyPoint = signal<MapPoint | null>(null);
+  readonly rallyTitle = signal('');
+  readonly rallyDraftTitle = computed(() => normalizeRallyTitle(this.rallyTitle()));
+  readonly rallyNote = signal('');
+  readonly rallyNoteLength = computed(() => this.rallyNote().length);
+  readonly rallyScheduledTimeInput = signal('');
+  readonly isRallySaving = signal(false);
+  readonly rallySaveMessage = signal('');
+  readonly rallySaveIsError = signal(false);
+  readonly canSaveRally = computed(
+    () =>
+      !this.isRallySaving() &&
+      this.rallyDraftTitle().length > 0 &&
+      this.pendingRallyPoint() !== null,
+  );
   readonly mapTransform = computed(
     () =>
       `translate3d(${formatViewValue(this.mapTranslateX())}px, ${formatViewValue(
@@ -869,6 +1042,62 @@ export class MapPage {
   readonly selectedPin = computed(
     () => this.pins().find((pin) => pin.id === this.selectedPinId()) ?? null,
   );
+  readonly rallyMarkers = computed(() => {
+    const bounds = this.mapImageBounds();
+    const viewportWidth = this.mapViewportWidth();
+    const viewportHeight = this.mapViewportHeight();
+
+    return this.rallyPoints().map((rallyPoint) =>
+      toMapRallyMarker(rallyPoint, bounds, viewportWidth, viewportHeight),
+    );
+  });
+  readonly selectedRally = computed(
+    () =>
+      this.rallyMarkers().find((rallyPoint) => rallyPoint.id === this.selectedRallyId()) ?? null,
+  );
+  readonly pendingRallyMarker = computed(() => {
+    const pendingPoint = this.pendingRallyPoint();
+
+    if (!pendingPoint) {
+      return null;
+    }
+
+    const renderPoint = renderPercentForMapPoint(
+      pendingPoint.x,
+      pendingPoint.y,
+      this.mapImageBounds(),
+      this.mapViewportWidth(),
+      this.mapViewportHeight(),
+    );
+
+    return {
+      renderX: renderPoint.x,
+      renderY: renderPoint.y,
+    };
+  });
+  readonly rallyCoordinateLabel = computed(() => {
+    const pendingPoint = this.pendingRallyPoint();
+
+    if (!pendingPoint) {
+      return 'Tap the map to choose the rally spot.';
+    }
+
+    return `Rally spot selected at ${formatPercent(pendingPoint.x)}%, ${formatPercent(pendingPoint.y)}%.`;
+  });
+  readonly mapHintIsError = computed(() => this.pinSaveIsError() || this.rallySaveIsError());
+  readonly mapHintMessage = computed(() => {
+    if (this.rallySaveMessage()) {
+      return this.rallySaveMessage();
+    }
+
+    if (this.isRallyDraftOpen()) {
+      return this.pendingRallyPoint()
+        ? 'Rally spot selected. Complete the form below.'
+        : 'Tap the map to choose a rally spot.';
+    }
+
+    return this.pinSaveMessage() || 'Tap the map to place or move your pin.';
+  });
 
   constructor() {
     const interval = window.setInterval(() => this.now.set(new Date()), minuteMs);
@@ -880,11 +1109,14 @@ export class MapPage {
       this.viewportResizeObserver = null;
       this.membersUnsubscribe?.();
       this.membersUnsubscribe = null;
+      this.rallyPointsUnsubscribe?.();
+      this.rallyPointsUnsubscribe = null;
     });
 
     void this.reloadMapConfig();
     void this.loadStatusDraft();
     void this.startMembersStream();
+    void this.startRallyPointsStream();
   }
 
   async loadStatusDraft(): Promise<void> {
@@ -1090,6 +1322,11 @@ export class MapPage {
     this.isMapDragging.set(false);
 
     if (tapPoint && viewport instanceof HTMLElement) {
+      if (this.isRallyDraftOpen()) {
+        this.selectRallyPointAtViewportPoint(tapPoint, viewport);
+        return;
+      }
+
       void this.savePinAtViewportPoint(tapPoint, viewport);
     }
   }
@@ -1132,6 +1369,34 @@ export class MapPage {
     this.selectedPinId.set(null);
   }
 
+  selectRally(rallyId: string): void {
+    this.selectedRallyId.set(rallyId);
+    this.selectedPinId.set(null);
+  }
+
+  clearSelectedRally(): void {
+    this.selectedRallyId.set(null);
+  }
+
+  openRallyForm(): void {
+    this.isRallyDraftOpen.set(true);
+    this.pendingRallyPoint.set(null);
+    this.selectedPinId.set(null);
+    this.selectedRallyId.set(null);
+    this.rallySaveMessage.set('');
+    this.rallySaveIsError.set(false);
+    this.pinSaveMessage.set('');
+    this.pinSaveIsError.set(false);
+  }
+
+  cancelRallyForm(): void {
+    if (this.isRallySaving()) {
+      return;
+    }
+
+    this.resetRallyDraft();
+  }
+
   selectStatus(status: MemberStatus): void {
     this.selectedStatus.set(status);
     this.clearStatusMessage();
@@ -1140,6 +1405,21 @@ export class MapPage {
   updateNote(value: string): void {
     this.note.set(value.slice(0, 80));
     this.clearStatusMessage();
+  }
+
+  updateRallyTitle(value: string): void {
+    this.rallyTitle.set(value.slice(0, 48));
+    this.clearRallyMessage();
+  }
+
+  updateRallyNote(value: string): void {
+    this.rallyNote.set(value.slice(0, 120));
+    this.clearRallyMessage();
+  }
+
+  updateRallyScheduledTime(value: string): void {
+    this.rallyScheduledTimeInput.set(value);
+    this.clearRallyMessage();
   }
 
   async saveStatus(event: SubmitEvent): Promise<void> {
@@ -1194,6 +1474,44 @@ export class MapPage {
     }
   }
 
+  async saveRally(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+
+    if (!this.canSaveRally()) {
+      return;
+    }
+
+    const pendingPoint = this.pendingRallyPoint();
+
+    if (!pendingPoint) {
+      return;
+    }
+
+    this.isRallySaving.set(true);
+    this.rallySaveMessage.set('');
+    this.rallySaveIsError.set(false);
+
+    try {
+      const rallyPoint = await this.rallyPointsService.createRallyPoint({
+        title: this.rallyTitle(),
+        note: this.rallyNote(),
+        mapXPercent: pendingPoint.x,
+        mapYPercent: pendingPoint.y,
+        scheduledTime: parseDateTimeLocal(this.rallyScheduledTimeInput()),
+      });
+
+      this.resetRallyDraft();
+      this.selectedRallyId.set(rallyPoint.id);
+      this.pinSaveMessage.set('Rally point created.');
+      this.pinSaveIsError.set(false);
+    } catch (error) {
+      this.rallySaveMessage.set(messageForRallyError(error));
+      this.rallySaveIsError.set(true);
+    } finally {
+      this.isRallySaving.set(false);
+    }
+  }
+
   labelFor(status: MemberStatus): string {
     return statusLabel(status);
   }
@@ -1219,6 +1537,19 @@ export class MapPage {
     } finally {
       this.isPinSaving.set(false);
     }
+  }
+
+  private selectRallyPointAtViewportPoint(point: MapPoint, viewport: HTMLElement): void {
+    const mapPercent = this.mapPercentFromViewportPoint(point, viewport);
+
+    if (!mapPercent || this.isRallySaving()) {
+      return;
+    }
+
+    this.pendingRallyPoint.set(mapPercent);
+    this.selectedPinId.set(null);
+    this.selectedRallyId.set(null);
+    this.clearRallyMessage();
   }
 
   private async startMembersStream(): Promise<void> {
@@ -1259,9 +1590,66 @@ export class MapPage {
     }
   }
 
+  private async startRallyPointsStream(): Promise<void> {
+    this.rallyPointsUnsubscribe?.();
+    this.rallyPointsUnsubscribe = null;
+
+    try {
+      const unsubscribe = await this.rallyPointsService.watchRallyPoints(
+        (rallyPoints) => {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.rallyPoints.set(rallyPoints);
+          this.rallySaveIsError.set(false);
+        },
+        () => {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.rallySaveMessage.set(
+            'Could not load rally points. Check your session and connection.',
+          );
+          this.rallySaveIsError.set(true);
+        },
+      );
+
+      if (this.isDestroyed) {
+        unsubscribe();
+        return;
+      }
+
+      this.rallyPointsUnsubscribe = unsubscribe;
+    } catch {
+      if (!this.isDestroyed) {
+        this.rallySaveMessage.set(
+          'Could not load rally points. Check your session and connection.',
+        );
+        this.rallySaveIsError.set(true);
+      }
+    }
+  }
+
   private clearStatusMessage(): void {
     this.statusSaveMessage.set('');
     this.statusSaveIsError.set(false);
+  }
+
+  private clearRallyMessage(): void {
+    this.rallySaveMessage.set('');
+    this.rallySaveIsError.set(false);
+  }
+
+  private resetRallyDraft(): void {
+    this.isRallyDraftOpen.set(false);
+    this.pendingRallyPoint.set(null);
+    this.rallyTitle.set('');
+    this.rallyNote.set('');
+    this.rallyScheduledTimeInput.set('');
+    this.rallySaveMessage.set('');
+    this.rallySaveIsError.set(false);
   }
 
   private updateMapViewportSize(): void {
@@ -1356,6 +1744,10 @@ function normalizeNote(note: string): string {
   return note.trim().replace(/\s+/g, ' ').slice(0, 80);
 }
 
+function normalizeRallyTitle(title: string): string {
+  return title.trim().replace(/\s+/g, ' ').slice(0, 48);
+}
+
 function messageForMemberError(error: unknown): string {
   if (error instanceof MemberProfileError && error.code === 'not-authorized') {
     return 'Your session is not authorized. Sign in again before saving.';
@@ -1392,6 +1784,22 @@ function messageForHideLocationError(error: unknown): string {
   return 'Could not hide your location. Check your connection and try again.';
 }
 
+function messageForRallyError(error: unknown): string {
+  if (error instanceof RallyPointError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before creating a rally point.';
+  }
+
+  if (error instanceof RallyPointError && error.code === 'member-not-found') {
+    return 'Your profile is not ready yet. Finish onboarding before creating a rally point.';
+  }
+
+  if (error instanceof RallyPointError && error.code === 'title-required') {
+    return 'Add a title before creating the rally point.';
+  }
+
+  return 'Could not create the rally point. Check your connection and try again.';
+}
+
 function toMapPin(
   member: Member,
   bounds: MapImageBounds | null,
@@ -1424,6 +1832,35 @@ function toMapPin(
     freshnessLabel: freshnessLabel(updatedAt, now),
     updatedAtIso: updatedAt.toISOString(),
     isCurrentMember: member.id === currentUid,
+  };
+}
+
+function toMapRallyMarker(
+  rallyPoint: RallyPoint,
+  bounds: MapImageBounds | null,
+  viewportWidth: number,
+  viewportHeight: number,
+): MapRallyMarker {
+  const renderPoint = renderPercentForMapPoint(
+    rallyPoint.mapXPercent,
+    rallyPoint.mapYPercent,
+    bounds,
+    viewportWidth,
+    viewportHeight,
+  );
+  const scheduledTime = validDateOrNull(rallyPoint.scheduledTime);
+
+  return {
+    id: rallyPoint.id,
+    title: rallyPoint.title,
+    note: rallyPoint.note,
+    creatorName: rallyPoint.createdByName,
+    xPercent: rallyPoint.mapXPercent,
+    yPercent: rallyPoint.mapYPercent,
+    renderX: renderPoint.x,
+    renderY: renderPoint.y,
+    scheduledLabel: scheduledTime ? scheduledLabel(scheduledTime) : 'No time set',
+    scheduledIso: scheduledTime ? scheduledTime.toISOString() : null,
   };
 }
 
@@ -1559,6 +1996,19 @@ function formatViewValue(value: number): string {
     : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
 }
 
+function formatPercent(value: number): string {
+  return formatViewValue(Math.round(clamp(value, 0, 100) * 10) / 10);
+}
+
+function parseDateTimeLocal(value: string): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
 function initialsFor(displayName: string): string {
   const initials = displayName
     .trim()
@@ -1589,8 +2039,21 @@ function freshnessLabel(updatedAt: Date, now: Date): string {
   return updatedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function scheduledLabel(scheduledTime: Date): string {
+  return scheduledTime.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function validDate(value: Date): boolean {
   return value instanceof Date && Number.isFinite(value.getTime());
+}
+
+function validDateOrNull(value: Date | null): Date | null {
+  return value instanceof Date && Number.isFinite(value.getTime()) ? value : null;
 }
 
 function isPinTarget(target: EventTarget | null): boolean {

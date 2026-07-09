@@ -18,9 +18,9 @@ Status values:
 
 ## Next 3
 
-1. `MAP-004` Hide location.
-2. `RALLY-001` Create rally points.
-3. `RALLY-002` Rally responses.
+1. `RALLY-002` Rally responses.
+2. `RALLY-003` Rally expiration.
+3. `DEPLOY-001` PWA support.
 
 Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
 
@@ -299,10 +299,18 @@ Acceptance criteria:
 
 ### `RALLY-001` Create rally points
 
-- [ ] Add rally creation form.
-- [ ] Capture title, optional note, optional time, and map coordinates.
-- [ ] Save creator id and creator display name.
-- [ ] Display rally markers on the map.
+- [x] Add rally creation form.
+- [x] Capture title, optional note, optional time, and map coordinates.
+- [x] Save creator id and creator display name.
+- [x] Display rally markers on the map.
+
+Implementation status:
+
+- Code exists in `src/app/core/rallies/rally-points.ts`, `src/app/features/map/map-page.ts`, and `src/app/features/rallies/rallies-page.ts`.
+- The map page has an explicit New rally flow: open the rally form, tap the map for percentage coordinates, enter title, optional note, optional time, and create the rally point.
+- Rally points are saved to `rallyPoints/{rallyPointId}` with title, note, `mapXPercent`, `mapYPercent`, `scheduledTime`, `createdByMemberId`, `createdByName`, `status`, and `expiresAt`.
+- Active rally points stream back to the map as distinct rally markers and to the Rally Points list.
+- Browser QA covered a 390px-wide emulator-backed gate/onboarding/map flow with rally form open, coordinate selection, rally creation, marker rendering, Rally Points list rendering, clean console logs, and emulator document field verification.
 
 Depends on:
 

@@ -29,9 +29,9 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `MAP-004` Hide location.
-2. `RALLY-001` Create rally points.
-3. `RALLY-002` Rally responses.
+1. `RALLY-002` Rally responses.
+2. `RALLY-003` Rally expiration.
+3. `DEPLOY-001` PWA support.
 
 Keep shared map/member/rally data behind the existing authorization checks.
 
