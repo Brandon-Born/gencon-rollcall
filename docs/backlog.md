@@ -324,10 +324,21 @@ Acceptance criteria:
 
 ### `RALLY-002` Rally responses
 
-- [ ] Add response buttons: Heading there, Arrived, Cannot make it.
-- [ ] Store one response per member per rally point.
-- [ ] Show response counts.
-- [ ] Show the current user's selected response.
+- [x] Add response buttons: Heading there, Arrived, Cannot make it.
+- [x] Store one response per member per rally point.
+- [x] Show response counts.
+- [x] Show the current user's selected response.
+
+Implementation status:
+
+- Responses are stored as `rallyPoints/{rallyPointId}/responses/{uid}` documents with the
+  rally point id, member id, response status, and server timestamp.
+- The Rally Points page watches the response subcollection for every active rally point,
+  renders live counts, and marks the current member's selected response.
+- Firestore rules allow only an authorized user to create or update their own valid response
+  under an active rally point.
+- Browser QA covered a 390px-wide emulator-backed response change from Heading there to
+  Arrived, including the selected state, updated counts, and clean console.
 
 Depends on:
 
@@ -396,9 +407,11 @@ Decision: use `authorizedUsers/{uid}` for MVP because it avoids custom-claim pro
 
 ### `DEC-003` Rally response storage
 
-- [ ] Decide subcollection vs top-level collection.
+- [x] Decide subcollection vs top-level collection.
 
-Recommendation: `rallyPoints/{rallyPointId}/responses/{uid}` for simple rules and reads.
+Decision: `rallyPoints/{rallyPointId}/responses/{uid}`. One document per member keeps
+response updates idempotent, gives simple ownership rules, and avoids a separate
+collection query for each rally point.
 
 ### `DEC-004` Map setup path
 

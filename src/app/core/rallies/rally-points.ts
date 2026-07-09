@@ -3,7 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import { AuthSession } from '../auth/auth-session';
 import { FirebaseClient } from '../firebase/firebase-client';
 import { MemberProfile } from '../members/member-profile';
-import type { RallyPoint, RallyPointStatus } from '../models/rally-point';
+import type {
+  RallyPoint,
+  RallyPointStatus,
+  RallyResponse,
+  RallyResponseStatus,
+} from '../models/rally-point';
 
 export interface CreateRallyPointInput {
   title: string;
@@ -97,6 +102,63 @@ export class RallyPoints {
     );
   }
 
+  async saveResponse(
+    rallyPointId: string,
+    responseStatus: RallyResponseStatus,
+  ): Promise<void> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      throw new RallyPointError('not-authorized');
+    }
+
+    if (!isRallyResponseStatus(responseStatus)) {
+      throw new RallyPointError('response-invalid');
+    }
+
+    const { doc, serverTimestamp, setDoc } = await import('firebase/firestore');
+    const firestore = await this.firebase.getFirestore();
+    const responseRef = doc(firestore, 'rallyPoints', rallyPointId, 'responses', uid);
+
+    await setDoc(
+      responseRef,
+      {
+        rallyPointId,
+        memberId: uid,
+        responseStatus,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  async watchRallyResponses(
+    rallyPointId: string,
+    onResponses: (responses: RallyResponse[]) => void,
+    onError: (error: unknown) => void,
+  ): Promise<() => void> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      onError(new RallyPointError('not-authorized'));
+      return () => undefined;
+    }
+
+    const { collection, onSnapshot } = await import('firebase/firestore');
+    const responsesRef = collection(
+      await this.firebase.getFirestore(),
+      'rallyPoints',
+      rallyPointId,
+      'responses',
+    );
+
+    return onSnapshot(
+      responsesRef,
+      (snapshot) => onResponses(snapshot.docs.map((document) => this.toRallyResponse(document.id, document.data()))),
+      onError,
+    );
+  }
+
   private toRallyPoint(id: string, data: Record<string, unknown>): RallyPoint {
     return {
       id,
@@ -111,9 +173,23 @@ export class RallyPoints {
       expiresAt: dateOrNull(data['expiresAt']),
     };
   }
+
+  private toRallyResponse(id: string, data: Record<string, unknown>): RallyResponse {
+    return {
+      id,
+      rallyPointId: stringValue(data['rallyPointId']),
+      memberId: stringValue(data['memberId']) || id,
+      responseStatus: rallyResponseStatusValue(data['responseStatus']),
+      updatedAt: dateOrNull(data['updatedAt']),
+    };
+  }
 }
 
-export type RallyPointErrorCode = 'not-authorized' | 'member-not-found' | 'title-required';
+export type RallyPointErrorCode =
+  | 'not-authorized'
+  | 'member-not-found'
+  | 'title-required'
+  | 'response-invalid';
 
 export class RallyPointError extends Error {
   constructor(readonly code: RallyPointErrorCode) {
@@ -154,6 +230,14 @@ function numberValue(value: unknown): number {
 
 function rallyPointStatusValue(value: unknown): RallyPointStatus {
   return value === 'expired' ? 'expired' : 'active';
+}
+
+function rallyResponseStatusValue(value: unknown): RallyResponseStatus {
+  return isRallyResponseStatus(value) ? value : 'heading-there';
+}
+
+function isRallyResponseStatus(value: unknown): value is RallyResponseStatus {
+  return value === 'heading-there' || value === 'arrived' || value === 'cannot-make-it';
 }
 
 function dateOrNull(value: unknown): Date | null {

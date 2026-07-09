@@ -20,5 +20,5 @@ export interface RallyResponse {
   rallyPointId: string;
   memberId: string;
   responseStatus: RallyResponseStatus;
-  updatedAt: Date;
+  updatedAt: Date | null;
 }
