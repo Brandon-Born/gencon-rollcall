@@ -3,16 +3,16 @@ export const environment = {
   firebase: {
     apiKey: 'local-emulator-key',
     authDomain: 'localhost',
-    projectId: 'gencon-rollcall',
-    messagingSenderId: '671879050351',
-    appId: '1:671879050351:web:bc1f69247dbf720342c99a'
+    projectId: 'demo-gencon-rollcall',
+    messagingSenderId: '000000000000',
+    appId: '1:000000000000:web:local',
   },
   firebaseEmulators: {
     enabled: true,
     authHost: '127.0.0.1',
     authPort: 9099,
     firestoreHost: '127.0.0.1',
-    firestorePort: 8080
+    firestorePort: 8080,
   },
-  passwordVerificationUrl: '/api/verify-shared-password'
+  passwordVerificationUrl: '/api/verify-shared-password',
 };

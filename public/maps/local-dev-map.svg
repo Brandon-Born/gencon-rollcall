@@ -1,0 +1,39 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1200 800"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">Local convention test map</title>
+  <desc id="description">
+    A synthetic convention floor plan used only with local Firebase emulators.
+  </desc>
+  <rect width="1200" height="800" fill="#eef3f8" />
+  <g fill="#dbe8f5" stroke="#8aa4be" stroke-width="6">
+    <rect x="70" y="90" width="300" height="230" rx="12" />
+    <rect x="440" y="90" width="690" height="230" rx="12" />
+    <rect x="70" y="480" width="470" height="230" rx="12" />
+    <rect x="610" y="480" width="520" height="230" rx="12" />
+  </g>
+  <g fill="#ffffff" stroke="#c1cfdb" stroke-width="4">
+    <rect x="70" y="360" width="1060" height="80" rx="12" />
+    <rect x="565" y="90" width="40" height="620" rx="10" />
+  </g>
+  <g fill="#151821" font-family="Inter, Arial, sans-serif" text-anchor="middle">
+    <text x="220" y="190" font-size="42" font-weight="700">HALL A</text>
+    <text x="785" y="190" font-size="42" font-weight="700">EXHIBIT HALL</text>
+    <text x="305" y="590" font-size="42" font-weight="700">EVENT HALL</text>
+    <text x="870" y="590" font-size="42" font-weight="700">FOOD &amp; TABLES</text>
+    <text x="600" y="410" font-size="26" font-weight="600">GRAND CONCOURSE</text>
+  </g>
+  <g
+    fill="#d6382f"
+    font-family="Inter, Arial, sans-serif"
+    font-size="24"
+    font-weight="700"
+    text-anchor="middle"
+  >
+    <text x="600" y="58">LOCAL TEST FIXTURE — NOT A REAL VENUE MAP</text>
+    <text x="600" y="770">SOUTH ENTRANCE</text>
+  </g>
+</svg>

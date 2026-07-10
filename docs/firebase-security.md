@@ -73,3 +73,13 @@ Required behavior:
 - `locationVisible: false` must hide map coordinates while keeping status visible.
 - Notes should have a short max length.
 - Avoid analytics until there is a clear private need.
+
+## Local Test Isolation
+
+- Emulator scripts and rules tests use the `demo-gencon-rollcall` project id, never the production
+  `gencon-rollcall` id.
+- Local seed scripts must require loopback emulator hosts and refuse to run against any other host
+  or project id.
+- The local map fixture is synthetic and contains no member or production convention data.
+- Automated rules tests run through `firebase emulators:exec` with the separate
+  `demo-gencon-rollcall-rules` project id and clear only that emulator namespace between cases.

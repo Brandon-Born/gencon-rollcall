@@ -57,7 +57,8 @@ npm run test
 npm run build
 ```
 
-For local smoke tests without touching production Firebase data, use the Firebase emulators:
+For local smoke tests without touching production Firebase data, use the Firebase emulators. The
+scripts force the isolated `demo-gencon-rollcall` project id, which has no live Firebase resources:
 
 ```bash
 npm run emulators
@@ -71,6 +72,10 @@ In a second terminal:
 npm run dev:emulators
 ```
 
+`dev:emulators` seeds `appConfig/current` with the synthetic
+`public/maps/local-dev-map.svg` fixture before starting Vercel and Angular. Re-run
+`npm run seed:emulators` whenever you want to restore that config while the emulators are running.
+
 Then open the local Vercel URL and use the local-only shared password:
 
 ```text
@@ -83,6 +88,18 @@ Verified local emulator smoke coverage:
 - Wrong password returns `401`.
 - `local-dev-password` writes `authorizedUsers/{uid}` in emulator Firestore.
 - An authorized user can write and read `members/{uid}` through Firestore rules.
+- The map loads the synthetic local fixture without any manual Firestore setup.
+
+Run the automated Firestore authorization and ownership regression suite independently of the
+browser flow:
+
+```bash
+npm run test:rules
+```
+
+The command owns the Auth/Firestore emulator lifecycle and uses the separate
+`demo-gencon-rollcall-rules` project id. Stop a manually running emulator session first so the
+configured ports are available.
 
 The app uses the public Firebase Web config in `src/environments/environment.ts`. Do not place the production shared site password or Firebase Admin service account values in Angular environment files.
 

@@ -8,7 +8,15 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/gate",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/onboarding",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/:path*",
       "destination": "/index.html"
     }
   ]

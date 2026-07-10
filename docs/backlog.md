@@ -149,27 +149,50 @@ map to notice one appeared.
 
 ### `TOOL-001` Local dev smoke path is broken
 
-- [ ] `npm run dev:emulators` (vercel dev) currently serves `index.html` for `/main.js`
+- [x] `npm run dev:emulators` (vercel dev) currently serves `index.html` for `/main.js`
       because the catch-all rewrite in `vercel.json` is applied to dev asset requests, so
       Angular never bootstraps (blank page). Workaround used during this review:
       `ng serve --configuration local` plus a proxy for `/api`. Fix the rewrite for dev
       (e.g. scope the SPA rewrite away from asset paths) or document the ng-serve+proxy
       path as the supported local flow.
-- [ ] There is no local seed for `appConfig/current` or a local map asset; document or
+- [x] There is no local seed for `appConfig/current` or a local map asset; document or
       script the emulator seeding step so the map page is testable out of the box.
+
+Implementation status:
+
+- Vercel SPA rewrites are scoped to `/gate`, `/onboarding`, and `/app/*`, so dev JavaScript, Vite,
+  map, manifest, and service-worker assets reach Angular instead of being rewritten to HTML.
+- All local components use the no-live-resources `demo-gencon-rollcall` project id.
+- `npm run dev:emulators` seeds `appConfig/current` with the synthetic
+  `/maps/local-dev-map.svg` fixture before starting Vercel and Angular; the seed refuses non-loopback
+  hosts and any other project id.
+- Browser QA covered the 390px gate → local password → onboarding → seeded map flow with the map
+  image loaded, no horizontal overflow, and clean console logs.
 
 ### `TOOL-002` Automated Firestore rules regression tests
 
-- [ ] Add an emulator-backed Firestore rules test suite and a documented npm command to run it.
-- [ ] Prove unauthorized users cannot read or write app config, members, rally points, or
+- [x] Add an emulator-backed Firestore rules test suite and a documented npm command to run it.
+- [x] Prove unauthorized users cannot read or write app config, members, rally points, or
       responses.
-- [ ] Prove authorized users can read shared data but can write only their own permitted member
+- [x] Prove authorized users can read shared data but can write only their own permitted member
       and response data.
-- [ ] Cover response status validation, active/expired parent rallies, creator-only expiration,
+- [x] Cover response status validation, active/expired parent rallies, creator-only expiration,
       and the allowed expiration fields.
-- [ ] Add or update member lifecycle coverage when `UX-004` defines tombstone/delete behavior.
-- [ ] Use deterministic emulator setup and cleanup with an isolated project id; the suite must
+- [x] Add or update member lifecycle coverage when `UX-004` defines tombstone/delete behavior.
+- [x] Use deterministic emulator setup and cleanup with an isolated project id; the suite must
       never connect to production Firebase.
+
+Implementation status:
+
+- `npm run test:rules` owns the Auth/Firestore emulator lifecycle through
+  `firebase emulators:exec` and runs only against `demo-gencon-rollcall-rules`.
+- Seven regression cases cover pre-authorization denial, shared reads, self-owned member writes,
+  the current no-delete member policy, admin-only config/authorization records, creator-only rally
+  expiration fields, response ownership/status/shape, and active versus expired parent rallies.
+- Tests seed admin-only state with Firebase's emulator `owner` token, clear the emulator between
+  cases, and require no production credentials or additional test dependency.
+- The suite passes independently of the browser smoke flow and is documented in the README and
+  setup/security guides.
 
 Acceptance criteria:
 

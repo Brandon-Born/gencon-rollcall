@@ -31,8 +31,11 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-No items are currently queued. The MVP backlog is complete; get an explicit priority before pulling
-in a decision or deferred item.
+The tooling foundation is complete. Resume the backlog's `Next 3` order:
+
+1. `UX-001` Rally grace period and past-time validation.
+2. `UX-002` Show names on rally responses.
+3. `UX-003` Respond to a rally from the map detail card.
 
 Keep shared map/member/rally data behind the existing authorization checks.
 
@@ -55,6 +58,12 @@ npm run dev:emulators
 ```
 
 Use `local-dev-password`.
+
+For Firestore security regression tests, with no manually running emulators:
+
+```bash
+npm run test:rules
+```
 
 ## Update Rules
 

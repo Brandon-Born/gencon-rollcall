@@ -184,7 +184,9 @@ network-backed; offline writes are not queued or replayed.
 
 ## Local Emulator Smoke Tests
 
-Use this path when testing gate, onboarding, and member-profile behavior without creating production Firebase users or Firestore documents.
+Use this path when testing gate, onboarding, map, and member-profile behavior without creating
+production Firebase users or Firestore documents. Every local component uses the
+`demo-gencon-rollcall` project id; Firebase demo projects have no live resources to fall back to.
 
 Terminal 1:
 
@@ -204,7 +206,13 @@ Terminal 2:
 npm run dev:emulators
 ```
 
-Open the local Vercel URL printed by `vercel dev`.
+This command first seeds `appConfig/current` with `/maps/local-dev-map.svg`, then starts Vercel and
+Angular. Open the local URL printed by `vercel dev`. To restore only the map config while the
+emulators are already running:
+
+```bash
+npm run seed:emulators
+```
 
 Local-only shared password:
 
@@ -214,10 +222,12 @@ local-dev-password
 
 What this does:
 
-- Angular uses `src/environments/environment.local.ts`.
+- Angular uses `src/environments/environment.local.ts` with project id `demo-gencon-rollcall`.
 - Firebase Auth connects to `127.0.0.1:9099`.
 - Firestore connects to `127.0.0.1:8080`.
 - The Vercel API route sees `FIREBASE_AUTH_EMULATOR_HOST` and `FIRESTORE_EMULATOR_HOST`, so Firebase Admin writes `authorizedUsers/{uid}` to emulator Firestore without service-account credentials.
+- The seed script refuses any non-loopback Firestore host or project id other than
+  `demo-gencon-rollcall`.
 
 Verified local emulator smoke test:
 
@@ -226,6 +236,24 @@ Verified local emulator smoke test:
 - `local-dev-password` returns `200` from `/api/verify-shared-password`.
 - `authorizedUsers/{uid}` is written in emulator Firestore.
 - An authorized user can write and read `members/{uid}` through Firestore rules.
+- `appConfig/current` points to the synthetic local map and the map page is usable immediately.
+
+### Firestore Rules Regression Tests
+
+Run the rules suite without starting emulators manually:
+
+```bash
+npm run test:rules
+```
+
+`firebase emulators:exec` starts Auth and Firestore for the isolated
+`demo-gencon-rollcall-rules` project, runs `tests/firestore.rules.spec.ts`, and shuts the emulators
+down. The suite clears Firestore between tests and covers pre-authorization denial, shared reads,
+member ownership and deletion policy, admin-only config/authorization records, rally expiration
+ownership, response document ownership and field validation, and active/expired parent rallies.
+
+Do not run this command while `npm run emulators` is using the configured ports. Any change to
+`firestore.rules` must add or update the relevant regression case before deployment.
 
 ## Production Release
 
