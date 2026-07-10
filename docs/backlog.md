@@ -158,6 +158,25 @@ map to notice one appeared.
 - [ ] There is no local seed for `appConfig/current` or a local map asset; document or
       script the emulator seeding step so the map page is testable out of the box.
 
+### `TOOL-002` Automated Firestore rules regression tests
+
+- [ ] Add an emulator-backed Firestore rules test suite and a documented npm command to run it.
+- [ ] Prove unauthorized users cannot read or write app config, members, rally points, or
+      responses.
+- [ ] Prove authorized users can read shared data but can write only their own permitted member
+      and response data.
+- [ ] Cover response status validation, active/expired parent rallies, creator-only expiration,
+      and the allowed expiration fields.
+- [ ] Add or update member lifecycle coverage when `UX-004` defines tombstone/delete behavior.
+- [ ] Use deterministic emulator setup and cleanup with an isolated project id; the suite must
+      never connect to production Firebase.
+
+Acceptance criteria:
+
+- Any change to `firestore.rules` is accompanied by relevant regression coverage.
+- The rules suite fails on an authorization or ownership regression and runs independently of the
+  browser smoke flow.
+
 ## Milestone: Foundation
 
 ### `FOUND-001` Scaffold Angular app
