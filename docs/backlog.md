@@ -84,7 +84,7 @@ Implementation status:
 ### `UX-004` Leaving the app strands a ghost member
 
 - [x] Add a confirmation step to "Leave app" that explains the consequence (anonymous
-  identity is lost; a new entry is created on return).
+      identity is lost; a new entry is created on return).
 - [x] Delete or tombstone `members/{uid}` on leave, or add a way to remove departed
       members, so the People list and map do not accumulate stale ghosts.
 
@@ -102,12 +102,19 @@ Implementation status:
 
 ### `UX-005` Accidental pin moves
 
-- [ ] Tapping the map instantly relocates your pin with no confirmation or undo. Add a
-      brief undo affordance ("Pin moved — Undo") in the existing hint pill, or require a
-      confirm tap on a provisional marker.
+- [x] Tapping the map instantly relocates your pin with no confirmation or undo. Add a
+  brief undo affordance ("Pin moved — Undo") in the existing hint pill, or require a
+  confirm tap on a provisional marker.
 
 Why: browsing the map is the main activity; one stray tap silently tells the whole group
 you are somewhere you are not.
+
+Implementation status:
+
+- After a pin placement or move, the map hint shows a one-tap Undo action that restores the prior
+  coordinates; placing a first pin can be undone back to a hidden location.
+- Undo uses the same explicit member-location writes and remains available after a failed restore
+  so the user can retry.
 
 ### `UX-006` Member note is missing from the map pin card
 

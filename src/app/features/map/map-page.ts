@@ -68,6 +68,12 @@ interface MapPoint {
   y: number;
 }
 
+interface PreviousPinState {
+  x: number | null;
+  y: number | null;
+  locationVisible: boolean;
+}
+
 interface MapGestureStart {
   distance: number;
   midpoint: MapPoint;
@@ -330,9 +336,12 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
             </aside>
           }
 
-          <p class="map-hint" [class.error]="mapHintIsError()" role="status">
-            {{ mapHintMessage() }}
-          </p>
+          <div class="map-hint" [class.error]="mapHintIsError()" role="status">
+            <span>{{ mapHintMessage() }}</span>
+            @if (previousPinState()) {
+              <button type="button" [disabled]="isPinSaving()" (click)="undoPinMove()">Undo</button>
+            }
+          </div>
         }
       </section>
 
@@ -796,6 +805,15 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       backdrop-filter: blur(12px);
     }
 
+    .map-hint button {
+      min-height: 28px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--color-map-blue);
+      color: white;
+    }
+
     .map-hint.error {
       color: var(--color-gencon-red);
     }
@@ -1088,6 +1106,7 @@ export class MapPage {
   readonly mapImageNaturalHeight = signal(0);
   readonly isMapDragging = signal(false);
   readonly isPinSaving = signal(false);
+  readonly previousPinState = signal<PreviousPinState | null>(null);
   readonly pinSaveMessage = signal('');
   readonly pinSaveIsError = signal(false);
   readonly selectedPinId = signal<string | null>(null);
@@ -1590,6 +1609,7 @@ export class MapPage {
 
     try {
       const member = await this.memberProfile.hideCurrentLocation();
+      this.previousPinState.set(null);
       this.selectedPinId.set(null);
       this.pinSaveMessage.set(
         member.locationVisible
@@ -1601,6 +1621,33 @@ export class MapPage {
       this.pinSaveIsError.set(true);
     } finally {
       this.isLocationHiding.set(false);
+    }
+  }
+
+  async undoPinMove(): Promise<void> {
+    const previous = this.previousPinState();
+
+    if (!previous || this.isPinSaving()) {
+      return;
+    }
+
+    this.isPinSaving.set(true);
+    this.pinSaveMessage.set('Restoring previous pin...');
+    this.pinSaveIsError.set(false);
+
+    try {
+      const member =
+        previous.locationVisible && previous.x !== null && previous.y !== null
+          ? await this.memberProfile.saveCurrentPin(previous.x, previous.y)
+          : await this.memberProfile.hideCurrentLocation();
+      this.previousPinState.set(null);
+      this.selectedPinId.set(member.locationVisible ? member.id : null);
+      this.pinSaveMessage.set('Previous pin restored.');
+    } catch (error) {
+      this.pinSaveMessage.set(messageForPinError(error));
+      this.pinSaveIsError.set(true);
+    } finally {
+      this.isPinSaving.set(false);
     }
   }
 
@@ -1681,9 +1728,15 @@ export class MapPage {
     this.pinSaveIsError.set(false);
 
     try {
+      const currentMember = this.currentMember();
       const member = await this.memberProfile.saveCurrentPin(mapPercent.x, mapPercent.y);
+      this.previousPinState.set({
+        x: currentMember?.mapXPercent ?? null,
+        y: currentMember?.mapYPercent ?? null,
+        locationVisible: currentMember?.locationVisible ?? false,
+      });
       this.selectedPinId.set(member.id);
-      this.pinSaveMessage.set('Pin saved.');
+      this.pinSaveMessage.set('Pin moved.');
     } catch (error) {
       this.pinSaveMessage.set(messageForPinError(error));
       this.pinSaveIsError.set(true);
