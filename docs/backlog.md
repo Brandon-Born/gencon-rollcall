@@ -82,9 +82,15 @@ Implementation status:
 
 ### `UX-021` Rally title silently stops at 48 characters
 
-- [ ] Typing past the title limit drops characters mid-word with no feedback ("...for the
+- [x] Typing past the title limit drops characters mid-word with no feedback ("...for the
       whole cre"). The note field next to it shows "120/120". Add the same counter to the
       title field so truncation is visible before the rally is broadcast.
+
+Implementation status:
+
+- The title label now shows a live `0/48` counter using the same treatment as the note counter.
+- The sheet contains long titles at phone width so the `48/48` limit remains visible without
+  horizontal page overflow; browser QA at 430×844 confirmed both states.
 
 ### `UX-022` Rally card action spacing
 

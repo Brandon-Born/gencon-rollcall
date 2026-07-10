@@ -383,7 +383,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </div>
 
           <label>
-            <span>Title</span>
+            <span class="field-label">
+              <span>Title</span>
+              <small>{{ rallyTitleLength() }}/48</small>
+            </span>
             <input
               type="text"
               maxlength="48"
@@ -395,7 +398,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </label>
 
           <label>
-            <span class="note-label">
+            <span class="field-label">
               <span>Note</span>
               <small>{{ rallyNoteLength() }}/120</small>
             </span>
@@ -473,7 +476,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </div>
 
           <label>
-            <span class="note-label">
+            <span class="field-label">
               <span>Note</span>
               <small>{{ noteLength() }}/80</small>
             </span>
@@ -913,7 +916,13 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       gap: 14px;
     }
 
+    .sheet-header > div {
+      min-width: 0;
+    }
+
     .sheet-header strong {
+      display: block;
+      overflow-wrap: anywhere;
       color: var(--color-text);
       font-size: 20px;
     }
@@ -979,14 +988,20 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       font-weight: 800;
     }
 
-    .note-label {
+    .field-label {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
     }
 
+    .field-label small {
+      flex: 0 0 auto;
+    }
+
     input {
+      width: 100%;
+      min-width: 0;
       min-height: 44px;
       padding: 0 12px;
       border: 1px solid var(--color-border);
@@ -1186,6 +1201,7 @@ export class MapPage {
   readonly isRallyDraftOpen = signal(false);
   readonly pendingRallyPoint = signal<MapPoint | null>(null);
   readonly rallyTitle = signal('');
+  readonly rallyTitleLength = computed(() => this.rallyTitle().length);
   readonly rallyDraftTitle = computed(() => normalizeRallyTitle(this.rallyTitle()));
   readonly rallyNote = signal('');
   readonly rallyNoteLength = computed(() => this.rallyNote().length);
