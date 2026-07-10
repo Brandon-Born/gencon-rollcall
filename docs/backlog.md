@@ -56,10 +56,18 @@ Implementation status:
 
 ### `UX-016` Map rally-card response buttons wrap badly at phone width
 
-- [ ] On the map rally detail card at ~430 px, "Heading there" wraps to two lines and
+- [x] On the map rally detail card at ~430 px, "Heading there" wraps to two lines and
       "Cannot make it" to three, the circular buttons crowd into each other, and the
       selected state clips the label. Restyle to match the rally list's compact pill
       buttons (or stack them) so all three labels render whole.
+
+Implementation status:
+
+- The map card now gives its response controls scoped button styles that cannot be overwritten by
+  the generic close-button rule. At phone widths the three actions stack as full-width 40 px pills;
+  wider layouts retain the three-column row.
+- Browser QA at 430×844 confirmed every label stays on one line with no horizontal overflow, and
+  the selected “Cannot make it” state remains unclipped.
 
 ### `UX-017` People "active" count ignores freshness
 

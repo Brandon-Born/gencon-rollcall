@@ -739,24 +739,26 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     .rally-response-actions {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 5px;
       margin-top: 9px;
     }
 
-    .rally-response-actions button {
+    .pin-detail .rally-response-actions button {
       min-width: 0;
-      min-height: 38px;
-      padding: 5px;
+      min-height: 40px;
+      padding: 0 10px;
       border: 1px solid var(--color-border);
       border-radius: 8px;
       background: var(--color-surface);
       color: var(--color-text);
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 850;
       line-height: 1.1;
+      white-space: nowrap;
     }
 
-    .rally-response-actions button.selected {
+    .pin-detail .rally-response-actions button.selected {
       border-color: var(--color-gencon-red);
       background: var(--color-gencon-red);
       color: white;
@@ -1034,6 +1036,12 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     @media (min-height: 760px) {
       .map-frame {
         min-height: 390px;
+      }
+    }
+
+    @media (min-width: 600px) {
+      .rally-response-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
   `,
