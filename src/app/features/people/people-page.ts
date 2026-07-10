@@ -5,6 +5,7 @@ import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile } from '../../core/members/member-profile';
 import type { Member } from '../../core/models/member';
 import { type MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
+import { peopleSummaryLabel } from './people-summary';
 
 interface PersonListItem {
   id: string;
@@ -386,10 +387,7 @@ export class PeoplePage {
       });
   });
   readonly summaryLabel = computed(() => {
-    const people = this.people();
-    const activeCount = people.filter((person) => !person.isOffline).length;
-
-    return `${activeCount}/${people.length} active`;
+    return peopleSummaryLabel(this.people());
   });
   readonly errorMessage = computed(() =>
     this.loadError()

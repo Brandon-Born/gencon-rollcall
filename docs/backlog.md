@@ -18,9 +18,9 @@ Status values:
 
 ## Next 3
 
-1. `UX-015` Ignore taps outside the map image (pin/rally spot clamps to edge).
-2. `UX-016` Fix map rally-card response button wrapping at phone width.
-3. `UX-017` Make the People "active" count reflect freshness.
+1. `UX-018` Polish pin placement wording and undo lifecycle.
+2. `UX-019` Replace repetitive People map-link text with a compact affordance.
+3. No third actionable MVP item is currently queued.
 
 ## Milestone: UX Round 3 (2026-07-10 verification review)
 
@@ -71,9 +71,16 @@ Implementation status:
 
 ### `UX-017` People "active" count ignores freshness
 
-- [ ] The "3/3 active" chip counts a member whose last update is 8 hours old (and whose row
+- [x] The "3/3 active" chip counts a member whose last update is 8 hours old (and whose row
       is styled stale) as active. Count only members under the stale threshold, or rename
       the chip so it does not overpromise ("3 members").
+
+Implementation status:
+
+- The summary reuses each row's existing stale/offline state and counts only fresh, non-offline
+  members as active, with focused unit coverage for fresh, stale, offline, and empty groups.
+- Browser QA with one fresh member, one nine-hour-stale member, and one fresh offline member showed
+  “1/3 active” while preserving the corresponding row treatments.
 
 ### `UX-018` Pin hint and undo lifecycle polish
 
