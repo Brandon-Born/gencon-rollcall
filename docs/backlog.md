@@ -35,16 +35,24 @@ The items below are new findings from this round, ordered by impact.
 
 ### `UX-015` Taps outside the map image still move the pin
 
-- [ ] `mapPercentFromViewportPoint` clamps out-of-bounds taps to 0–100 instead of ignoring
+- [x] `mapPercentFromViewportPoint` clamps out-of-bounds taps to 0–100 instead of ignoring
       them, so a tap in the letterbox band beside/above the image snaps the user's pin to
       the image edge (observed live: pin jumped from Hall A to the far left edge). Return
       `null` when the tapped content point is outside the image bounds.
-- [ ] The same conversion feeds rally spot selection, so a stray band tap also selects an
+- [x] The same conversion feeds rally spot selection, so a stray band tap also selects an
       edge rally spot. Same fix covers both.
 
 Why: at desktop widths (and any aspect-ratio mismatch) the letterbox bands are large tap
 targets that silently broadcast a wrong location; the accidental-move protection from
 `UX-005` (undo) softens this but should not be the only line of defense.
+
+Implementation status:
+
+- The shared coordinate conversion returns `null` for points outside the rendered image bounds
+  while preserving valid taps exactly on its edges.
+- Unit coverage checks all four surrounding bands. Desktop browser QA with 66.5 px side bands
+  confirmed an outside tap creates neither a member pin nor rally draft marker, while an inside tap
+  still creates each normally.
 
 ### `UX-016` Map rally-card response buttons wrap badly at phone width
 

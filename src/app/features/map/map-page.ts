@@ -20,6 +20,7 @@ import {
   RallyPoints,
 } from '../../core/rallies/rally-points';
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
+import { mapPercentWithinBounds } from '../../shared/map-canvas/map-coordinate';
 
 interface MapPin {
   id: string;
@@ -2065,10 +2066,7 @@ export class MapPage {
       y: (point.y - this.mapTranslateY()) / this.mapScale(),
     };
 
-    return {
-      x: clamp(((contentPoint.x - bounds.left) / bounds.width) * 100, 0, 100),
-      y: clamp(((contentPoint.y - bounds.top) / bounds.height) * 100, 0, 100),
-    };
+    return mapPercentWithinBounds(contentPoint, bounds);
   }
 
   private createGestureStart(): MapGestureStart | null {
