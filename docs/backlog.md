@@ -66,13 +66,20 @@ Implementation status:
 
 ### `UX-003` Respond to a rally from the map
 
-- [ ] Add the three response buttons (and live counts/names) to the rally detail card on
-      the map.
-- [ ] Show the rally note on the map detail card (it is stored and shown in the list, but
+- [x] Add the three response buttons (and live counts/names) to the rally detail card on
+  the map.
+- [x] Show the rally note on the map detail card (it is stored and shown in the list, but
       the map card only shows creator and time).
 
 Why: the natural flow is see marker → tap it → say "heading there". Today the map card is
 read-only, so the user must switch tabs and find the same rally again in a list.
+
+Implementation status:
+
+- Selecting a rally marker opens a scroll-safe map card with its note, three response actions,
+  selected response, live counts, and responder names.
+- The map subscribes only to responses for active rallies, cleans up removed-rally subscriptions,
+  and saves through the existing authorized response path.
 
 ### `UX-004` Leaving the app strands a ghost member
 

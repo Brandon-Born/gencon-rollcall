@@ -12,7 +12,7 @@ import { AppConfigService, type AppConfigLoadError } from '../../core/app-config
 import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
 import type { Member } from '../../core/models/member';
-import type { RallyPoint } from '../../core/models/rally-point';
+import type { RallyPoint, RallyResponse, RallyResponseStatus } from '../../core/models/rally-point';
 import {
   isRallyPointMeetingNow,
   RallyPointError,
@@ -46,6 +46,21 @@ interface MapRallyMarker {
   renderY: number;
   scheduledLabel: string;
   scheduledIso: string | null;
+  responseCounts: MapRallyResponseCounts;
+  responseNames: MapRallyResponseNames;
+  currentResponse: RallyResponseStatus | null;
+}
+
+interface MapRallyResponseCounts {
+  headingThere: number;
+  arrived: number;
+  cannotMakeIt: number;
+}
+
+interface MapRallyResponseNames {
+  headingThere: string[];
+  arrived: string[];
+  cannotMakeIt: string[];
 }
 
 interface MapPoint {
@@ -88,6 +103,11 @@ const TAP_MOVE_TOLERANCE_PX = 8;
 const minuteMs = 60 * 1000;
 const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
+const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: string }> = [
+  { value: 'heading-there', label: 'Heading there' },
+  { value: 'arrived', label: 'Arrived' },
+  { value: 'cannot-make-it', label: 'Cannot make it' },
+];
 
 @Component({
   selector: 'app-map-page',
@@ -262,10 +282,46 @@ const dayMs = 24 * hourMs;
               <div>
                 <strong>{{ rally.title }}</strong>
                 <p>Created by {{ rally.creatorName }}</p>
+                @if (rally.note) {
+                  <p class="rally-note">{{ rally.note }}</p>
+                }
                 @if (rally.scheduledIso) {
                   <time [attr.datetime]="rally.scheduledIso">{{ rally.scheduledLabel }}</time>
                 } @else {
                   <time>No time set</time>
+                }
+                <div class="rally-response-actions" aria-label="Are you going?">
+                  @for (response of rallyResponseOptions; track response.value) {
+                    <button
+                      type="button"
+                      [class.selected]="rally.currentResponse === response.value"
+                      [attr.aria-pressed]="rally.currentResponse === response.value"
+                      [disabled]="responseSavingRallyId() === rally.id"
+                      (click)="saveRallyResponse(rally.id, response.value)"
+                    >
+                      {{ response.label }}
+                    </button>
+                  }
+                </div>
+                <p class="rally-response-summary">
+                  {{ rally.responseCounts.headingThere }} heading ·
+                  {{ rally.responseCounts.arrived }} arrived ·
+                  {{ rally.responseCounts.cannotMakeIt }} can't
+                </p>
+                @if (rally.responseNames.headingThere.length) {
+                  <p class="rally-response-names">
+                    <strong>Heading:</strong> {{ rally.responseNames.headingThere.join(', ') }}
+                  </p>
+                }
+                @if (rally.responseNames.arrived.length) {
+                  <p class="rally-response-names">
+                    <strong>Arrived:</strong> {{ rally.responseNames.arrived.join(', ') }}
+                  </p>
+                }
+                @if (rally.responseNames.cannotMakeIt.length) {
+                  <p class="rally-response-names">
+                    <strong>Can't:</strong> {{ rally.responseNames.cannotMakeIt.join(', ') }}
+                  </p>
                 }
               </div>
               <button type="button" aria-label="Close rally details" (click)="clearSelectedRally()">
@@ -627,6 +683,48 @@ const dayMs = 24 * hourMs;
       backdrop-filter: blur(12px);
     }
 
+    .rally-detail {
+      align-items: start;
+      bottom: 50px;
+      max-height: calc(100% - 70px);
+      overflow-y: auto;
+    }
+
+    .rally-note {
+      font-weight: 650 !important;
+    }
+
+    .rally-response-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 9px;
+    }
+
+    .rally-response-actions button {
+      min-width: 0;
+      min-height: 38px;
+      padding: 5px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .rally-response-actions button.selected {
+      border-color: var(--color-gencon-red);
+      background: var(--color-gencon-red);
+      color: white;
+    }
+
+    .rally-response-summary,
+    .rally-response-names {
+      overflow-wrap: anywhere;
+      font-size: 11px !important;
+    }
+
     .pin-detail-avatar {
       display: grid;
       width: 46px;
@@ -892,6 +990,7 @@ export class MapPage {
   private viewportResizeObserver: ResizeObserver | null = null;
   private membersUnsubscribe: (() => void) | null = null;
   private rallyPointsUnsubscribe: (() => void) | null = null;
+  private readonly rallyResponseUnsubscribes = new Map<string, () => void>();
   private isDestroyed = false;
 
   @ViewChild('mapViewport')
@@ -917,6 +1016,9 @@ export class MapPage {
   readonly statuses = STATUS_OPTIONS;
   readonly members = signal<Member[]>([]);
   readonly rallyPoints = signal<RallyPoint[]>([]);
+  readonly rallyResponses = signal<RallyResponse[]>([]);
+  readonly rallyResponseOptions = rallyResponseOptions;
+  readonly responseSavingRallyId = signal<string | null>(null);
   readonly currentMember = computed(() => {
     const currentUid = this.authSession.user()?.uid;
     return this.members().find((member) => member.id === currentUid) ?? this.memberProfile.member();
@@ -1061,7 +1163,15 @@ export class MapPage {
     const viewportHeight = this.mapViewportHeight();
 
     return this.rallyPoints().map((rallyPoint) =>
-      toMapRallyMarker(rallyPoint, bounds, viewportWidth, viewportHeight),
+      toMapRallyMarker(
+        rallyPoint,
+        bounds,
+        viewportWidth,
+        viewportHeight,
+        this.rallyResponses(),
+        this.members(),
+        this.authSession.user()?.uid ?? '',
+      ),
     );
   });
   readonly selectedRally = computed(
@@ -1124,6 +1234,8 @@ export class MapPage {
       this.membersUnsubscribe = null;
       this.rallyPointsUnsubscribe?.();
       this.rallyPointsUnsubscribe = null;
+      this.rallyResponseUnsubscribes.forEach((unsubscribe) => unsubscribe());
+      this.rallyResponseUnsubscribes.clear();
     });
 
     void this.reloadMapConfig();
@@ -1530,6 +1642,29 @@ export class MapPage {
     }
   }
 
+  async saveRallyResponse(
+    rallyPointId: string,
+    responseStatus: RallyResponseStatus,
+  ): Promise<void> {
+    if (this.responseSavingRallyId()) {
+      return;
+    }
+
+    this.responseSavingRallyId.set(rallyPointId);
+    this.pinSaveMessage.set('Saving rally response...');
+    this.pinSaveIsError.set(false);
+
+    try {
+      await this.rallyPointsService.saveResponse(rallyPointId, responseStatus);
+      this.pinSaveMessage.set('Rally response saved.');
+    } catch (error) {
+      this.pinSaveMessage.set(messageForRallyResponseError(error));
+      this.pinSaveIsError.set(true);
+    } finally {
+      this.responseSavingRallyId.set(null);
+    }
+  }
+
   labelFor(status: MemberStatus): string {
     return statusLabel(status);
   }
@@ -1620,6 +1755,7 @@ export class MapPage {
           }
 
           this.rallyPoints.set(rallyPoints);
+          void this.syncMapRallyResponseSubscriptions(rallyPoints);
           this.rallySaveIsError.set(false);
         },
         () => {
@@ -1647,6 +1783,52 @@ export class MapPage {
         );
         this.rallySaveIsError.set(true);
       }
+    }
+  }
+
+  private async syncMapRallyResponseSubscriptions(rallyPoints: RallyPoint[]): Promise<void> {
+    const activeIds = new Set(rallyPoints.map((rallyPoint) => rallyPoint.id));
+
+    for (const [rallyPointId, unsubscribe] of this.rallyResponseUnsubscribes) {
+      if (!activeIds.has(rallyPointId)) {
+        unsubscribe();
+        this.rallyResponseUnsubscribes.delete(rallyPointId);
+      }
+    }
+
+    this.rallyResponses.update((responses) =>
+      responses.filter((response) => activeIds.has(response.rallyPointId)),
+    );
+
+    for (const rallyPoint of rallyPoints) {
+      if (this.rallyResponseUnsubscribes.has(rallyPoint.id)) {
+        continue;
+      }
+
+      const unsubscribe = await this.rallyPointsService.watchRallyResponses(
+        rallyPoint.id,
+        (responses) => {
+          if (!this.isDestroyed) {
+            this.rallyResponses.update((current) => [
+              ...current.filter((response) => response.rallyPointId !== rallyPoint.id),
+              ...responses,
+            ]);
+          }
+        },
+        () => {
+          if (!this.isDestroyed) {
+            this.pinSaveMessage.set('Could not load rally responses. Check your connection.');
+            this.pinSaveIsError.set(true);
+          }
+        },
+      );
+
+      if (this.isDestroyed) {
+        unsubscribe();
+        return;
+      }
+
+      this.rallyResponseUnsubscribes.set(rallyPoint.id, unsubscribe);
     }
   }
 
@@ -1822,6 +2004,14 @@ function messageForRallyError(error: unknown): string {
   return 'Could not create the rally point. Check your connection and try again.';
 }
 
+function messageForRallyResponseError(error: unknown): string {
+  if (error instanceof RallyPointError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before responding.';
+  }
+
+  return 'Could not save your rally response. Check your connection and try again.';
+}
+
 function toMapPin(
   member: Member,
   bounds: MapImageBounds | null,
@@ -1862,6 +2052,9 @@ function toMapRallyMarker(
   bounds: MapImageBounds | null,
   viewportWidth: number,
   viewportHeight: number,
+  responses: RallyResponse[],
+  members: Member[],
+  currentMemberId: string,
 ): MapRallyMarker {
   const renderPoint = renderPercentForMapPoint(
     rallyPoint.mapXPercent,
@@ -1871,6 +2064,41 @@ function toMapRallyMarker(
     viewportHeight,
   );
   const scheduledTime = validDateOrNull(rallyPoint.scheduledTime);
+  const responseCounts: MapRallyResponseCounts = {
+    headingThere: 0,
+    arrived: 0,
+    cannotMakeIt: 0,
+  };
+  const responseNames: MapRallyResponseNames = {
+    headingThere: [],
+    arrived: [],
+    cannotMakeIt: [],
+  };
+  const memberNames = new Map(members.map((member) => [member.id, member.displayName]));
+  let currentResponse: RallyResponseStatus | null = null;
+
+  for (const response of responses.filter((item) => item.rallyPointId === rallyPoint.id)) {
+    const name = memberNames.get(response.memberId) || 'Former member';
+
+    if (response.responseStatus === 'heading-there') {
+      responseCounts.headingThere += 1;
+      responseNames.headingThere.push(name);
+    } else if (response.responseStatus === 'arrived') {
+      responseCounts.arrived += 1;
+      responseNames.arrived.push(name);
+    } else {
+      responseCounts.cannotMakeIt += 1;
+      responseNames.cannotMakeIt.push(name);
+    }
+
+    if (response.memberId === currentMemberId) {
+      currentResponse = response.responseStatus;
+    }
+  }
+
+  responseNames.headingThere.sort((a, b) => a.localeCompare(b));
+  responseNames.arrived.sort((a, b) => a.localeCompare(b));
+  responseNames.cannotMakeIt.sort((a, b) => a.localeCompare(b));
 
   return {
     id: rallyPoint.id,
@@ -1887,6 +2115,9 @@ function toMapRallyMarker(
         ? scheduledLabel(scheduledTime)
         : 'No time set',
     scheduledIso: scheduledTime ? scheduledTime.toISOString() : null,
+    responseCounts,
+    responseNames,
+    currentResponse,
   };
 }
 
