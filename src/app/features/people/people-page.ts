@@ -97,10 +97,11 @@ const dayMs = 24 * hourMs;
 
                 @if (!person.locationVisible) {
                   <p class="meta">Location hidden</p>
-                } @else if (person.canOpenMap) {
-                  <p class="meta">Tap to view on map</p>
                 }
               </div>
+              @if (person.canOpenMap) {
+                <span class="map-affordance" aria-hidden="true">›</span>
+              }
             </article>
           }
         </section>
@@ -155,7 +156,7 @@ const dayMs = 24 * hourMs;
 
     .person {
       display: grid;
-      grid-template-columns: 50px minmax(0, 1fr);
+      grid-template-columns: 50px minmax(0, 1fr) auto;
       gap: 12px;
       padding: 14px;
       border: 1px solid var(--color-border);
@@ -179,6 +180,14 @@ const dayMs = 24 * hourMs;
     .person.map-link:focus-visible {
       outline: 3px solid rgba(47, 128, 237, 0.3);
       outline-offset: 2px;
+    }
+
+    .map-affordance {
+      align-self: center;
+      color: var(--color-map-blue);
+      font-size: 28px;
+      font-weight: 500;
+      line-height: 1;
     }
 
     .you-label {

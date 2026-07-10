@@ -99,8 +99,15 @@ Implementation status:
 
 ### `UX-019` People row map-link affordance is repetitive
 
-- [ ] Every visible-location row prints "Tap to view on map". Replace the repeated sentence
+- [x] Every visible-location row prints "Tap to view on map". Replace the repeated sentence
       with a compact affordance (chevron or map glyph) once the pattern is established.
+
+Implementation status:
+
+- Rows with a shared map location now use a compact blue chevron while preserving the entire row
+  as the keyboard- and tap-activated map link.
+- Browser QA at 430×844 confirmed the repeated sentence is absent, the chevron remains visually
+  aligned, and activating the row opens the map with that member selected.
 
 ## Milestone: UX Round 2 (2026-07-09 adversarial review)
 
