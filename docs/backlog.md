@@ -18,9 +18,7 @@ Status values:
 
 ## Next 3
 
-1. `RALLY-002` Rally responses.
-2. `RALLY-003` Rally expiration.
-3. `DEPLOY-001` PWA support.
+1. `DEPLOY-002` Deployment docs.
 
 Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
 
@@ -380,9 +378,19 @@ Acceptance criteria:
 
 ### `DEPLOY-001` PWA support
 
-- [ ] Add Angular PWA support.
-- [ ] Decide offline/resync behavior.
-- [ ] Verify installable behavior on a phone browser.
+- [x] Add Angular PWA support.
+- [x] Decide offline/resync behavior.
+- [x] Verify installable behavior on a phone browser.
+
+Implementation status:
+
+- Angular's production build registers `ngsw-worker.js` and emits `ngsw.json` plus a complete web
+  app manifest with branded maskable icons from 72px through 512px.
+- The service worker caches the app shell and static assets. Map images are cached lazily, while
+  Firebase shared state and `/api/**` remain network-backed with no background write queue.
+- Browser QA covered the production app at a 390x844 viewport with manifest/theme metadata,
+  branded icon rendering, no horizontal overflow, a working gate control state, and clean console
+  logs. Local production-server checks confirmed the manifest and service-worker response types.
 
 Depends on:
 

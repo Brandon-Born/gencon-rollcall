@@ -71,6 +71,12 @@ The map is a static image plane.
 
 ## PWA Notes
 
-- Add Angular PWA support after the core route shell exists.
-- Cache app shell assets.
-- Do not cache shared Firestore data beyond Firebase SDK behavior for MVP unless offline behavior is explicitly designed.
+- Angular's service worker caches the versioned app shell, icons, and other static assets.
+- Map images are cached lazily only after a user loads them; a newly deployed map is fetched when
+  its asset URL changes.
+- The service worker does not cache Firebase, password API, member, location, rally, or response
+  data. Shared state remains network-backed and reconnects through the Firebase SDK.
+- Offline mode is intentionally read-limited for MVP: an already-open screen can retain its last
+  in-memory view, but fresh shared reads, authorization, and writes require a connection. Failed
+  writes continue to use the existing user-visible error states and are not queued for background
+  sync.

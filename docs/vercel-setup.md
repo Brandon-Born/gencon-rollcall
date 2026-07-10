@@ -145,6 +145,24 @@ Run tests:
 npm test
 ```
 
+## PWA Verification
+
+Service-worker support is enabled only in production builds. To test the installable app locally,
+build it and serve the browser output from localhost over HTTP:
+
+```bash
+npm run build
+npx http-server dist/gencon-rollcall/browser -p 8080 -c-1
+```
+
+Open `http://localhost:8080` in a private browser window. Verify that the web app manifest loads,
+the service worker controls the page after registration, and the browser offers installation at a
+phone-sized viewport. Production uses HTTPS on Vercel, which satisfies the secure-context
+requirement for service workers.
+
+Only the app shell and static assets are cached. Firebase shared state and the password API remain
+network-backed; offline writes are not queued or replayed.
+
 ## Local Emulator Smoke Tests
 
 Use this path when testing gate, onboarding, and member-profile behavior without creating production Firebase users or Firestore documents.

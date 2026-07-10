@@ -1,0 +1,18 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">Gen Con Roll Call</title>
+  <desc id="description">A gold rally flag and blue location dot on a red field.</desc>
+  <rect width="512" height="512" rx="112" fill="#D6382F" />
+  <circle cx="256" cy="256" r="164" fill="#FFFFFF" />
+  <path
+    d="M196 355V155c0-14 11-25 25-25s25 11 25 25v200c0 14-11 25-25 25s-25-11-25-25Z"
+    fill="#151821"
+  />
+  <path d="M236 153h127c12 0 18 14 10 23l-38 41 38 42c8 9 2 23-10 23H236V153Z" fill="#F4B740" />
+  <circle cx="221" cy="355" r="52" fill="#2F80ED" />
+  <circle cx="221" cy="355" r="18" fill="#FFFFFF" />
+</svg>

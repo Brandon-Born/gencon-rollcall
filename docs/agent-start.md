@@ -12,6 +12,8 @@ Use this file when picking up the project in a new session.
 - Anonymous Auth, wrong-password API behavior, and correct-password login/member creation are live-verified.
 - Firestore-backed member onboarding profiles are implemented.
 - Local Firebase Auth/Firestore emulator smoke tests work through Vercel dev with `local-dev-password`.
+- Rally creation, responses, and manual/scheduled expiration are implemented.
+- Production builds include installable PWA metadata and app-shell caching.
 
 ## Read First
 
@@ -29,9 +31,7 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `RALLY-002` Rally responses.
-2. `RALLY-003` Rally expiration.
-3. `DEPLOY-001` PWA support.
+1. `DEPLOY-002` Deployment docs.
 
 Keep shared map/member/rally data behind the existing authorization checks.
 
