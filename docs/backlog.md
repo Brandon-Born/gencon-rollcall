@@ -18,10 +18,145 @@ Status values:
 
 ## Next 3
 
-No items are queued. The MVP backlog is complete; explicitly choose a decision or deferred item
-before starting more scope.
+1. `UX-001` Rally grace period and past-time validation (bug-level UX).
+2. `UX-002` Show names on rally responses.
+3. `UX-003` Respond to a rally from the map detail card.
 
 Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
+
+## Milestone: UX Round 2 (2026-07-09 adversarial review)
+
+Findings from using the deployed flows as multiple users. Ordered by how much each hurts the
+core job: "say where we are and meet up easily."
+
+### `UX-001` Rally expiration timing is wrong for meetups
+
+- [ ] Keep a rally visible past its scheduled time with a grace period (suggest 60 minutes)
+      instead of hiding it at the exact minute the group is supposed to be meeting.
+- [ ] Label it "Meeting now" (or similar) between scheduled time and expiry.
+- [ ] Block or warn on past scheduled times in the rally form (`min` on the
+      `datetime-local` input plus a validation message). Today a past time saves
+      successfully, shows "Rally point created.", and the rally never appears anywhere.
+
+Why: `expiresAt` is set to `scheduledTime`, so a "Dinner at 6:00" rally vanishes at 6:00 —
+exactly when people are standing around looking for each other.
+
+### `UX-002` Rally responses show counts but not names
+
+- [ ] Show who responded under each rally ("Heading: Alice, Brandon · Can't: Carl"),
+      not just "2 heading there".
+- [ ] Response docs already store `memberId`; join against the members stream for names.
+
+Why: in an 8-person friend group, "who is coming" is the entire question. A count answers
+"how many", which nobody asked.
+
+### `UX-003` Respond to a rally from the map
+
+- [ ] Add the three response buttons (and live counts/names) to the rally detail card on
+      the map.
+- [ ] Show the rally note on the map detail card (it is stored and shown in the list, but
+      the map card only shows creator and time).
+
+Why: the natural flow is see marker → tap it → say "heading there". Today the map card is
+read-only, so the user must switch tabs and find the same rally again in a list.
+
+### `UX-004` Leaving the app strands a ghost member
+
+- [ ] Add a confirmation step to "Leave app" that explains the consequence (anonymous
+      identity is lost; a new entry is created on return).
+- [ ] Delete or tombstone `members/{uid}` on leave, or add a way to remove departed
+      members, so the People list and map do not accumulate stale ghosts.
+
+Why: `leaveApp()` only signs out; the member doc lives forever. After a couple of
+re-installs during the con the group list fills with dead "Brandon Born" entries nobody
+can remove, each showing a stale status.
+
+### `UX-005` Accidental pin moves
+
+- [ ] Tapping the map instantly relocates your pin with no confirmation or undo. Add a
+      brief undo affordance ("Pin moved — Undo") in the existing hint pill, or require a
+      confirm tap on a provisional marker.
+
+Why: browsing the map is the main activity; one stray tap silently tells the whole group
+you are somewhere you are not.
+
+### `UX-006` Member note is missing from the map pin card
+
+- [ ] Show the member note on the pin detail card, not only in People.
+
+Why: the note carries the actually useful location detail ("Booth 2110", "back of hall C").
+The pin answers "roughly where"; the note answers "where exactly" — they belong together.
+
+### `UX-007` People rows should link to the map
+
+- [ ] Tapping a person in People (when their location is visible) opens the map with their
+      pin selected/centered.
+- [ ] Mark the current user's own row ("You") in People.
+
+### `UX-008` New-rally awareness
+
+- [ ] Surface that a new rally exists when the user is not looking at the map: a badge on
+      the Rally Points tab and/or a transient in-app banner.
+- [ ] Revisit `DEC-005` (browser notifications) after the badge exists.
+
+Why: a rally is a time-sensitive broadcast; today a friend must happen to glance at the
+map to notice one appeared.
+
+### `UX-009` Location sharing asymmetry
+
+- [ ] Settings can hide the pin but cannot re-share it; re-sharing requires knowing the
+      hidden "tap the map" behavior. Add a "Share my location again" path from Settings
+      (jump to map with a one-line instruction is enough).
+
+### `UX-010` Stale rallies without a time linger forever
+
+- [ ] Rallies with no scheduled time never auto-expire, and only the creator can end one.
+      Give no-time rallies a default lifetime (suggest 4 hours) and/or let any member end
+      a rally in this trusted group.
+
+### `UX-011` Map pins do not show staleness
+
+- [ ] People styles stale/offline members, but map pins render a 6-hour-old pin exactly
+      like a fresh one. Dim or desaturate pins past the same stale threshold, and hide or
+      gray pins for offline members.
+
+### `UX-012` Replace raw coordinates in rally UI
+
+- [ ] Rally list shows "Map spot 84.7%, 33.9%" and the rally form shows "Rally spot
+      selected at 84.7%, 33.9%." — internal numbers with no user meaning. Replace with a
+      "View on map" link (list) and a plain "Spot selected ✓" (form).
+
+### `UX-013` Phone-width map/header polish
+
+- [ ] "Indiana Convention Center" wraps to three lines at 390px and squeezes the header
+      buttons; use a smaller single-line title treatment.
+- [ ] The zoom control pill covers a large part of the small map viewport; shrink it or
+      move it off the map surface.
+- [ ] The fixed-height map frame shows large empty grid bands when the image aspect ratio
+      does not match; fit the initial view to the image instead.
+- [ ] The horizontally scrolling status chips clip mid-word with no scroll affordance; add
+      an edge fade or wrap to two rows.
+
+### `UX-014` Wording and small polish
+
+- [ ] Rally response heading "How are you getting there?" asks about transport but the
+      answers are attendance; change to "Are you going?".
+- [ ] Add a show-password toggle on the gate (shared password on a phone keyboard).
+- [ ] Status sheet shows "Updated just now" on first load even when the loaded status is
+      hours old; show real freshness or nothing.
+- [ ] Two members with the same initials get identical map pins; add a per-member color or
+      show the first name under the pin.
+
+### `TOOL-001` Local dev smoke path is broken
+
+- [ ] `npm run dev:emulators` (vercel dev) currently serves `index.html` for `/main.js`
+      because the catch-all rewrite in `vercel.json` is applied to dev asset requests, so
+      Angular never bootstraps (blank page). Workaround used during this review:
+      `ng serve --configuration local` plus a proxy for `/api`. Fix the rewrite for dev
+      (e.g. scope the SPA rewrite away from asset paths) or document the ng-serve+proxy
+      path as the supported local flow.
+- [ ] There is no local seed for `appConfig/current` or a local map asset; document or
+      script the emulator seeding step so the map page is testable out of the box.
 
 ## Milestone: Foundation
 
