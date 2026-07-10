@@ -26,12 +26,13 @@ Use this file when picking up the project in a new session.
 5. `docs/architecture.md`
 6. `docs/vercel-setup.md`
 7. `docs/design-system.md`
+8. `docs/official-map-rollout.md`
 
 ## Start Here
 
-No actionable MVP backlog items remain. Keep explicitly deferred expansion items out of scope unless
-the user reprioritizes them, and keep shared map/member/rally data behind the existing authorization
-checks.
+Complete the release-blocking official-map rollout in `docs/official-map-rollout.md` before working
+the deferred UX polish or sharing the app with the group. Keep shared map/member/rally data behind
+the existing authorization checks.
 
 ## Verification
 

@@ -18,9 +18,42 @@ Status values:
 
 ## Next 3
 
-1. `UX-020` Confirm before ending a rally.
-2. `UX-021` Show a title character counter in the rally form.
-3. `UX-022` Add breathing room between "View on map" and "End rally".
+1. `MAP-001` Prepare and verify the official Gen Con Indy 2026 map assets.
+2. `MAP-002` Add map selection and map-aware member/rally locations.
+3. `MAP-003` Cut production over to the official maps and complete release QA.
+
+## Milestone: Official Gen Con 2026 map rollout
+
+This milestone blocks sharing the app with the friend group. Follow
+`docs/official-map-rollout.md`; the official main Exhibit Hall map must be the default map on every
+fresh session. The previous `Next 3` UX items remain queued below and resume after this milestone.
+
+### `MAP-001` Prepare and verify official map assets
+
+- [ ] Export the official 2026 main Exhibit Hall map and required convention-center levels at a
+      consistent, legible resolution.
+- [ ] Add optimized, versioned assets and a static manifest under `public/maps/gencon-2026/` with
+      `defaultMapId: "exhibit-hall"`.
+- [ ] Compare recognizable labels, rooms, entrances, booth areas, and orientation against the
+      official source; verify deployed asset content types before changing Firestore config.
+
+### `MAP-002` Add map selection and map-aware locations
+
+- [ ] Load and validate the map manifest with a legacy single-image fallback; add a compact map
+      selector that defaults to Exhibit Hall and initially loads only the active image.
+- [ ] Store `mapId` with visible member pins and rally points, filter markers by active map, and
+      make People/rally deep links open the target's map before selecting it.
+- [ ] Update models, writes, Firestore rules, emulator seeds, and focused unit/rule coverage for
+      valid map ids, hidden locations, and legacy records.
+
+### `MAP-003` Cut over production and complete release QA
+
+- [ ] Deploy compatible assets, client code, and Firestore rules before changing production map
+      config.
+- [ ] Hide/reset synthetic-map member locations and end/remove synthetic test rallies before
+      pointing `appConfig/current` at the official manifest.
+- [ ] Verify the complete authorized phone flow at 430×844 with two users, confirm Exhibit Hall is
+      the fresh-session default, run all automated gates, and retain a tested config rollback.
 
 ## Milestone: UX Round 4 (2026-07-10 lifecycle review)
 
