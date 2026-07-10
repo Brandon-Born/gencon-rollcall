@@ -94,9 +94,15 @@ Implementation status:
 
 ### `UX-022` Rally card action spacing
 
-- [ ] "View on map" and the "End rally" button nearly touch on the creator's rally card
+- [x] "View on map" and the "End rally" button nearly touch on the creator's rally card
       (~1 px gap at desktop width). Add gap so the destructive action is not adjacent to a
       navigation tap target.
+
+Implementation status:
+
+- Rally navigation and creator actions now share an explicit wrapping action row with a 12 px
+  horizontal gap; the confirmation panel expands onto its own row.
+- Browser QA measured the 12 px gap at 430×844 and 1280×720 and found no relevant console errors.
 
 ## Milestone: UX Round 3 (2026-07-10 verification review)
 

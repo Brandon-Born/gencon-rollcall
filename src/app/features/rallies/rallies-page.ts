@@ -89,51 +89,55 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                 <h2>{{ rally.title }}</h2>
                 <p class="meta">{{ rally.scheduledLabel }} · {{ rally.creatorName }}</p>
                 <p>{{ rally.note || 'No note added.' }}</p>
-                <a class="coordinate" routerLink="/app/map" [queryParams]="{ rally: rally.id }">
-                  View on map
-                </a>
+                <div class="rally-actions">
+                  <a class="coordinate" routerLink="/app/map" [queryParams]="{ rally: rally.id }">
+                    View on map
+                  </a>
 
-                @if (rally.canExpire) {
-                  @if (confirmingRallyId() === rally.id) {
-                    <section
-                      class="end-confirmation"
-                      role="alertdialog"
-                      [attr.aria-labelledby]="'end-rally-title-' + rally.id"
-                    >
-                      <strong [id]="'end-rally-title-' + rally.id">End this rally?</strong>
-                      <p>This removes it from the active map and rally list for everyone.</p>
-                      <div class="end-confirmation-actions">
-                        <button
-                          type="button"
-                          class="cancel-end-action"
-                          [disabled]="expiringRallyId() === rally.id"
-                          (click)="cancelEndRally()"
-                        >
-                          Keep rally
-                        </button>
-                        <button
-                          type="button"
-                          class="expire-action"
-                          [disabled]="expiringRallyId() === rally.id"
-                          (click)="expireRally(rally.id)"
-                        >
-                          {{
-                            expiringRallyId() === rally.id ? 'Ending rally...' : 'End for everyone'
-                          }}
-                        </button>
-                      </div>
-                    </section>
-                  } @else {
-                    <button
-                      type="button"
-                      class="expire-action"
-                      [disabled]="expiringRallyId() === rally.id"
-                      (click)="requestEndRally(rally.id)"
-                    >
-                      End rally
-                    </button>
+                  @if (rally.canExpire) {
+                    @if (confirmingRallyId() === rally.id) {
+                      <section
+                        class="end-confirmation"
+                        role="alertdialog"
+                        [attr.aria-labelledby]="'end-rally-title-' + rally.id"
+                      >
+                        <strong [id]="'end-rally-title-' + rally.id">End this rally?</strong>
+                        <p>This removes it from the active map and rally list for everyone.</p>
+                        <div class="end-confirmation-actions">
+                          <button
+                            type="button"
+                            class="cancel-end-action"
+                            [disabled]="expiringRallyId() === rally.id"
+                            (click)="cancelEndRally()"
+                          >
+                            Keep rally
+                          </button>
+                          <button
+                            type="button"
+                            class="expire-action"
+                            [disabled]="expiringRallyId() === rally.id"
+                            (click)="expireRally(rally.id)"
+                          >
+                            {{
+                              expiringRallyId() === rally.id
+                                ? 'Ending rally...'
+                                : 'End for everyone'
+                            }}
+                          </button>
+                        </div>
+                      </section>
+                    } @else {
+                      <button
+                        type="button"
+                        class="expire-action"
+                        [disabled]="expiringRallyId() === rally.id"
+                        (click)="requestEndRally(rally.id)"
+                      >
+                        End rally
+                      </button>
+                    }
                   }
-                }
+                </div>
 
                 <section
                   class="responses"
@@ -300,11 +304,18 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     .coordinate {
       display: inline-block;
-      margin-top: 9px;
       color: var(--color-map-blue);
       font-size: 14px;
       font-weight: 800;
       text-decoration: none;
+    }
+
+    .rally-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 12px;
+      margin-top: 9px;
     }
 
     .page-notice {
@@ -320,7 +331,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     .expire-action {
       min-height: 40px;
-      margin-top: 14px;
+      margin: 0;
       padding: 0 14px;
       border: 1px solid rgba(214, 56, 47, 0.34);
       border-radius: 8px;
@@ -337,9 +348,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .end-confirmation {
+      flex: 1 0 100%;
       display: grid;
       gap: 9px;
-      margin-top: 14px;
+      margin-top: 4px;
       padding: 12px;
       border: 1px solid rgba(214, 56, 47, 0.28);
       border-radius: 10px;
