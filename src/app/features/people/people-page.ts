@@ -1,5 +1,7 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
+import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile } from '../../core/members/member-profile';
 import type { Member } from '../../core/models/member';
 import { type MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
@@ -14,6 +16,8 @@ interface PersonListItem {
   freshnessLabel: string;
   updatedAtIso: string;
   locationVisible: boolean;
+  canOpenMap: boolean;
+  isCurrent: boolean;
   tone: string;
   isOffline: boolean;
   isStale: boolean;
@@ -59,11 +63,27 @@ const dayMs = 24 * hourMs;
       } @else {
         <section class="list" aria-label="Group status list">
           @for (person of people(); track person.id) {
-            <article class="person" [class.offline]="person.isOffline" [class.stale]="person.isStale">
-              <span class="avatar" [class]="person.tone" aria-hidden="true">{{ person.initials }}</span>
+            <article
+              class="person"
+              [class.offline]="person.isOffline"
+              [class.stale]="person.isStale"
+              [class.map-link]="person.canOpenMap"
+              [attr.role]="person.canOpenMap ? 'link' : null"
+              [attr.tabindex]="person.canOpenMap ? 0 : null"
+              (click)="openPersonOnMap(person)"
+              (keydown.enter)="openPersonOnMap(person)"
+            >
+              <span class="avatar" [class]="person.tone" aria-hidden="true">{{
+                person.initials
+              }}</span>
               <div class="person-body">
                 <div class="row">
-                  <strong>{{ person.displayName }}</strong>
+                  <strong>
+                    {{ person.displayName }}
+                    @if (person.isCurrent) {
+                      <span class="you-label">(You)</span>
+                    }
+                  </strong>
                   <time [attr.datetime]="person.updatedAtIso">{{ person.freshnessLabel }}</time>
                 </div>
 
@@ -76,6 +96,8 @@ const dayMs = 24 * hourMs;
 
                 @if (!person.locationVisible) {
                   <p class="meta">Location hidden</p>
+                } @else if (person.canOpenMap) {
+                  <p class="meta">Tap to view on map</p>
                 }
               </div>
             </article>
@@ -147,6 +169,20 @@ const dayMs = 24 * hourMs;
 
     .person.offline {
       opacity: 0.72;
+    }
+
+    .person.map-link {
+      cursor: pointer;
+    }
+
+    .person.map-link:focus-visible {
+      outline: 3px solid rgba(47, 128, 237, 0.3);
+      outline-offset: 2px;
+    }
+
+    .you-label {
+      color: var(--color-map-blue);
+      font-size: 12px;
     }
 
     .avatar {
@@ -320,10 +356,12 @@ const dayMs = 24 * hourMs;
         animation: none;
       }
     }
-  `
+  `,
 })
 export class PeoplePage {
+  private readonly authSession = inject(AuthSession);
   private readonly memberProfile = inject(MemberProfile);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private peopleUnsubscribe: (() => void) | null = null;
   private isDestroyed = false;
@@ -336,13 +374,15 @@ export class PeoplePage {
     const now = this.now();
 
     return this.members()
-      .map((member) => toPersonListItem(member, now))
+      .map((member) => toPersonListItem(member, now, this.authSession.user()?.uid ?? ''))
       .sort((first, second) => {
         if (first.isOffline !== second.isOffline) {
           return first.isOffline ? 1 : -1;
         }
 
-        return second.sortTime - first.sortTime || first.displayName.localeCompare(second.displayName);
+        return (
+          second.sortTime - first.sortTime || first.displayName.localeCompare(second.displayName)
+        );
       });
   });
   readonly summaryLabel = computed(() => {
@@ -352,7 +392,9 @@ export class PeoplePage {
     return `${activeCount}/${people.length} active`;
   });
   readonly errorMessage = computed(() =>
-    this.loadError() ? 'Could not read the group list. Check your session and connection, then try again.' : ''
+    this.loadError()
+      ? 'Could not read the group list. Check your session and connection, then try again.'
+      : '',
   );
 
   constructor() {
@@ -370,6 +412,12 @@ export class PeoplePage {
 
   reloadPeople(): void {
     void this.startMembersStream();
+  }
+
+  openPersonOnMap(person: PersonListItem): void {
+    if (person.canOpenMap) {
+      void this.router.navigate(['/app/map'], { queryParams: { member: person.id } });
+    }
   }
 
   private async startMembersStream(): Promise<void> {
@@ -396,7 +444,7 @@ export class PeoplePage {
 
           this.isLoading.set(false);
           this.loadError.set(true);
-        }
+        },
       );
 
       if (this.isDestroyed) {
@@ -414,7 +462,7 @@ export class PeoplePage {
   }
 }
 
-function toPersonListItem(member: Member, now: Date): PersonListItem {
+function toPersonListItem(member: Member, now: Date, currentUid: string): PersonListItem {
   const updatedAt = validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : member.joinedAt;
   const diffMs = Math.max(0, now.getTime() - updatedAt.getTime());
   const isOffline = member.status === 'offline';
@@ -429,10 +477,13 @@ function toPersonListItem(member: Member, now: Date): PersonListItem {
     freshnessLabel: freshnessLabel(updatedAt, now),
     updatedAtIso: updatedAt.toISOString(),
     locationVisible: member.locationVisible,
+    canOpenMap:
+      member.locationVisible && member.mapXPercent !== null && member.mapYPercent !== null,
+    isCurrent: member.id === currentUid,
     tone: toneForStatus(member.status),
     isOffline,
     isStale: !isOffline && diffMs >= staleAfterMs,
-    sortTime: updatedAt.getTime()
+    sortTime: updatedAt.getTime(),
   };
 }
 

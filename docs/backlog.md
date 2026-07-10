@@ -103,8 +103,8 @@ Implementation status:
 ### `UX-005` Accidental pin moves
 
 - [x] Tapping the map instantly relocates your pin with no confirmation or undo. Add a
-  brief undo affordance ("Pin moved — Undo") in the existing hint pill, or require a
-  confirm tap on a provisional marker.
+      brief undo affordance ("Pin moved — Undo") in the existing hint pill, or require a
+      confirm tap on a provisional marker.
 
 Why: browsing the map is the main activity; one stray tap silently tells the whole group
 you are somewhere you are not.
@@ -130,9 +130,15 @@ Implementation status:
 
 ### `UX-007` People rows should link to the map
 
-- [ ] Tapping a person in People (when their location is visible) opens the map with their
+- [x] Tapping a person in People (when their location is visible) opens the map with their
       pin selected/centered.
-- [ ] Mark the current user's own row ("You") in People.
+- [x] Mark the current user's own row ("You") in People.
+
+Implementation status:
+
+- People rows with a shared pin are keyboard- and tap-activated links to the map; the map selects
+  and centers the requested member at a useful zoom after both member data and the image load.
+- The signed-in member's row includes a visible “(You)” label.
 
 ### `UX-008` New-rally awareness
 

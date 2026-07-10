@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { AppConfigService, type AppConfigLoadError } from '../../core/app-config/app-config';
 import { AuthSession } from '../../core/auth/auth-session';
@@ -1000,6 +1001,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 })
 export class MapPage {
   private readonly appConfig = inject(AppConfigService);
+  private readonly route = inject(ActivatedRoute);
   private readonly authSession = inject(AuthSession);
   private readonly memberProfile = inject(MemberProfile);
   private readonly rallyPointsService = inject(RallyPoints);
@@ -1014,6 +1016,7 @@ export class MapPage {
   private rallyPointsUnsubscribe: (() => void) | null = null;
   private readonly rallyResponseUnsubscribes = new Map<string, () => void>();
   private isDestroyed = false;
+  private requestedMemberId = this.route.snapshot.queryParamMap.get('member');
 
   @ViewChild('mapViewport')
   set mapViewport(element: ElementRef<HTMLElement> | undefined) {
@@ -1312,6 +1315,7 @@ export class MapPage {
     this.mapImageFailed.set(false);
     this.updateMapViewportSize();
     this.resetMapView();
+    this.focusRequestedMember();
   }
 
   markMapImageFailed(): void {
@@ -1774,6 +1778,7 @@ export class MapPage {
           }
 
           this.members.set(members);
+          this.focusRequestedMember();
           this.pinSaveIsError.set(false);
         },
         () => {
@@ -1918,6 +1923,33 @@ export class MapPage {
 
     this.mapViewportWidth.set(this.mapViewportElement.clientWidth);
     this.mapViewportHeight.set(this.mapViewportElement.clientHeight);
+  }
+
+  private focusRequestedMember(): void {
+    const memberId = this.requestedMemberId;
+    const viewport = this.mapViewportElement;
+
+    if (!memberId || !viewport) {
+      return;
+    }
+
+    const pin = this.pins().find((item) => item.id === memberId);
+
+    if (!pin) {
+      return;
+    }
+
+    const scale = 2;
+    this.applyMapView(
+      {
+        scale,
+        translateX: viewport.clientWidth / 2 - (pin.renderX / 100) * viewport.clientWidth * scale,
+        translateY: viewport.clientHeight / 2 - (pin.renderY / 100) * viewport.clientHeight * scale,
+      },
+      viewport,
+    );
+    this.selectedPinId.set(memberId);
+    this.requestedMemberId = null;
   }
 
   private mapPercentFromViewportPoint(point: MapPoint, viewport: HTMLElement): MapPoint | null {
