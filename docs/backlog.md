@@ -118,10 +118,15 @@ Implementation status:
 
 ### `UX-006` Member note is missing from the map pin card
 
-- [ ] Show the member note on the pin detail card, not only in People.
+- [x] Show the member note on the pin detail card, not only in People.
 
 Why: the note carries the actually useful location detail ("Booth 2110", "back of hall C").
 The pin answers "roughly where"; the note answers "where exactly" — they belong together.
+
+Implementation status:
+
+- The selected member-pin card shows the member's note between status and freshness when a note is
+  present, using the same live member data as the pin.
 
 ### `UX-007` People rows should link to the map
 

@@ -30,6 +30,7 @@ interface MapPin {
   renderY: number;
   status: MemberStatus;
   statusLabel: string;
+  note: string;
   freshnessLabel: string;
   updatedAtIso: string;
   isCurrentMember: boolean;
@@ -276,6 +277,9 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
               <div>
                 <strong>{{ pin.name }}</strong>
                 <p>{{ pin.statusLabel }}</p>
+                @if (pin.note) {
+                  <p>{{ pin.note }}</p>
+                }
                 <time [attr.datetime]="pin.updatedAtIso">Updated {{ pin.freshnessLabel }}</time>
               </div>
               <button type="button" aria-label="Close pin details" (click)="clearSelectedPin()">
@@ -2094,6 +2098,7 @@ function toMapPin(
     renderY: renderPoint.y,
     status: member.status,
     statusLabel: statusLabel(member.status),
+    note: member.note,
     freshnessLabel: freshnessLabel(updatedAt, now),
     updatedAtIso: updatedAt.toISOString(),
     isCurrentMember: member.id === currentUid,
