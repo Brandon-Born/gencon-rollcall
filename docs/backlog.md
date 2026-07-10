@@ -181,9 +181,15 @@ Implementation status:
 
 ### `UX-011` Map pins do not show staleness
 
-- [ ] People styles stale/offline members, but map pins render a 6-hour-old pin exactly
+- [x] People styles stale/offline members, but map pins render a 6-hour-old pin exactly
       like a fresh one. Dim or desaturate pins past the same stale threshold, and hide or
       gray pins for offline members.
+
+Implementation status:
+
+- Map pins use the People list's one-hour stale threshold: stale pins are dimmed/desaturated and
+  offline pins are de-emphasized further. Accessible pin labels announce recent, stale, or offline
+  location state in text.
 
 ### `UX-012` Replace raw coordinates in rally UI
 

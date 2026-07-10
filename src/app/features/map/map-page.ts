@@ -35,6 +35,9 @@ interface MapPin {
   freshnessLabel: string;
   updatedAtIso: string;
   isCurrentMember: boolean;
+  visualOpacity: number;
+  visualFilter: string;
+  freshnessStateLabel: string;
 }
 
 interface MapRallyMarker {
@@ -205,8 +208,16 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                   [style.left.%]="pin.renderX"
                   [style.top.%]="pin.renderY"
                   [style.transform]="pinTransform()"
+                  [style.opacity]="pin.visualOpacity"
+                  [style.filter]="pin.visualFilter"
                   [attr.aria-label]="
-                    pin.name + ', ' + pin.statusLabel + ', updated ' + pin.freshnessLabel
+                    pin.name +
+                    ', ' +
+                    pin.statusLabel +
+                    ', ' +
+                    pin.freshnessStateLabel +
+                    ', updated ' +
+                    pin.freshnessLabel
                   "
                   (pointerdown)="$event.stopPropagation()"
                   (click)="selectPin(pin.id)"
@@ -2129,6 +2140,9 @@ function toMapPin(
     viewportHeight,
   );
   const updatedAt = validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : member.joinedAt;
+  const ageMs = Math.max(0, now.getTime() - updatedAt.getTime());
+  const isOffline = member.status === 'offline';
+  const isStale = !isOffline && ageMs >= hourMs;
 
   return {
     id: member.id,
@@ -2144,6 +2158,13 @@ function toMapPin(
     freshnessLabel: freshnessLabel(updatedAt, now),
     updatedAtIso: updatedAt.toISOString(),
     isCurrentMember: member.id === currentUid,
+    visualOpacity: isOffline ? 0.42 : isStale ? 0.64 : 1,
+    visualFilter: isOffline || isStale ? 'grayscale(0.85)' : 'none',
+    freshnessStateLabel: isOffline
+      ? 'offline location'
+      : isStale
+        ? 'stale location'
+        : 'recent location',
   };
 }
 
