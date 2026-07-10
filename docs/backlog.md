@@ -18,9 +18,39 @@ Status values:
 
 ## Next 3
 
-1. `UX-018` Polish pin placement wording and undo lifecycle.
-2. `UX-019` Replace repetitive People map-link text with a compact affordance.
-3. No third actionable MVP item is currently queued.
+1. `UX-020` Confirm before ending a rally.
+2. `UX-021` Show a title character counter in the rally form.
+3. `UX-022` Add breathing room between "View on map" and "End rally".
+
+## Milestone: UX Round 4 (2026-07-10 lifecycle review)
+
+A third usability pass focused on flows earlier rounds had not exercised end to end. Everything
+verified works: wrong password shows "That password did not work.", a wiped/stale session bounces
+cleanly to the gate, onboarding disables entry until a name exists, the full rally lifecycle
+(create with note and future time → respond → creator End rally → empty state) behaves, the note
+save flow shows the counter and flips freshness to "just now" only after saving, and the console
+stays clean across a full reload. All five Round 3 fixes were re-verified live: out-of-image taps
+are ignored, map response actions stack as readable pills at 430 px, the active count excludes a
+9-hour-stale member ("2/3 active"), first placement says "Pin placed." with the undo chip expiring
+after 10 seconds, and People rows use the compact chevron. New findings below.
+
+### `UX-020` End rally has no confirmation
+
+- [ ] "End rally" ends the rally for the whole group on a single tap with no confirm and no
+      undo. Leave app (a less social action) requires confirmation. Add the same lightweight
+      confirm step, or a brief undo window like pin moves have.
+
+### `UX-021` Rally title silently stops at 48 characters
+
+- [ ] Typing past the title limit drops characters mid-word with no feedback ("...for the
+      whole cre"). The note field next to it shows "120/120". Add the same counter to the
+      title field so truncation is visible before the rally is broadcast.
+
+### `UX-022` Rally card action spacing
+
+- [ ] "View on map" and the "End rally" button nearly touch on the creator's rally card
+      (~1 px gap at desktop width). Add gap so the destructive action is not adjacent to a
+      navigation tap target.
 
 ## Milestone: UX Round 3 (2026-07-10 verification review)
 
