@@ -13,7 +13,11 @@ import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
 import type { Member } from '../../core/models/member';
 import type { RallyPoint } from '../../core/models/rally-point';
-import { RallyPointError, RallyPoints } from '../../core/rallies/rally-points';
+import {
+  isRallyPointMeetingNow,
+  RallyPointError,
+  RallyPoints,
+} from '../../core/rallies/rally-points';
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
 
 interface MapPin {
@@ -316,16 +320,17 @@ const dayMs = 24 * hourMs;
           </label>
 
           <label>
-            <span>Optional time (expires then)</span>
+            <span>Optional meetup time</span>
             <input
               type="datetime-local"
+              [min]="minimumRallyTimeInput()"
               [value]="rallyScheduledTimeInput()"
               [disabled]="isRallySaving()"
               (input)="updateRallyScheduledTime($any($event.target).value)"
             />
           </label>
 
-          <p class="save-message">A rally with a time automatically expires at that time.</p>
+          <p class="save-message">Timed rallies stay visible for one hour after the meetup time.</p>
 
           <p class="rally-coordinate">{{ rallyCoordinateLabel() }}</p>
 
@@ -992,6 +997,11 @@ export class MapPage {
   readonly rallyNote = signal('');
   readonly rallyNoteLength = computed(() => this.rallyNote().length);
   readonly rallyScheduledTimeInput = signal('');
+  readonly minimumRallyTimeInput = computed(() => dateTimeLocalValue(this.now()));
+  readonly rallyScheduledTimeIsPast = computed(() => {
+    const scheduledTime = parseDateTimeLocal(this.rallyScheduledTimeInput());
+    return scheduledTime !== null && scheduledTime.getTime() < this.now().getTime();
+  });
   readonly isRallySaving = signal(false);
   readonly rallySaveMessage = signal('');
   readonly rallySaveIsError = signal(false);
@@ -999,7 +1009,8 @@ export class MapPage {
     () =>
       !this.isRallySaving() &&
       this.rallyDraftTitle().length > 0 &&
-      this.pendingRallyPoint() !== null,
+      this.pendingRallyPoint() !== null &&
+      !this.rallyScheduledTimeIsPast(),
   );
   readonly mapTransform = computed(
     () =>
@@ -1421,7 +1432,12 @@ export class MapPage {
 
   updateRallyScheduledTime(value: string): void {
     this.rallyScheduledTimeInput.set(value);
-    this.clearRallyMessage();
+    if (this.rallyScheduledTimeIsPast()) {
+      this.rallySaveMessage.set('Choose a meetup time that is not in the past.');
+      this.rallySaveIsError.set(true);
+    } else {
+      this.clearRallyMessage();
+    }
   }
 
   async saveStatus(event: SubmitEvent): Promise<void> {
@@ -1799,6 +1815,10 @@ function messageForRallyError(error: unknown): string {
     return 'Add a title before creating the rally point.';
   }
 
+  if (error instanceof RallyPointError && error.code === 'scheduled-time-past') {
+    return 'Choose a meetup time that is not in the past.';
+  }
+
   return 'Could not create the rally point. Check your connection and try again.';
 }
 
@@ -1861,7 +1881,11 @@ function toMapRallyMarker(
     yPercent: rallyPoint.mapYPercent,
     renderX: renderPoint.x,
     renderY: renderPoint.y,
-    scheduledLabel: scheduledTime ? scheduledLabel(scheduledTime) : 'No time set',
+    scheduledLabel: isRallyPointMeetingNow(rallyPoint)
+      ? 'Meeting now'
+      : scheduledTime
+        ? scheduledLabel(scheduledTime)
+        : 'No time set',
     scheduledIso: scheduledTime ? scheduledTime.toISOString() : null,
   };
 }
@@ -2048,6 +2072,11 @@ function scheduledLabel(scheduledTime: Date): string {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function dateTimeLocalValue(date: Date): string {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return offsetDate.toISOString().slice(0, 16);
 }
 
 function validDate(value: Date): boolean {

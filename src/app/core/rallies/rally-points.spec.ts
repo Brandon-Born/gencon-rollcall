@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isRallyPointExpired } from './rally-points';
+import { isRallyPointExpired, isRallyPointMeetingNow } from './rally-points';
 import type { RallyPoint } from '../models/rally-point';
 
 const now = new Date('2026-07-30T18:00:00.000Z');
@@ -39,5 +39,40 @@ describe('isRallyPointExpired', () => {
         now,
       ),
     ).toBe(true);
+  });
+});
+
+describe('isRallyPointMeetingNow', () => {
+  it('labels an active rally between its scheduled time and grace-period expiry', () => {
+    expect(
+      isRallyPointMeetingNow(
+        rallyPoint({
+          scheduledTime: new Date('2026-07-30T17:30:00.000Z'),
+          expiresAt: new Date('2026-07-30T18:30:00.000Z'),
+        }),
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not label a future or expired rally as meeting now', () => {
+    expect(
+      isRallyPointMeetingNow(
+        rallyPoint({
+          scheduledTime: new Date('2026-07-30T18:30:00.000Z'),
+          expiresAt: new Date('2026-07-30T19:30:00.000Z'),
+        }),
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isRallyPointMeetingNow(
+        rallyPoint({
+          scheduledTime: new Date('2026-07-30T17:00:00.000Z'),
+          expiresAt: new Date('2026-07-30T18:00:00.000Z'),
+        }),
+        now,
+      ),
+    ).toBe(false);
   });
 });

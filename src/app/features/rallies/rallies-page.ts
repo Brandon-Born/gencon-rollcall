@@ -3,7 +3,11 @@ import { RouterLink } from '@angular/router';
 
 import { AuthSession } from '../../core/auth/auth-session';
 import type { RallyPoint, RallyResponse, RallyResponseStatus } from '../../core/models/rally-point';
-import { RallyPointError, RallyPoints } from '../../core/rallies/rally-points';
+import {
+  isRallyPointMeetingNow,
+  RallyPointError,
+  RallyPoints,
+} from '../../core/rallies/rally-points';
 
 interface RallyListItem {
   id: string;
@@ -627,9 +631,11 @@ function toRallyListItem(
     title: rallyPoint.title,
     note: rallyPoint.note,
     creatorName: rallyPoint.createdByName,
-    scheduledLabel: rallyPoint.scheduledTime
-      ? scheduledLabel(rallyPoint.scheduledTime)
-      : 'No time set',
+    scheduledLabel: isRallyPointMeetingNow(rallyPoint)
+      ? 'Meeting now'
+      : rallyPoint.scheduledTime
+        ? scheduledLabel(rallyPoint.scheduledTime)
+        : 'No time set',
     coordinateLabel: `Map spot ${formatPercent(rallyPoint.mapXPercent)}%, ${formatPercent(
       rallyPoint.mapYPercent,
     )}%`,

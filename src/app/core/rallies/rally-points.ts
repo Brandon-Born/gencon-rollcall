@@ -18,6 +18,8 @@ export interface CreateRallyPointInput {
   scheduledTime: Date | null;
 }
 
+export const RALLY_GRACE_PERIOD_MS = 60 * 60 * 1000;
+
 @Injectable({ providedIn: 'root' })
 export class RallyPoints {
   private readonly authSession = inject(AuthSession);
@@ -35,6 +37,10 @@ export class RallyPoints {
 
     if (!title) {
       throw new RallyPointError('title-required');
+    }
+
+    if (input.scheduledTime && input.scheduledTime.getTime() < Date.now()) {
+      throw new RallyPointError('scheduled-time-past');
     }
 
     const member = await this.memberProfile.loadCurrentMember();
@@ -55,7 +61,9 @@ export class RallyPoints {
       createdByMemberId: uid,
       createdByName: member.displayName,
       status: 'active' as RallyPointStatus,
-      expiresAt: input.scheduledTime,
+      expiresAt: input.scheduledTime
+        ? new Date(input.scheduledTime.getTime() + RALLY_GRACE_PERIOD_MS)
+        : null,
     };
 
     await setDoc(rallyRef, rallyPoint);
@@ -214,7 +222,20 @@ export class RallyPoints {
 }
 
 export type RallyPointErrorCode =
-  'not-authorized' | 'member-not-found' | 'title-required' | 'response-invalid';
+  | 'not-authorized'
+  | 'member-not-found'
+  | 'title-required'
+  | 'scheduled-time-past'
+  | 'response-invalid';
+
+export function isRallyPointMeetingNow(rallyPoint: RallyPoint, now = new Date()): boolean {
+  return (
+    rallyPoint.status === 'active' &&
+    rallyPoint.scheduledTime !== null &&
+    rallyPoint.scheduledTime.getTime() <= now.getTime() &&
+    !isRallyPointExpired(rallyPoint, now)
+  );
+}
 
 export class RallyPointError extends Error {
   constructor(readonly code: RallyPointErrorCode) {

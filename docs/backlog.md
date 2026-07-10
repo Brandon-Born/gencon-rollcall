@@ -31,15 +31,22 @@ core job: "say where we are and meet up easily."
 
 ### `UX-001` Rally expiration timing is wrong for meetups
 
-- [ ] Keep a rally visible past its scheduled time with a grace period (suggest 60 minutes)
+- [x] Keep a rally visible past its scheduled time with a grace period (suggest 60 minutes)
       instead of hiding it at the exact minute the group is supposed to be meeting.
-- [ ] Label it "Meeting now" (or similar) between scheduled time and expiry.
-- [ ] Block or warn on past scheduled times in the rally form (`min` on the
+- [x] Label it "Meeting now" (or similar) between scheduled time and expiry.
+- [x] Block or warn on past scheduled times in the rally form (`min` on the
       `datetime-local` input plus a validation message). Today a past time saves
       successfully, shows "Rally point created.", and the rally never appears anywhere.
 
 Why: `expiresAt` is set to `scheduledTime`, so a "Dinner at 6:00" rally vanishes at 6:00 —
 exactly when people are standing around looking for each other.
+
+Implementation status:
+
+- Timed rallies expire 60 minutes after their meetup time and show "Meeting now" during the grace
+  period on both the map and rally list.
+- The rally form sets a rolling local minimum, disables submission for past values, and the data
+  service rejects past scheduled times as a second validation layer.
 
 ### `UX-002` Rally responses show counts but not names
 
