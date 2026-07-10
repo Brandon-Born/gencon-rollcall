@@ -64,7 +64,37 @@ import { SessionStore } from '../../core/session/session-store';
         }
       </section>
 
-      <button type="button" class="danger" (click)="leave()">Leave app</button>
+      @if (confirmingLeave()) {
+        <section class="panel leave-confirmation" role="alertdialog" aria-labelledby="leave-title">
+          <div>
+            <strong id="leave-title">Leave Gen Con Roll Call?</strong>
+            <p>
+              This removes your member entry and anonymous identity from this device. Returning
+              later creates a new entry after you use the shared password again.
+            </p>
+          </div>
+          <div class="confirm-actions">
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="isLeaving()"
+              (click)="cancelLeave()"
+            >
+              Stay
+            </button>
+            <button type="button" class="danger" [disabled]="isLeaving()" (click)="confirmLeave()">
+              {{ isLeaving() ? 'Leaving...' : 'Remove me and leave' }}
+            </button>
+          </div>
+          @if (leaveMessage()) {
+            <p class="save-message error" role="alert">{{ leaveMessage() }}</p>
+          }
+        </section>
+      } @else {
+        <button type="button" class="danger leave-trigger" (click)="confirmingLeave.set(true)">
+          Leave app
+        </button>
+      }
     </main>
   `,
   styles: `
@@ -161,9 +191,22 @@ import { SessionStore } from '../../core/session/session-store';
     }
 
     .danger {
+      background: #151821;
+    }
+
+    .leave-trigger {
       width: 100%;
       margin-top: 18px;
-      background: #151821;
+    }
+
+    .leave-confirmation {
+      border-color: rgba(214, 56, 47, 0.32);
+    }
+
+    .confirm-actions {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 10px;
     }
   `,
 })
@@ -181,6 +224,9 @@ export class SettingsPage {
   readonly isHidingLocation = signal(false);
   readonly locationMessage = signal('');
   readonly locationMessageIsError = signal(false);
+  readonly confirmingLeave = signal(false);
+  readonly isLeaving = signal(false);
+  readonly leaveMessage = signal('');
   readonly locationButtonLabel = computed(() => {
     if (this.isHidingLocation()) {
       return 'Hiding...';
@@ -214,9 +260,31 @@ export class SettingsPage {
     }
   }
 
-  async leave(): Promise<void> {
-    await this.authSession.leaveApp();
-    void this.router.navigateByUrl('/gate');
+  cancelLeave(): void {
+    if (!this.isLeaving()) {
+      this.confirmingLeave.set(false);
+      this.leaveMessage.set('');
+    }
+  }
+
+  async confirmLeave(): Promise<void> {
+    if (this.isLeaving()) {
+      return;
+    }
+
+    this.isLeaving.set(true);
+    this.leaveMessage.set('');
+
+    try {
+      await this.memberProfile.deleteCurrentMember();
+      await this.authSession.leaveApp();
+      void this.router.navigateByUrl('/gate');
+    } catch {
+      this.leaveMessage.set(
+        'Could not remove your member entry. Check your connection and try again.',
+      );
+      this.isLeaving.set(false);
+    }
   }
 
   async hideLocation(): Promise<void> {

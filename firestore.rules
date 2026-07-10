@@ -48,7 +48,7 @@ service cloud.firestore {
     match /members/{uid} {
       allow read: if authorized();
       allow create, update: if authorized() && request.auth.uid == uid;
-      allow delete: if false;
+      allow delete: if authorized() && request.auth.uid == uid;
     }
 
     match /rallyPoints/{rallyPointId} {

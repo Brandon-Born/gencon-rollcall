@@ -222,7 +222,7 @@ describe('shared-data authorization', () => {
 });
 
 describe('member ownership and lifecycle', () => {
-  it('allows only self-owned member creates and updates and currently forbids deletion', async () => {
+  it('allows self-owned member creates, updates, and deletion only', async () => {
     const owner = await createClient({ authorized: true });
     const other = await createClient({ authorized: true });
     const ownerUid = owner.uid!;
@@ -233,10 +233,9 @@ describe('member ownership and lifecycle', () => {
     await expect(updateDoc(ownerRef, { note: 'Updated by owner' })).resolves.toBeUndefined();
     await expectDenied(setDoc(doc(owner.db, 'members', otherUid), { displayName: 'Impostor' }));
     await expectDenied(updateDoc(doc(other.db, 'members', ownerUid), { note: 'Hijacked' }));
-    await expectDenied(deleteDoc(ownerRef));
-    expect((await getDoc(doc(other.db, 'members', ownerUid))).data()?.['note']).toBe(
-      'Updated by owner',
-    );
+    await expectDenied(deleteDoc(doc(other.db, 'members', ownerUid)));
+    await expect(deleteDoc(ownerRef)).resolves.toBeUndefined();
+    expect((await getDoc(doc(other.db, 'members', ownerUid))).exists()).toBe(false);
   });
 
   it('prevents clients from writing app config or authorization records', async () => {

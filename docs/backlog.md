@@ -67,7 +67,7 @@ Implementation status:
 ### `UX-003` Respond to a rally from the map
 
 - [x] Add the three response buttons (and live counts/names) to the rally detail card on
-  the map.
+      the map.
 - [x] Show the rally note on the map detail card (it is stored and shown in the list, but
       the map card only shows creator and time).
 
@@ -83,14 +83,22 @@ Implementation status:
 
 ### `UX-004` Leaving the app strands a ghost member
 
-- [ ] Add a confirmation step to "Leave app" that explains the consequence (anonymous
-      identity is lost; a new entry is created on return).
-- [ ] Delete or tombstone `members/{uid}` on leave, or add a way to remove departed
+- [x] Add a confirmation step to "Leave app" that explains the consequence (anonymous
+  identity is lost; a new entry is created on return).
+- [x] Delete or tombstone `members/{uid}` on leave, or add a way to remove departed
       members, so the People list and map do not accumulate stale ghosts.
 
 Why: `leaveApp()` only signs out; the member doc lives forever. After a couple of
 re-installs during the con the group list fills with dead "Brandon Born" entries nobody
 can remove, each showing a stale status.
+
+Implementation status:
+
+- Leave app now requires an explicit confirmation that explains the anonymous identity reset.
+- Confirming leave deletes the current user's member document before sign-out; a failed deletion
+  keeps the session active and shows a retryable error.
+- Firestore rules allow only an authorized member to delete their own member document, with
+  emulator regression coverage for allowed self-deletion and denied cross-member deletion.
 
 ### `UX-005` Accidental pin moves
 
@@ -207,8 +215,8 @@ Implementation status:
 
 - `npm run test:rules` owns the Auth/Firestore emulator lifecycle through
   `firebase emulators:exec` and runs only against `demo-gencon-rollcall-rules`.
-- Seven regression cases cover pre-authorization denial, shared reads, self-owned member writes,
-  the current no-delete member policy, admin-only config/authorization records, creator-only rally
+- Seven regression cases cover pre-authorization denial, shared reads, self-owned member writes
+  and deletion, admin-only config/authorization records, creator-only rally
   expiration fields, response ownership/status/shape, and active versus expired parent rallies.
 - Tests seed admin-only state with Firebase's emulator `owner` token, clear the emulator between
   cases, and require no production credentials or additional test dependency.

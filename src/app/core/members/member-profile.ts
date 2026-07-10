@@ -215,6 +215,19 @@ export class MemberProfile {
     throw new MemberProfileError('member-not-found');
   }
 
+  async deleteCurrentMember(): Promise<void> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      throw new MemberProfileError('not-authorized');
+    }
+
+    const { deleteDoc, doc } = await import('firebase/firestore');
+    await deleteDoc(doc(await this.firebase.getFirestore(), 'members', uid));
+    this.clearLoadedMember();
+    this.session.setDisplayName('');
+  }
+
   async watchMembers(
     onMembers: (members: Member[]) => void,
     onError: (error: unknown) => void,
