@@ -50,12 +50,19 @@ Implementation status:
 
 ### `UX-002` Rally responses show counts but not names
 
-- [ ] Show who responded under each rally ("Heading: Alice, Brandon · Can't: Carl"),
+- [x] Show who responded under each rally ("Heading: Alice, Brandon · Can't: Carl"),
       not just "2 heading there".
-- [ ] Response docs already store `memberId`; join against the members stream for names.
+- [x] Response docs already store `memberId`; join against the members stream for names.
 
 Why: in an 8-person friend group, "who is coming" is the entire question. A count answers
 "how many", which nobody asked.
+
+Implementation status:
+
+- The rally list joins live responses to the live member stream and groups alphabetized names under
+  Heading, Arrived, and Can't while retaining the compact counts.
+- Responses whose member record no longer exists remain visible as "Former member" instead of
+  silently disappearing from the meetup picture.
 
 ### `UX-003` Respond to a rally from the map
 

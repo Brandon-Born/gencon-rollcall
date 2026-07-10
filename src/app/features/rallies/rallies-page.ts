@@ -2,6 +2,8 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AuthSession } from '../../core/auth/auth-session';
+import { MemberProfile } from '../../core/members/member-profile';
+import type { Member } from '../../core/models/member';
 import type { RallyPoint, RallyResponse, RallyResponseStatus } from '../../core/models/rally-point';
 import {
   isRallyPointMeetingNow,
@@ -17,6 +19,7 @@ interface RallyListItem {
   scheduledLabel: string;
   coordinateLabel: string;
   responseCounts: RallyResponseCounts;
+  responseNames: RallyResponseNames;
   currentResponse: RallyResponseStatus | null;
   currentResponseLabel: string;
   canExpire: boolean;
@@ -26,6 +29,12 @@ interface RallyResponseCounts {
   headingThere: number;
   arrived: number;
   cannotMakeIt: number;
+}
+
+interface RallyResponseNames {
+  headingThere: string[];
+  arrived: string[];
+  cannotMakeIt: string[];
 }
 
 const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: string }> = [
@@ -118,6 +127,21 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                     <span>{{ rally.responseCounts.arrived }} arrived</span>
                     <span>{{ rally.responseCounts.cannotMakeIt }} cannot make it</span>
                   </p>
+                  @if (rally.responseNames.headingThere.length) {
+                    <p class="response-names">
+                      <strong>Heading:</strong> {{ rally.responseNames.headingThere.join(', ') }}
+                    </p>
+                  }
+                  @if (rally.responseNames.arrived.length) {
+                    <p class="response-names">
+                      <strong>Arrived:</strong> {{ rally.responseNames.arrived.join(', ') }}
+                    </p>
+                  }
+                  @if (rally.responseNames.cannotMakeIt.length) {
+                    <p class="response-names">
+                      <strong>Can't:</strong> {{ rally.responseNames.cannotMakeIt.join(', ') }}
+                    </p>
+                  }
                   @if (rally.currentResponse) {
                     <p class="current-response">Your response: {{ rally.currentResponseLabel }}</p>
                   }
@@ -332,6 +356,16 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       text-transform: uppercase;
     }
 
+    .response-names {
+      margin-top: 0 !important;
+      overflow-wrap: anywhere;
+      font-size: 13px !important;
+    }
+
+    .response-names strong {
+      color: var(--color-text);
+    }
+
     .current-response,
     .response-notice {
       margin-top: 0 !important;
@@ -400,9 +434,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 })
 export class RalliesPage {
   private readonly authSession = inject(AuthSession);
+  private readonly memberProfile = inject(MemberProfile);
   private readonly rallyPoints = inject(RallyPoints);
   private readonly destroyRef = inject(DestroyRef);
   private rallyPointsUnsubscribe: (() => void) | null = null;
+  private membersUnsubscribe: (() => void) | null = null;
   private readonly rallyResponseUnsubscribes = new Map<string, () => void>();
   private subscriptionVersion = 0;
   private isDestroyed = false;
@@ -411,6 +447,7 @@ export class RalliesPage {
   readonly loadError = signal('');
   readonly rallyResponseOptions = rallyResponseOptions;
   readonly rallyPointData = signal<RallyPoint[]>([]);
+  readonly members = signal<Member[]>([]);
   readonly rallyResponses = signal<RallyResponse[]>([]);
   readonly responseSavingRallyId = signal<string | null>(null);
   readonly responseNotice = signal<{ rallyId: string; message: string; isError: boolean } | null>(
@@ -420,17 +457,25 @@ export class RalliesPage {
   readonly expirationNotice = signal<{ message: string; isError: boolean } | null>(null);
   readonly rallyItems = computed(() =>
     this.rallyPointData().map((rallyPoint) =>
-      toRallyListItem(rallyPoint, this.rallyResponses(), this.authSession.user()?.uid ?? ''),
+      toRallyListItem(
+        rallyPoint,
+        this.rallyResponses(),
+        this.members(),
+        this.authSession.user()?.uid ?? '',
+      ),
     ),
   );
 
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.isDestroyed = true;
+      this.membersUnsubscribe?.();
+      this.membersUnsubscribe = null;
       this.stopSubscriptions();
     });
 
     void this.reloadRallies();
+    void this.startMembersStream();
   }
 
   async reloadRallies(): Promise<void> {
@@ -525,6 +570,35 @@ export class RalliesPage {
     this.rallyResponses.set([]);
   }
 
+  private async startMembersStream(): Promise<void> {
+    try {
+      const unsubscribe = await this.memberProfile.watchMembers(
+        (members) => {
+          if (!this.isDestroyed) {
+            this.members.set(members);
+          }
+        },
+        () => {
+          if (!this.isDestroyed) {
+            this.loadError.set('Could not load member names. Check your connection and try again.');
+            this.isLoading.set(false);
+          }
+        },
+      );
+
+      if (this.isDestroyed) {
+        unsubscribe();
+      } else {
+        this.membersUnsubscribe = unsubscribe;
+      }
+    } catch {
+      if (!this.isDestroyed) {
+        this.loadError.set('Could not load member names. Check your connection and try again.');
+        this.isLoading.set(false);
+      }
+    }
+  }
+
   private async syncResponseSubscriptions(
     rallyPoints: RallyPoint[],
     responseRallyIdsLoaded: Set<string>,
@@ -603,9 +677,16 @@ export class RalliesPage {
 function toRallyListItem(
   rallyPoint: RallyPoint,
   responses: RallyResponse[],
+  members: Member[],
   currentMemberId: string,
 ): RallyListItem {
   const responseCounts: RallyResponseCounts = { headingThere: 0, arrived: 0, cannotMakeIt: 0 };
+  const responseNames: RallyResponseNames = {
+    headingThere: [],
+    arrived: [],
+    cannotMakeIt: [],
+  };
+  const memberNames = new Map(members.map((member) => [member.id, member.displayName]));
   let currentResponse: RallyResponseStatus | null = null;
 
   for (const response of responses) {
@@ -615,16 +696,23 @@ function toRallyListItem(
 
     if (response.responseStatus === 'heading-there') {
       responseCounts.headingThere += 1;
+      responseNames.headingThere.push(memberNames.get(response.memberId) || 'Former member');
     } else if (response.responseStatus === 'arrived') {
       responseCounts.arrived += 1;
+      responseNames.arrived.push(memberNames.get(response.memberId) || 'Former member');
     } else {
       responseCounts.cannotMakeIt += 1;
+      responseNames.cannotMakeIt.push(memberNames.get(response.memberId) || 'Former member');
     }
 
     if (response.memberId === currentMemberId) {
       currentResponse = response.responseStatus;
     }
   }
+
+  responseNames.headingThere.sort((a, b) => a.localeCompare(b));
+  responseNames.arrived.sort((a, b) => a.localeCompare(b));
+  responseNames.cannotMakeIt.sort((a, b) => a.localeCompare(b));
 
   return {
     id: rallyPoint.id,
@@ -640,6 +728,7 @@ function toRallyListItem(
       rallyPoint.mapYPercent,
     )}%`,
     responseCounts,
+    responseNames,
     currentResponse,
     currentResponseLabel: currentResponse ? responseLabel(currentResponse) : '',
     canExpire: rallyPoint.createdByMemberId === currentMemberId,
