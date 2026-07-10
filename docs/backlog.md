@@ -84,12 +84,18 @@ Implementation status:
 
 ### `UX-018` Pin hint and undo lifecycle polish
 
-- [ ] First-ever placement says "Pin moved." — say "Pin placed." when there was no prior
+- [x] First-ever placement says "Pin moved." — say "Pin placed." when there was no prior
       pin.
-- [ ] The undo chip never expires and persists into other map modes: entering the rally
+- [x] The undo chip never expires and persists into other map modes: entering the rally
       flow shows "Tap the map to choose a rally spot. Undo", where Undo still reverts the
       member pin. Clear (or time out) the undo affordance when leaving pin context or after
       ~10 seconds.
+
+Implementation status:
+
+- A first shared location now confirms “Pin placed.” while later relocations retain “Pin moved.”
+- Undo expires after 10 seconds and is cleared immediately when the member enters rally creation;
+  browser QA verified both transitions and found no console warnings or errors.
 
 ### `UX-019` People row map-link affordance is repetitive
 

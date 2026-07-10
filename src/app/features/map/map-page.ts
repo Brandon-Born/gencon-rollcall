@@ -116,6 +116,7 @@ const TAP_MOVE_TOLERANCE_PX = 8;
 const minuteMs = 60 * 1000;
 const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
+const pinUndoLifetimeMs = 10_000;
 const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: string }> = [
   { value: 'heading-there', label: 'Heading there' },
   { value: 'arrived', label: 'Arrived' },
@@ -1059,6 +1060,7 @@ export class MapPage {
   private tapCandidate: MapTapCandidate | null = null;
   private mapViewportElement: HTMLElement | null = null;
   private viewportResizeObserver: ResizeObserver | null = null;
+  private pinUndoTimeout: number | null = null;
   private membersUnsubscribe: (() => void) | null = null;
   private rallyPointsUnsubscribe: (() => void) | null = null;
   private readonly rallyResponseUnsubscribes = new Map<string, () => void>();
@@ -1322,6 +1324,7 @@ export class MapPage {
     this.destroyRef.onDestroy(() => {
       this.isDestroyed = true;
       window.clearInterval(interval);
+      this.clearPinUndo();
       this.viewportResizeObserver?.disconnect();
       this.viewportResizeObserver = null;
       this.membersUnsubscribe?.();
@@ -1601,6 +1604,7 @@ export class MapPage {
   }
 
   openRallyForm(): void {
+    this.clearPinUndo();
     this.isRallyDraftOpen.set(true);
     this.pendingRallyPoint.set(null);
     this.selectedPinId.set(null);
@@ -1808,6 +1812,10 @@ export class MapPage {
 
     try {
       const currentMember = this.currentMember();
+      const hadPreviousPin =
+        currentMember?.locationVisible === true &&
+        currentMember.mapXPercent !== null &&
+        currentMember.mapYPercent !== null;
       const member = await this.memberProfile.saveCurrentPin(mapPercent.x, mapPercent.y);
       this.previousPinState.set({
         x: currentMember?.mapXPercent ?? null,
@@ -1815,13 +1823,34 @@ export class MapPage {
         locationVisible: currentMember?.locationVisible ?? false,
       });
       this.selectedPinId.set(member.id);
-      this.pinSaveMessage.set('Pin moved.');
+      this.pinSaveMessage.set(hadPreviousPin ? 'Pin moved.' : 'Pin placed.');
+      this.startPinUndoTimeout();
     } catch (error) {
       this.pinSaveMessage.set(messageForPinError(error));
       this.pinSaveIsError.set(true);
     } finally {
       this.isPinSaving.set(false);
     }
+  }
+
+  private startPinUndoTimeout(): void {
+    if (this.pinUndoTimeout !== null) {
+      window.clearTimeout(this.pinUndoTimeout);
+    }
+
+    this.pinUndoTimeout = window.setTimeout(() => {
+      this.previousPinState.set(null);
+      this.pinUndoTimeout = null;
+    }, pinUndoLifetimeMs);
+  }
+
+  private clearPinUndo(): void {
+    if (this.pinUndoTimeout !== null) {
+      window.clearTimeout(this.pinUndoTimeout);
+      this.pinUndoTimeout = null;
+    }
+
+    this.previousPinState.set(null);
   }
 
   private selectRallyPointAtViewportPoint(point: MapPoint, viewport: HTMLElement): void {
