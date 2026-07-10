@@ -38,6 +38,7 @@ interface MapPin {
   visualOpacity: number;
   visualFilter: string;
   freshnessStateLabel: string;
+  avatarColor: string;
 }
 
 interface MapRallyMarker {
@@ -214,6 +215,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                   [style.transform]="pinTransform()"
                   [style.opacity]="pin.visualOpacity"
                   [style.filter]="pin.visualFilter"
+                  [style.background]="pin.avatarColor"
                   [attr.aria-label]="
                     pin.name +
                     ', ' +
@@ -286,6 +288,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                 class="pin-detail-avatar"
                 [attr.data-status]="pin.status"
                 [class.current]="pin.isCurrentMember"
+                [style.background]="pin.avatarColor"
                 aria-hidden="true"
               >
                 {{ pin.initials }}
@@ -1108,6 +1111,7 @@ export class MapPage {
   readonly statusSaveIsError = signal(false);
   readonly lastSavedStatus = signal<MemberStatus>('available');
   readonly lastSavedNote = signal('');
+  readonly lastSavedAt = signal<Date | null>(null);
   readonly hasUnsavedStatusChanges = computed(
     () =>
       this.selectedStatus() !== this.lastSavedStatus() ||
@@ -1133,7 +1137,8 @@ export class MapPage {
       return 'Unsaved changes';
     }
 
-    return 'Updated just now';
+    const savedAt = this.lastSavedAt();
+    return savedAt ? `Updated ${freshnessLabel(savedAt, this.now())}` : '';
   });
   readonly mapImageFailed = signal(false);
   readonly isMapLoading = this.appConfig.isLoading;
@@ -1340,6 +1345,7 @@ export class MapPage {
       this.note.set(normalizeNote(member.note));
       this.lastSavedStatus.set(member.status);
       this.lastSavedNote.set(normalizeNote(member.note));
+      this.lastSavedAt.set(validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : null);
     } catch (error) {
       this.statusSaveMessage.set(messageForMemberError(error));
       this.statusSaveIsError.set(true);
@@ -1652,6 +1658,7 @@ export class MapPage {
       this.note.set(savedNote);
       this.lastSavedStatus.set(member.status);
       this.lastSavedNote.set(savedNote);
+      this.lastSavedAt.set(validDate(member.lastUpdatedAt) ? member.lastUpdatedAt : new Date());
       this.statusSaveMessage.set('Status saved.');
     } catch (error) {
       this.statusSaveMessage.set(messageForMemberError(error));
@@ -2229,7 +2236,24 @@ function toMapPin(
       : isStale
         ? 'stale location'
         : 'recent location',
+    avatarColor: avatarColorFor(member.avatarStyle),
   };
+}
+
+function avatarColorFor(avatarStyle: string): string {
+  const palette = [
+    '#dbeafe',
+    '#dcfce7',
+    '#fef3c7',
+    '#fee2e2',
+    '#ede9fe',
+    '#cffafe',
+    '#fae8ff',
+    '#ffedd5',
+  ];
+  const match = avatarStyle.match(/(\d+)$/);
+  const index = match ? Number(match[1]) % palette.length : 0;
+  return palette[index];
 }
 
 function toMapRallyMarker(

@@ -14,6 +14,8 @@ Use this file when picking up the project in a new session.
 - Local Firebase Auth/Firestore emulator smoke tests work through Vercel dev with `local-dev-password`.
 - Rally creation, responses, and manual/scheduled expiration are implemented.
 - Production builds include installable PWA metadata and app-shell caching.
+- UX Round 2 (`UX-001` through `UX-014`) is complete, including rally timing/names/map responses,
+  member lifecycle and map links, rally awareness, location recovery, phone polish, and wording.
 
 ## Read First
 
@@ -27,17 +29,9 @@ Use this file when picking up the project in a new session.
 
 ## Start Here
 
-Work the `Next 3` list in `docs/backlog.md`.
-
-Current order:
-
-The tooling foundation is complete. Resume the backlog's `Next 3` order:
-
-1. `UX-001` Rally grace period and past-time validation.
-2. `UX-002` Show names on rally responses.
-3. `UX-003` Respond to a rally from the map detail card.
-
-Keep shared map/member/rally data behind the existing authorization checks.
+No actionable MVP backlog items remain. Keep explicitly deferred expansion items out of scope unless
+the user reprioritizes them, and keep shared map/member/rally data behind the existing authorization
+checks.
 
 ## Verification
 

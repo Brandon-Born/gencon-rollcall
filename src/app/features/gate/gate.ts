@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import {
   PasswordVerification,
   PasswordVerificationFailure,
-  type PasswordVerificationError
+  type PasswordVerificationError,
 } from '../../core/auth/password-verification';
 
 @Component({
@@ -19,7 +19,7 @@ import {
         <label class="field">
           <span>Shared password</span>
           <input
-            type="password"
+            [type]="showPassword() ? 'text' : 'password'"
             autocomplete="current-password"
             [value]="password()"
             [disabled]="isSubmitting()"
@@ -27,6 +27,14 @@ import {
             aria-describedby="password-error password-helper"
             (input)="password.set($any($event.target).value)"
           />
+          <button
+            type="button"
+            class="password-toggle"
+            [attr.aria-pressed]="showPassword()"
+            (click)="showPassword.update((visible) => !visible)"
+          >
+            {{ showPassword() ? 'Hide password' : 'Show password' }}
+          </button>
         </label>
 
         @if (errorMessage()) {
@@ -37,7 +45,10 @@ import {
           {{ isSubmitting() ? 'Checking...' : 'Continue' }}
         </button>
 
-        <p id="password-helper" class="helper">Password verification runs on the server. The shared password is never stored in this app bundle.</p>
+        <p id="password-helper" class="helper">
+          Password verification runs on the server. The shared password is never stored in this app
+          bundle.
+        </p>
       </form>
     </main>
   `,
@@ -127,6 +138,17 @@ import {
       font-weight: 800;
     }
 
+    .password-toggle {
+      justify-self: start;
+      min-height: 36px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--color-map-blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
     .primary-action:disabled {
       cursor: not-allowed;
       opacity: 0.52;
@@ -145,17 +167,18 @@ import {
       font-size: 12px;
       line-height: 1.4;
     }
-  `
+  `,
 })
 export class Gate {
   private readonly passwordVerification = inject(PasswordVerification);
   private readonly router = inject(Router);
 
   readonly password = signal('');
+  readonly showPassword = signal(false);
   readonly isSubmitting = signal(false);
   readonly error = signal<PasswordVerificationError | null>(null);
   readonly canSubmit = computed(() => Boolean(this.password().trim()) && !this.isSubmitting());
-  readonly errorMessage = computed(() => this.error() ? this.messageFor(this.error()) : '');
+  readonly errorMessage = computed(() => (this.error() ? this.messageFor(this.error()) : ''));
 
   async submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();

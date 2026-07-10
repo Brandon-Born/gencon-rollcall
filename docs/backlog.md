@@ -18,11 +18,8 @@ Status values:
 
 ## Next 3
 
-1. `UX-001` Rally grace period and past-time validation (bug-level UX).
-2. `UX-002` Show names on rally responses.
-3. `UX-003` Respond to a rally from the map detail card.
-
-Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
+No actionable MVP items remain. The UX Round 2 findings are complete; explicitly deferred product
+expansions remain out of scope unless the user reprioritizes them.
 
 ## Milestone: UX Round 2 (2026-07-09 adversarial review)
 
@@ -224,13 +221,24 @@ Implementation status:
 
 ### `UX-014` Wording and small polish
 
-- [ ] Rally response heading "How are you getting there?" asks about transport but the
+- [x] Rally response heading "How are you getting there?" asks about transport but the
       answers are attendance; change to "Are you going?".
-- [ ] Add a show-password toggle on the gate (shared password on a phone keyboard).
-- [ ] Status sheet shows "Updated just now" on first load even when the loaded status is
+- [x] Add a show-password toggle on the gate (shared password on a phone keyboard).
+- [x] Status sheet shows "Updated just now" on first load even when the loaded status is
       hours old; show real freshness or nothing.
-- [ ] Two members with the same initials get identical map pins; add a per-member color or
+- [x] Two members with the same initials get identical map pins; add a per-member color or
       show the first name under the pin.
+
+Implementation status:
+
+- Rally response copy now asks “Are you going?” on the list; the map response group uses the same
+  accessible wording.
+- The gate has an accessible show/hide password control that changes the input type without
+  changing or storing the value.
+- Status metadata uses the loaded member's real `lastUpdatedAt` freshness and changes to “just now”
+  only after a successful save.
+- Member `avatarStyle` deterministically selects one of eight pin fill colors, so shared initials
+  remain distinguishable while the status border retains its semantic color.
 
 ### `TOOL-001` Local dev smoke path is broken
 

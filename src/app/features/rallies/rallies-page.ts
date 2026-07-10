@@ -108,7 +108,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                   class="responses"
                   [attr.aria-label]="'Response options for ' + rally.title"
                 >
-                  <h3>How are you getting there?</h3>
+                  <h3>Are you going?</h3>
                   <div class="response-actions">
                     @for (response of rallyResponseOptions; track response.value) {
                       <button
