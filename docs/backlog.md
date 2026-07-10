@@ -142,12 +142,20 @@ Implementation status:
 
 ### `UX-008` New-rally awareness
 
-- [ ] Surface that a new rally exists when the user is not looking at the map: a badge on
+- [x] Surface that a new rally exists when the user is not looking at the map: a badge on
       the Rally Points tab and/or a transient in-app banner.
-- [ ] Revisit `DEC-005` (browser notifications) after the badge exists.
+- [x] Revisit `DEC-005` (browser notifications) after the badge exists.
 
 Why: a rally is a time-sensitive broadcast; today a friend must happen to glance at the
 map to notice one appeared.
+
+Implementation status:
+
+- The Rally Points tab shows a numeric badge for active rally IDs not previously seen on Map or
+  Rally Points, including rallies created between sessions through a small local ID snapshot.
+- Opening Map or Rally Points marks active rallies seen. Browser notifications remain after MVP;
+  the private POC avoids permission prompts and push infrastructure while the in-app badge is the
+  primary awareness mechanism.
 
 ### `UX-009` Location sharing asymmetry
 
@@ -676,7 +684,10 @@ Decision: use a developer-configured Vercel static asset or static URL for MVP. 
 
 ### `DEC-005` Browser notifications
 
-- [ ] Decide whether basic browser notifications are in or after MVP.
+- [x] Decide whether basic browser notifications are in or after MVP.
+
+Decision: after MVP. Use the `UX-008` in-app badge for rally awareness without notification
+permission prompts or push infrastructure; revisit only if field use shows the badge is insufficient.
 
 Recommendation: after MVP.
 
