@@ -40,6 +40,15 @@ describe('isRallyPointExpired', () => {
       ),
     ).toBe(true);
   });
+
+  it('expires no-time rallies when their default lifetime ends', () => {
+    expect(
+      isRallyPointExpired(
+        rallyPoint({ scheduledTime: null, expiresAt: new Date('2026-07-30T18:00:00.000Z') }),
+        now,
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('isRallyPointMeetingNow', () => {

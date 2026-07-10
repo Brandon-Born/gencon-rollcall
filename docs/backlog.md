@@ -170,9 +170,14 @@ Implementation status:
 
 ### `UX-010` Stale rallies without a time linger forever
 
-- [ ] Rallies with no scheduled time never auto-expire, and only the creator can end one.
+- [x] Rallies with no scheduled time never auto-expire, and only the creator can end one.
       Give no-time rallies a default lifetime (suggest 4 hours) and/or let any member end
       a rally in this trusted group.
+
+Implementation status:
+
+- Newly created no-time rallies receive a four-hour `expiresAt`; timed rallies retain the
+  scheduled-time-plus-one-hour behavior. The form explains both lifetimes.
 
 ### `UX-011` Map pins do not show staleness
 

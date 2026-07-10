@@ -400,7 +400,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
             />
           </label>
 
-          <p class="save-message">Timed rallies stay visible for one hour after the meetup time.</p>
+          <p class="save-message">
+            Timed rallies stay visible for one hour after the meetup. No-time rallies last four
+            hours.
+          </p>
 
           <p class="rally-coordinate">{{ rallyCoordinateLabel() }}</p>
 

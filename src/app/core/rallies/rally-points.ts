@@ -19,6 +19,7 @@ export interface CreateRallyPointInput {
 }
 
 export const RALLY_GRACE_PERIOD_MS = 60 * 60 * 1000;
+export const DEFAULT_RALLY_LIFETIME_MS = 4 * 60 * 60 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class RallyPoints {
@@ -63,7 +64,7 @@ export class RallyPoints {
       status: 'active' as RallyPointStatus,
       expiresAt: input.scheduledTime
         ? new Date(input.scheduledTime.getTime() + RALLY_GRACE_PERIOD_MS)
-        : null,
+        : new Date(Date.now() + DEFAULT_RALLY_LIFETIME_MS),
     };
 
     await setDoc(rallyRef, rallyPoint);
