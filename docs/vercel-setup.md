@@ -94,24 +94,43 @@ Firebase Storage is intentionally out of MVP scope now that Vercel is the host. 
 
 ## Map Image Configuration
 
-Add the reviewed convention map image to Vercel static assets, for example:
+The map is a public Vercel asset, but its Firestore configuration is restricted to authorized
+users. Use a versioned filename so a PWA that has already cached an older map receives the new
+asset instead of reusing the old URL.
+
+1. Review the map source and confirm the image can be used by this private POC. Do not add member
+   locations, notes, credentials, or other private data to the image.
+2. Add the image under `public/maps/` with a lowercase, versioned filename and no spaces, for
+   example:
 
 ```text
-public/maps/gencon-2026.png
+public/maps/gencon-2026-v1.png
 ```
 
-After deployment, configure the single Firestore document that authorized clients read:
+3. Run the local release checks and deploy the app using the production release process below.
+4. Confirm the deployed asset returns `200` with the expected image `Content-Type` before changing
+   Firestore. A missing static path may fall through to the Angular rewrite, so `200` alone is not
+   enough:
+
+```bash
+curl --fail --head https://gencon-rollcall.vercel.app/maps/gencon-2026-v1.png
+```
+
+5. In the Firebase console for `gencon-rollcall`, open **Firestore Database** → **Data**. Create or
+   update collection `appConfig`, document `current`, with these exact field types:
 
 ```text
-Collection: appConfig
-Document: current
-
-mapImageUrl: "/maps/gencon-2026.png"
-mapDisplayName: "Gen Con Indy 2026"
-updatedAt: <server timestamp>
+mapImageUrl       string     "/maps/gencon-2026-v1.png"
+mapDisplayName    string     "Gen Con Indy 2026"
+updatedAt         timestamp  <current time>
 ```
 
-The map image itself is not treated as sensitive, but the `appConfig/current` document remains gated by Firestore rules so unauthorized visitors cannot read shared app configuration. If no document or image URL is configured, the app shows an empty map state instead of exposing seeded data.
+6. Sign in as an authorized user and verify the title, image, pan/zoom behavior, existing percentage
+   pins, and new pin placement. Keep the previous asset in `public/maps/` until this check passes;
+   rollback is a Firestore change back to the previous `mapImageUrl`.
+
+The client cannot write `appConfig/current`; configure it through the Firebase console or an
+approved admin tool. If the document or image URL is missing, the app shows an empty map state.
 
 ## Firebase Admin Credentials
 
@@ -208,12 +227,90 @@ Verified local emulator smoke test:
 - `authorizedUsers/{uid}` is written in emulator Firestore.
 - An authorized user can write and read `members/{uid}` through Firestore rules.
 
-Vercel build settings:
+## Production Release
+
+Vercel project `brandon-borns-projects/gencon-rollcall` is connected to this repository and tracks
+`main` as its production branch. A push to `main` creates a production deployment. The repository's
+`vercel.json` supplies these build settings:
 
 - Build command: `npm run build`
 - Output directory: `dist/gencon-rollcall/browser`
 
-Production is deployed. Do not rotate or remove required environment variables, or the password endpoint will return `server-not-configured`.
+From the repository root:
+
+1. Confirm the intended release is committed and the tree is clean:
+
+   ```bash
+   git status --short --branch
+   ```
+
+2. Run all local release checks:
+
+   ```bash
+   npm test -- --watch=false
+   npm run typecheck:api
+   npm run build
+   ```
+
+3. If `firestore.rules` changed, deploy the version-controlled rules before the web app that needs
+   them:
+
+   ```bash
+   firebase deploy --only firestore:rules --project gencon-rollcall
+   ```
+
+   CLI deployment overwrites the console rules with `firestore.rules`; do not maintain a separate
+   uncommitted ruleset in the Firebase console.
+
+4. Push the verified commit to the production branch:
+
+   ```bash
+   git push origin main
+   ```
+
+5. In Vercel, wait for the production deployment to finish and confirm it is assigned to
+   `https://gencon-rollcall.vercel.app`. If Git deployment is unavailable, an authenticated,
+   project-linked checkout can deploy the same source directly:
+
+   ```bash
+   npx vercel deploy --prod
+   ```
+
+Do not rotate or remove the required environment variables during a normal release; the password
+endpoint returns `server-not-configured` when its server configuration is missing.
+
+## Post-Deploy Smoke Test
+
+Use a private phone-sized browser viewport (390px wide) so an existing Firebase or service-worker
+session cannot hide a release problem. Record the deployed commit and deployment URL with the
+result.
+
+1. Open the production URL over HTTPS. Confirm the gate renders without horizontal overflow and no
+   shared map, member, or rally data is visible before authorization.
+2. Submit one known-wrong password. Confirm the app stays unauthorized and shows the expected
+   invalid-password message without echoing the submitted value.
+3. Submit the correct shared password. Confirm an existing member reaches the app, or a fresh
+   anonymous user reaches onboarding and can save a display name.
+4. Confirm the configured map title and image load. Pan, pinch/zoom, place or move the current
+   user's manual pin, and verify its percentage position remains stable.
+5. Update status and note. In a second authorized session, confirm the People page receives the
+   change without a refresh.
+6. Create a rally from the map. In the second session, respond **Heading there**, change the
+   response to **Arrived**, and confirm counts update. As the creator, end the rally and confirm it
+   disappears from active map/list views without deleting its Firestore history.
+7. Hide the first user's location. Confirm their pin disappears while their status and note remain
+   visible in People.
+8. Open Settings, edit the display name, reload, and confirm it persists. Sign out and confirm the
+   gate returns.
+9. Check the browser console for relevant errors. Confirm `manifest.webmanifest` and
+   `ngsw-worker.js` return `200`, then verify the browser offers installation and the installed app
+   opens in standalone mode.
+10. If a fresh test member or rally was created only for release verification, remove that test data
+    through the Firebase console after recording the result. Do not delete real member or rally
+    history.
+
+If the app shell looks stale after a deployment, reload once to let Angular's service worker detect
+the new version, then reload again to use it. A map change still requires a new versioned asset URL.
 
 ## Security Notes
 

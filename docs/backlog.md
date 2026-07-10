@@ -18,7 +18,8 @@ Status values:
 
 ## Next 3
 
-1. `DEPLOY-002` Deployment docs.
+No items are queued. The MVP backlog is complete; explicitly choose a decision or deferred item
+before starting more scope.
 
 Do these in order unless the user explicitly redirects priority. Keep shared map/member/rally data behind the existing authorization checks.
 
@@ -401,9 +402,20 @@ Depends on:
 - [x] Document Firebase project setup.
 - [x] Document required secrets.
 - [x] Document local emulator smoke-test path.
-- [ ] Document map upload/config process.
-- [ ] Document deploy command.
-- [ ] Document post-deploy smoke test.
+- [x] Document map upload/config process.
+- [x] Document deploy command.
+- [x] Document post-deploy smoke test.
+
+Implementation status:
+
+- `docs/vercel-setup.md` documents versioned map assets, deployed-asset verification, the exact
+  `appConfig/current` field types, authorized map QA, and config rollback.
+- The release runbook verifies tests, API types, and the production build; deploys changed Firestore
+  rules before dependent app code; and covers Git-based Vercel production deployment plus the
+  authenticated CLI fallback.
+- The post-deploy checklist covers the phone-sized password gate, onboarding/session behavior, map
+  gestures and pins, status/People sync, rally create/respond/expire behavior, location hiding,
+  profile persistence/sign-out, PWA installation, console health, and test-data cleanup.
 
 Depends on:
 

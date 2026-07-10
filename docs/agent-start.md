@@ -31,7 +31,8 @@ Work the `Next 3` list in `docs/backlog.md`.
 
 Current order:
 
-1. `DEPLOY-002` Deployment docs.
+No items are currently queued. The MVP backlog is complete; get an explicit priority before pulling
+in a decision or deferred item.
 
 Keep shared map/member/rally data behind the existing authorization checks.
 

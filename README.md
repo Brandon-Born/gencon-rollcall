@@ -6,7 +6,9 @@ The app helps the group coordinate without a constant stream of texts: members c
 
 ## Current Status
 
-Angular 21 has been scaffolded with route-level mobile screens, Firebase client setup, a Vercel API route for shared-password verification, and Firestore-backed onboarding profiles. Map, status, people, and rally data flows are still pending.
+The MVP app is implemented and deployed with the shared-password gate, anonymous sessions,
+Firestore-backed onboarding, manual map pins, status and People views, rally creation, responses,
+expiration, location privacy controls, and installable PWA support.
 
 Start with the docs in this order:
 
@@ -86,23 +88,16 @@ The app uses the public Firebase Web config in `src/environments/environment.ts`
 
 The production build may need to run outside this Codex sandbox on this machine; the sandboxed builder aborted before diagnostics, while the same `npm run build` completed successfully outside the sandbox.
 
-## Manual Map Setup
+## Map and Deployment Runbook
 
-Store the reviewed convention map as a Vercel static asset, for example:
-
-```text
-public/maps/gencon-2026.png
-```
-
-Then create or update Firestore `appConfig/current`:
+Use a versioned public map asset so installed PWAs do not retain an old map at the same URL:
 
 ```text
-mapImageUrl: "/maps/gencon-2026.png"
-mapDisplayName: "Gen Con Indy 2026"
-updatedAt: <server timestamp>
+public/maps/gencon-2026-v1.png
 ```
 
-The map image is not sensitive, but the Firestore config remains readable only to authorized users.
+The complete map upload/configuration procedure, release commands, Firestore rules order, rollback
+note, and phone-sized post-deploy smoke test are in [Vercel Setup](docs/vercel-setup.md).
 
 ## Definition of Done for MVP
 
