@@ -94,14 +94,45 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                 </a>
 
                 @if (rally.canExpire) {
-                  <button
-                    type="button"
-                    class="expire-action"
-                    [disabled]="expiringRallyId() === rally.id"
-                    (click)="expireRally(rally.id)"
-                  >
-                    {{ expiringRallyId() === rally.id ? 'Ending rally...' : 'End rally' }}
-                  </button>
+                  @if (confirmingRallyId() === rally.id) {
+                    <section
+                      class="end-confirmation"
+                      role="alertdialog"
+                      [attr.aria-labelledby]="'end-rally-title-' + rally.id"
+                    >
+                      <strong [id]="'end-rally-title-' + rally.id">End this rally?</strong>
+                      <p>This removes it from the active map and rally list for everyone.</p>
+                      <div class="end-confirmation-actions">
+                        <button
+                          type="button"
+                          class="cancel-end-action"
+                          [disabled]="expiringRallyId() === rally.id"
+                          (click)="cancelEndRally()"
+                        >
+                          Keep rally
+                        </button>
+                        <button
+                          type="button"
+                          class="expire-action"
+                          [disabled]="expiringRallyId() === rally.id"
+                          (click)="expireRally(rally.id)"
+                        >
+                          {{
+                            expiringRallyId() === rally.id ? 'Ending rally...' : 'End for everyone'
+                          }}
+                        </button>
+                      </div>
+                    </section>
+                  } @else {
+                    <button
+                      type="button"
+                      class="expire-action"
+                      [disabled]="expiringRallyId() === rally.id"
+                      (click)="requestEndRally(rally.id)"
+                    >
+                      End rally
+                    </button>
+                  }
                 }
 
                 <section
@@ -305,6 +336,48 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       opacity: 0.62;
     }
 
+    .end-confirmation {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid rgba(214, 56, 47, 0.28);
+      border-radius: 10px;
+      background: rgba(214, 56, 47, 0.05);
+    }
+
+    .end-confirmation strong {
+      color: var(--color-text);
+      font-size: 14px;
+    }
+
+    .end-confirmation p {
+      margin-top: 0 !important;
+      font-size: 13px !important;
+    }
+
+    .end-confirmation-actions {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 8px;
+    }
+
+    .end-confirmation-actions button {
+      min-height: 40px;
+      margin: 0;
+      padding: 0 10px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .cancel-end-action {
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+    }
+
     .responses {
       display: grid;
       gap: 10px;
@@ -460,6 +533,7 @@ export class RalliesPage {
     null,
   );
   readonly expiringRallyId = signal<string | null>(null);
+  readonly confirmingRallyId = signal<string | null>(null);
   readonly expirationNotice = signal<{ message: string; isError: boolean } | null>(null);
   readonly rallyItems = computed(() =>
     this.rallyPointData().map((rallyPoint) =>
@@ -557,6 +631,7 @@ export class RalliesPage {
 
     try {
       await this.rallyPoints.expireRallyPoint(rallyPointId);
+      this.confirmingRallyId.set(null);
       this.expirationNotice.set({
         message: 'Rally ended. It remains in history but no longer appears as active.',
         isError: false,
@@ -565,6 +640,18 @@ export class RalliesPage {
       this.expirationNotice.set({ message: messageForExpirationError(error), isError: true });
     } finally {
       this.expiringRallyId.set(null);
+    }
+  }
+
+  requestEndRally(rallyPointId: string): void {
+    if (!this.expiringRallyId()) {
+      this.confirmingRallyId.set(rallyPointId);
+    }
+  }
+
+  cancelEndRally(): void {
+    if (!this.expiringRallyId()) {
+      this.confirmingRallyId.set(null);
     }
   }
 

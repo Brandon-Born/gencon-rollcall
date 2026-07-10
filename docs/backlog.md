@@ -69,9 +69,16 @@ after 10 seconds, and People rows use the compact chevron. New findings below.
 
 ### `UX-020` End rally has no confirmation
 
-- [ ] "End rally" ends the rally for the whole group on a single tap with no confirm and no
+- [x] "End rally" ends the rally for the whole group on a single tap with no confirm and no
       undo. Leave app (a less social action) requires confirmation. Add the same lightweight
       confirm step, or a brief undo window like pin moves have.
+
+Implementation status:
+
+- A creator's first tap now opens an inline warning that the rally will leave the active map and
+  list for everyone; only the explicit “End for everyone” action performs the write.
+- “Keep rally” closes the warning without changing the rally. Browser QA exercised cancel and
+  confirmed end paths with no relevant console errors.
 
 ### `UX-021` Rally title silently stops at 48 characters
 
