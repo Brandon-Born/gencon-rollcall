@@ -18,8 +18,60 @@ Status values:
 
 ## Next 3
 
-No actionable MVP items remain. The UX Round 2 findings are complete; explicitly deferred product
-expansions remain out of scope unless the user reprioritizes them.
+1. `UX-015` Ignore taps outside the map image (pin/rally spot clamps to edge).
+2. `UX-016` Fix map rally-card response button wrapping at phone width.
+3. `UX-017` Make the People "active" count reflect freshness.
+
+## Milestone: UX Round 3 (2026-07-10 verification review)
+
+A second usability pass after the UX Round 2 fixes landed. All fourteen Round 2 items were
+re-verified in the browser against the local emulator stack and behave as documented: grace
+period + "Meeting now", response names, map-card responses with note, leave confirmation,
+pin undo, member note on pin card, People→map links with "(You)", tab badge, re-share path,
+default lifetimes, stale pin styling, "View on map" links, phone-width layout, and the
+wording items. `npm test` (7), `npm run test:rules` (7), and `npm run build` all pass, and
+the repaired `npm run dev:emulators` path serves the app and seeds the map out of the box.
+The items below are new findings from this round, ordered by impact.
+
+### `UX-015` Taps outside the map image still move the pin
+
+- [ ] `mapPercentFromViewportPoint` clamps out-of-bounds taps to 0–100 instead of ignoring
+      them, so a tap in the letterbox band beside/above the image snaps the user's pin to
+      the image edge (observed live: pin jumped from Hall A to the far left edge). Return
+      `null` when the tapped content point is outside the image bounds.
+- [ ] The same conversion feeds rally spot selection, so a stray band tap also selects an
+      edge rally spot. Same fix covers both.
+
+Why: at desktop widths (and any aspect-ratio mismatch) the letterbox bands are large tap
+targets that silently broadcast a wrong location; the accidental-move protection from
+`UX-005` (undo) softens this but should not be the only line of defense.
+
+### `UX-016` Map rally-card response buttons wrap badly at phone width
+
+- [ ] On the map rally detail card at ~430 px, "Heading there" wraps to two lines and
+      "Cannot make it" to three, the circular buttons crowd into each other, and the
+      selected state clips the label. Restyle to match the rally list's compact pill
+      buttons (or stack them) so all three labels render whole.
+
+### `UX-017` People "active" count ignores freshness
+
+- [ ] The "3/3 active" chip counts a member whose last update is 8 hours old (and whose row
+      is styled stale) as active. Count only members under the stale threshold, or rename
+      the chip so it does not overpromise ("3 members").
+
+### `UX-018` Pin hint and undo lifecycle polish
+
+- [ ] First-ever placement says "Pin moved." — say "Pin placed." when there was no prior
+      pin.
+- [ ] The undo chip never expires and persists into other map modes: entering the rally
+      flow shows "Tap the map to choose a rally spot. Undo", where Undo still reverts the
+      member pin. Clear (or time out) the undo affordance when leaving pin context or after
+      ~10 seconds.
+
+### `UX-019` People row map-link affordance is repetitive
+
+- [ ] Every visible-location row prints "Tap to view on map". Replace the repeated sentence
+      with a compact affordance (chevron or map glyph) once the pattern is established.
 
 ## Milestone: UX Round 2 (2026-07-09 adversarial review)
 
