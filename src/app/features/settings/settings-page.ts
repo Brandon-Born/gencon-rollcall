@@ -57,6 +57,9 @@ import { SessionStore } from '../../core/session/session-store';
         >
           {{ locationButtonLabel() }}
         </button>
+        @if (!locationVisible()) {
+          <button type="button" (click)="shareLocationAgain()">Share my location again</button>
+        }
         @if (locationMessage()) {
           <p class="save-message" [class.error]="locationMessageIsError()" role="status">
             {{ locationMessage() }}
@@ -306,6 +309,10 @@ export class SettingsPage {
     } finally {
       this.isHidingLocation.set(false);
     }
+  }
+
+  shareLocationAgain(): void {
+    void this.router.navigate(['/app/map'], { queryParams: { share: 'location' } });
   }
 
   private async loadLocationState(): Promise<void> {

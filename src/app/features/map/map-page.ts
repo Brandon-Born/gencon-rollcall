@@ -1017,6 +1017,8 @@ export class MapPage {
   private readonly rallyResponseUnsubscribes = new Map<string, () => void>();
   private isDestroyed = false;
   private requestedMemberId = this.route.snapshot.queryParamMap.get('member');
+  private readonly sharingLocationRequested =
+    this.route.snapshot.queryParamMap.get('share') === 'location';
 
   @ViewChild('mapViewport')
   set mapViewport(element: ElementRef<HTMLElement> | undefined) {
@@ -1245,7 +1247,12 @@ export class MapPage {
         : 'Tap the map to choose a rally spot.';
     }
 
-    return this.pinSaveMessage() || 'Tap the map to place or move your pin.';
+    return (
+      this.pinSaveMessage() ||
+      (this.sharingLocationRequested
+        ? 'Tap your location on the map to share your pin again.'
+        : 'Tap the map to place or move your pin.')
+    );
   });
 
   constructor() {

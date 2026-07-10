@@ -159,9 +159,14 @@ Implementation status:
 
 ### `UX-009` Location sharing asymmetry
 
-- [ ] Settings can hide the pin but cannot re-share it; re-sharing requires knowing the
+- [x] Settings can hide the pin but cannot re-share it; re-sharing requires knowing the
       hidden "tap the map" behavior. Add a "Share my location again" path from Settings
       (jump to map with a one-line instruction is enough).
+
+Implementation status:
+
+- When location is hidden, Settings offers “Share my location again,” opens the map, and shows an
+  explicit instruction to tap the location to publish a new pin.
 
 ### `UX-010` Stale rallies without a time linger forever
 
