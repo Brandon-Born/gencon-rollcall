@@ -17,7 +17,6 @@ interface RallyListItem {
   note: string;
   creatorName: string;
   scheduledLabel: string;
-  coordinateLabel: string;
   responseCounts: RallyResponseCounts;
   responseNames: RallyResponseNames;
   currentResponse: RallyResponseStatus | null;
@@ -90,7 +89,9 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                 <h2>{{ rally.title }}</h2>
                 <p class="meta">{{ rally.scheduledLabel }} · {{ rally.creatorName }}</p>
                 <p>{{ rally.note || 'No note added.' }}</p>
-                <p class="coordinate">{{ rally.coordinateLabel }}</p>
+                <a class="coordinate" routerLink="/app/map" [queryParams]="{ rally: rally.id }">
+                  View on map
+                </a>
 
                 @if (rally.canExpire) {
                   <button
@@ -267,7 +268,12 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .coordinate {
+      display: inline-block;
+      margin-top: 9px;
+      color: var(--color-map-blue);
+      font-size: 14px;
       font-weight: 800;
+      text-decoration: none;
     }
 
     .page-notice {
@@ -724,9 +730,6 @@ function toRallyListItem(
       : rallyPoint.scheduledTime
         ? scheduledLabel(rallyPoint.scheduledTime)
         : 'No time set',
-    coordinateLabel: `Map spot ${formatPercent(rallyPoint.mapXPercent)}%, ${formatPercent(
-      rallyPoint.mapYPercent,
-    )}%`,
     responseCounts,
     responseNames,
     currentResponse,
@@ -770,11 +773,4 @@ function scheduledLabel(scheduledTime: Date): string {
     hour: 'numeric',
     minute: '2-digit',
   });
-}
-
-function formatPercent(value: number): string {
-  const normalized = Math.round(Math.min(100, Math.max(0, value)) * 10) / 10;
-  return Number.isInteger(normalized)
-    ? String(normalized)
-    : normalized.toFixed(1).replace(/0+$/, '').replace(/\.$/, '');
 }

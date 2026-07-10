@@ -1031,6 +1031,7 @@ export class MapPage {
   private readonly rallyResponseUnsubscribes = new Map<string, () => void>();
   private isDestroyed = false;
   private requestedMemberId = this.route.snapshot.queryParamMap.get('member');
+  private requestedRallyId = this.route.snapshot.queryParamMap.get('rally');
   private readonly sharingLocationRequested =
     this.route.snapshot.queryParamMap.get('share') === 'location';
 
@@ -1247,7 +1248,7 @@ export class MapPage {
       return 'Tap the map to choose the rally spot.';
     }
 
-    return `Rally spot selected at ${formatPercent(pendingPoint.x)}%, ${formatPercent(pendingPoint.y)}%.`;
+    return 'Spot selected ✓';
   });
   readonly mapHintIsError = computed(() => this.pinSaveIsError() || this.rallySaveIsError());
   readonly mapHintMessage = computed(() => {
@@ -1337,6 +1338,7 @@ export class MapPage {
     this.updateMapViewportSize();
     this.resetMapView();
     this.focusRequestedMember();
+    this.focusRequestedRally();
   }
 
   markMapImageFailed(): void {
@@ -1839,6 +1841,7 @@ export class MapPage {
 
           this.rallyPoints.set(rallyPoints);
           void this.syncMapRallyResponseSubscriptions(rallyPoints);
+          this.focusRequestedRally();
           this.rallySaveIsError.set(false);
         },
         () => {
@@ -1971,6 +1974,35 @@ export class MapPage {
     );
     this.selectedPinId.set(memberId);
     this.requestedMemberId = null;
+  }
+
+  private focusRequestedRally(): void {
+    const rallyId = this.requestedRallyId;
+    const viewport = this.mapViewportElement;
+
+    if (!rallyId || !viewport) {
+      return;
+    }
+
+    const rally = this.rallyMarkers().find((item) => item.id === rallyId);
+
+    if (!rally) {
+      return;
+    }
+
+    const scale = 2;
+    this.applyMapView(
+      {
+        scale,
+        translateX: viewport.clientWidth / 2 - (rally.renderX / 100) * viewport.clientWidth * scale,
+        translateY:
+          viewport.clientHeight / 2 - (rally.renderY / 100) * viewport.clientHeight * scale,
+      },
+      viewport,
+    );
+    this.selectedRallyId.set(rallyId);
+    this.selectedPinId.set(null);
+    this.requestedRallyId = null;
   }
 
   private mapPercentFromViewportPoint(point: MapPoint, viewport: HTMLElement): MapPoint | null {
@@ -2372,10 +2404,6 @@ function formatViewValue(value: number): string {
   return Number.isInteger(value)
     ? String(value)
     : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
-}
-
-function formatPercent(value: number): string {
-  return formatViewValue(Math.round(clamp(value, 0, 100) * 10) / 10);
 }
 
 function parseDateTimeLocal(value: string): Date | null {

@@ -193,9 +193,14 @@ Implementation status:
 
 ### `UX-012` Replace raw coordinates in rally UI
 
-- [ ] Rally list shows "Map spot 84.7%, 33.9%" and the rally form shows "Rally spot
+- [x] Rally list shows "Map spot 84.7%, 33.9%" and the rally form shows "Rally spot
       selected at 84.7%, 33.9%." — internal numbers with no user meaning. Replace with a
       "View on map" link (list) and a plain "Spot selected ✓" (form).
+
+Implementation status:
+
+- Rally cards now show a “View on map” link that opens, selects, and centers the marker; the create
+  form confirms only “Spot selected ✓” and no longer exposes percentage coordinates.
 
 ### `UX-013` Phone-width map/header polish
 
