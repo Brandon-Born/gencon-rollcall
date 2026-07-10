@@ -204,14 +204,23 @@ Implementation status:
 
 ### `UX-013` Phone-width map/header polish
 
-- [ ] "Indiana Convention Center" wraps to three lines at 390px and squeezes the header
+- [x] "Indiana Convention Center" wraps to three lines at 390px and squeezes the header
       buttons; use a smaller single-line title treatment.
-- [ ] The zoom control pill covers a large part of the small map viewport; shrink it or
+- [x] The zoom control pill covers a large part of the small map viewport; shrink it or
       move it off the map surface.
-- [ ] The fixed-height map frame shows large empty grid bands when the image aspect ratio
+- [x] The fixed-height map frame shows large empty grid bands when the image aspect ratio
       does not match; fit the initial view to the image instead.
-- [ ] The horizontally scrolling status chips clip mid-word with no scroll affordance; add
+- [x] The horizontally scrolling status chips clip mid-word with no scroll affordance; add
       an edge fade or wrap to two rows.
+
+Implementation status:
+
+- At 390 px, the map title is a compact single-line ellipsis treatment and the two header actions
+  remain usable; zoom controls are 138×46 px instead of dominating the map.
+- Once the map image loads, the phone frame follows its aspect ratio within practical height bounds
+  instead of forcing a fixed viewport with large contain bands.
+- Status options use a two-row horizontal rail with faded edges. Browser QA at 390×844 confirmed no
+  horizontal page overflow, a single-line title, the compact controls, and working 100%→125% zoom.
 
 ### `UX-014` Wording and small polish
 

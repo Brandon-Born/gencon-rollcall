@@ -148,7 +148,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
         </div>
       </header>
 
-      <section class="map-frame" [attr.aria-label]="mapFrameLabel()">
+      <section
+        class="map-frame"
+        [style.height.px]="mapFrameHeight()"
+        [attr.aria-label]="mapFrameLabel()"
+      >
         @if (isMapLoading()) {
           <div class="map-state">
             <span class="map-state-icon" aria-hidden="true"></span>
@@ -506,6 +510,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       margin-bottom: 12px;
     }
 
+    header > div:first-child {
+      min-width: 0;
+    }
+
     .header-actions {
       display: flex;
       gap: 8px;
@@ -520,15 +528,18 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     h1 {
+      overflow: hidden;
       margin: 0;
       color: var(--color-text);
-      font-size: 26px;
+      font-size: 20px;
       line-height: 1.1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     header button {
       min-height: 40px;
-      padding: 0 14px;
+      padding: 0 11px;
       border: 1px solid var(--color-border);
       border-radius: 999px;
       background: var(--color-surface);
@@ -843,9 +854,9 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       right: 10px;
       z-index: 3;
       display: grid;
-      grid-template-columns: 44px minmax(74px, auto) 44px;
-      gap: 6px;
-      padding: 6px;
+      grid-template-columns: 36px minmax(52px, auto) 36px;
+      gap: 2px;
+      padding: 4px;
       border: 1px solid rgba(216, 222, 232, 0.9);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.92);
@@ -854,7 +865,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .map-controls button {
-      min-height: 44px;
+      min-height: 36px;
       border: 0;
       border-radius: 999px;
       background: var(--color-surface);
@@ -865,7 +876,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .map-controls .map-reset {
-      padding: 0 12px;
+      padding: 0 7px;
       color: var(--color-map-blue);
       font-size: 12px;
       font-weight: 850;
@@ -911,11 +922,21 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .status-grid {
-      display: flex;
+      display: grid;
+      grid-auto-columns: max-content;
+      grid-auto-flow: column;
+      grid-template-rows: repeat(2, auto);
       gap: 8px;
       overflow-x: auto;
       margin: 18px -18px 16px;
       padding: 0 18px 2px;
+      mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 18px,
+        black calc(100% - 18px),
+        transparent
+      );
     }
 
     .status-grid button {
@@ -1128,6 +1149,17 @@ export class MapPage {
   readonly mapViewportHeight = signal(0);
   readonly mapImageNaturalWidth = signal(0);
   readonly mapImageNaturalHeight = signal(0);
+  readonly mapFrameHeight = computed(() => {
+    const width = this.mapViewportWidth();
+    const naturalWidth = this.mapImageNaturalWidth();
+    const naturalHeight = this.mapImageNaturalHeight();
+
+    if (width <= 0 || naturalWidth <= 0 || naturalHeight <= 0) {
+      return null;
+    }
+
+    return Math.round(clamp((width * naturalHeight) / naturalWidth, 220, 560));
+  });
   readonly isMapDragging = signal(false);
   readonly isPinSaving = signal(false);
   readonly previousPinState = signal<PreviousPinState | null>(null);
