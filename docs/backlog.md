@@ -352,9 +352,20 @@ Acceptance criteria:
 
 ### `RALLY-003` Rally expiration
 
-- [ ] Support manual expiration.
-- [ ] Support scheduled-time based expiration behavior.
-- [ ] Hide or de-emphasize expired rally points.
+- [x] Support manual expiration.
+- [x] Support scheduled-time based expiration behavior.
+- [x] Hide or de-emphasize expired rally points.
+
+Implementation status:
+
+- A creator can end an active rally from the Rally Points list. This writes `status: expired`
+  and a server timestamp to `expiresAt`; the document is retained as history.
+- Selecting an optional rally time sets `expiresAt` to that time. Active list and map streams
+  re-evaluate every 30 seconds, so scheduled-expired rallies disappear without a Firestore write.
+- Firestore rules restrict manual expiration to the rally creator and prevent new responses
+  after either manual or scheduled expiration.
+- Emulator-backed Chrome QA covered a past scheduled rally hidden from the list and map,
+  manual expiry removing a live rally from both surfaces, and retained expired documents.
 
 Depends on:
 

@@ -316,7 +316,7 @@ const dayMs = 24 * hourMs;
           </label>
 
           <label>
-            <span>Optional time</span>
+            <span>Optional time (expires then)</span>
             <input
               type="datetime-local"
               [value]="rallyScheduledTimeInput()"
@@ -324,6 +324,8 @@ const dayMs = 24 * hourMs;
               (input)="updateRallyScheduledTime($any($event.target).value)"
             />
           </label>
+
+          <p class="save-message">A rally with a time automatically expires at that time.</p>
 
           <p class="rally-coordinate">{{ rallyCoordinateLabel() }}</p>
 

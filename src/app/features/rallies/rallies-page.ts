@@ -2,11 +2,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AuthSession } from '../../core/auth/auth-session';
-import type {
-  RallyPoint,
-  RallyResponse,
-  RallyResponseStatus,
-} from '../../core/models/rally-point';
+import type { RallyPoint, RallyResponse, RallyResponseStatus } from '../../core/models/rally-point';
 import { RallyPointError, RallyPoints } from '../../core/rallies/rally-points';
 
 interface RallyListItem {
@@ -19,6 +15,7 @@ interface RallyListItem {
   responseCounts: RallyResponseCounts;
   currentResponse: RallyResponseStatus | null;
   currentResponseLabel: string;
+  canExpire: boolean;
 }
 
 interface RallyResponseCounts {
@@ -46,6 +43,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
         <a routerLink="/app/map">Map</a>
       </header>
 
+      @if (expirationNotice(); as notice) {
+        <p class="page-notice" [class.error]="notice.isError" role="status">{{ notice.message }}</p>
+      }
+
       @if (isLoading()) {
         <section class="state" aria-live="polite">
           <span class="state-icon" aria-hidden="true"></span>
@@ -60,8 +61,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
         </section>
       } @else if (!rallyItems().length) {
         <section class="state">
-          <strong>No rally points yet</strong>
-          <p>Create one from the map when the group needs a meetup spot.</p>
+          <strong>No active rally points</strong>
+          <p>
+            Expired rallies stay in history. Create one from the map when the group needs a meetup
+            spot.
+          </p>
           <a routerLink="/app/map">Open map</a>
         </section>
       } @else {
@@ -75,7 +79,21 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                 <p>{{ rally.note || 'No note added.' }}</p>
                 <p class="coordinate">{{ rally.coordinateLabel }}</p>
 
-                <section class="responses" [attr.aria-label]="'Response options for ' + rally.title">
+                @if (rally.canExpire) {
+                  <button
+                    type="button"
+                    class="expire-action"
+                    [disabled]="expiringRallyId() === rally.id"
+                    (click)="expireRally(rally.id)"
+                  >
+                    {{ expiringRallyId() === rally.id ? 'Ending rally...' : 'End rally' }}
+                  </button>
+                }
+
+                <section
+                  class="responses"
+                  [attr.aria-label]="'Response options for ' + rally.title"
+                >
                   <h3>How are you getting there?</h3>
                   <div class="response-actions">
                     @for (response of rallyResponseOptions; track response.value) {
@@ -224,6 +242,35 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       font-weight: 800;
     }
 
+    .page-notice {
+      margin: -6px 0 14px;
+      color: var(--color-green);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .page-notice.error {
+      color: var(--color-gencon-red);
+    }
+
+    .expire-action {
+      min-height: 40px;
+      margin-top: 14px;
+      padding: 0 14px;
+      border: 1px solid rgba(214, 56, 47, 0.34);
+      border-radius: 8px;
+      background: var(--color-surface);
+      color: var(--color-gencon-red);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .expire-action:disabled {
+      cursor: wait;
+      opacity: 0.62;
+    }
+
     .responses {
       display: grid;
       gap: 10px;
@@ -362,7 +409,11 @@ export class RalliesPage {
   readonly rallyPointData = signal<RallyPoint[]>([]);
   readonly rallyResponses = signal<RallyResponse[]>([]);
   readonly responseSavingRallyId = signal<string | null>(null);
-  readonly responseNotice = signal<{ rallyId: string; message: string; isError: boolean } | null>(null);
+  readonly responseNotice = signal<{ rallyId: string; message: string; isError: boolean } | null>(
+    null,
+  );
+  readonly expiringRallyId = signal<string | null>(null);
+  readonly expirationNotice = signal<{ message: string; isError: boolean } | null>(null);
   readonly rallyItems = computed(() =>
     this.rallyPointData().map((rallyPoint) =>
       toRallyListItem(rallyPoint, this.rallyResponses(), this.authSession.user()?.uid ?? ''),
@@ -425,7 +476,11 @@ export class RalliesPage {
 
     try {
       await this.rallyPoints.saveResponse(rallyPointId, responseStatus);
-      this.responseNotice.set({ rallyId: rallyPointId, message: 'Response saved.', isError: false });
+      this.responseNotice.set({
+        rallyId: rallyPointId,
+        message: 'Response saved.',
+        isError: false,
+      });
     } catch (error) {
       this.responseNotice.set({
         rallyId: rallyPointId,
@@ -434,6 +489,27 @@ export class RalliesPage {
       });
     } finally {
       this.responseSavingRallyId.set(null);
+    }
+  }
+
+  async expireRally(rallyPointId: string): Promise<void> {
+    if (this.expiringRallyId()) {
+      return;
+    }
+
+    this.expiringRallyId.set(rallyPointId);
+    this.expirationNotice.set(null);
+
+    try {
+      await this.rallyPoints.expireRallyPoint(rallyPointId);
+      this.expirationNotice.set({
+        message: 'Rally ended. It remains in history but no longer appears as active.',
+        isError: false,
+      });
+    } catch (error) {
+      this.expirationNotice.set({ message: messageForExpirationError(error), isError: true });
+    } finally {
+      this.expiringRallyId.set(null);
     }
   }
 
@@ -560,6 +636,7 @@ function toRallyListItem(
     responseCounts,
     currentResponse,
     currentResponseLabel: currentResponse ? responseLabel(currentResponse) : '',
+    canExpire: rallyPoint.createdByMemberId === currentMemberId,
   };
 }
 
@@ -577,6 +654,14 @@ function messageForResponseError(error: unknown): string {
   }
 
   return 'Could not save your response. Check your connection and try again.';
+}
+
+function messageForExpirationError(error: unknown): string {
+  if (error instanceof RallyPointError && error.code === 'not-authorized') {
+    return 'Your session is not authorized. Sign in again before ending this rally.';
+  }
+
+  return 'Could not end this rally. Only its creator can end it, so check your connection and try again.';
 }
 
 function responseLabel(responseStatus: RallyResponseStatus): string {

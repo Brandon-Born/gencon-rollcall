@@ -63,7 +63,9 @@ The map is a static image plane.
 ## Real-Time Sync
 
 - Members collection streams active member records.
-- Rally points stream active rally records.
+- Rally points stream active rally records. A rally with an optional scheduled time uses that
+  time as `expiresAt`; manually expired or time-expired rallies are removed from active streams
+  while their documents remain in Firestore history.
 - Rally responses can be subcollection documents under each rally point or a top-level collection keyed by `rallyPointId`.
 - Use server timestamps for `lastUpdatedAt`, `joinedAt`, `updatedAt`, and expiration fields.
 

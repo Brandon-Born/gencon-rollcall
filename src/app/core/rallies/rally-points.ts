@@ -55,7 +55,7 @@ export class RallyPoints {
       createdByMemberId: uid,
       createdByName: member.displayName,
       status: 'active' as RallyPointStatus,
-      expiresAt: null,
+      expiresAt: input.scheduledTime,
     };
 
     await setDoc(rallyRef, rallyPoint);
@@ -88,24 +88,49 @@ export class RallyPoints {
     const { collection, onSnapshot } = await import('firebase/firestore');
     const rallyPointsRef = collection(await this.firebase.getFirestore(), 'rallyPoints');
 
-    return onSnapshot(
+    let allRallyPoints: RallyPoint[] = [];
+    const emitActiveRallyPoints = () =>
+      onRallyPoints(
+        allRallyPoints
+          .filter((rallyPoint) => !isRallyPointExpired(rallyPoint))
+          .sort(compareRallyPoints),
+      );
+    const unsubscribe = onSnapshot(
       rallyPointsRef,
       (snapshot) => {
-        const rallyPoints = snapshot.docs
-          .map((document) => this.toRallyPoint(document.id, document.data()))
-          .filter((rallyPoint) => rallyPoint.status === 'active')
-          .sort(compareRallyPoints);
-
-        onRallyPoints(rallyPoints);
+        allRallyPoints = snapshot.docs.map((document) =>
+          this.toRallyPoint(document.id, document.data()),
+        );
+        emitActiveRallyPoints();
       },
       onError,
     );
+
+    const expirationTimer = window.setInterval(emitActiveRallyPoints, 30 * 1000);
+
+    return () => {
+      window.clearInterval(expirationTimer);
+      unsubscribe();
+    };
   }
 
-  async saveResponse(
-    rallyPointId: string,
-    responseStatus: RallyResponseStatus,
-  ): Promise<void> {
+  async expireRallyPoint(rallyPointId: string): Promise<void> {
+    const uid = this.authSession.user()?.uid;
+
+    if (!uid || !this.authSession.isAuthorized()) {
+      throw new RallyPointError('not-authorized');
+    }
+
+    const { doc, serverTimestamp, updateDoc } = await import('firebase/firestore');
+    const firestore = await this.firebase.getFirestore();
+
+    await updateDoc(doc(firestore, 'rallyPoints', rallyPointId), {
+      status: 'expired',
+      expiresAt: serverTimestamp(),
+    });
+  }
+
+  async saveResponse(rallyPointId: string, responseStatus: RallyResponseStatus): Promise<void> {
     const uid = this.authSession.user()?.uid;
 
     if (!uid || !this.authSession.isAuthorized()) {
@@ -154,7 +179,10 @@ export class RallyPoints {
 
     return onSnapshot(
       responsesRef,
-      (snapshot) => onResponses(snapshot.docs.map((document) => this.toRallyResponse(document.id, document.data()))),
+      (snapshot) =>
+        onResponses(
+          snapshot.docs.map((document) => this.toRallyResponse(document.id, document.data())),
+        ),
       onError,
     );
   }
@@ -186,10 +214,7 @@ export class RallyPoints {
 }
 
 export type RallyPointErrorCode =
-  | 'not-authorized'
-  | 'member-not-found'
-  | 'title-required'
-  | 'response-invalid';
+  'not-authorized' | 'member-not-found' | 'title-required' | 'response-invalid';
 
 export class RallyPointError extends Error {
   constructor(readonly code: RallyPointErrorCode) {
@@ -206,6 +231,13 @@ function compareRallyPoints(first: RallyPoint, second: RallyPoint): number {
   }
 
   return first.title.localeCompare(second.title);
+}
+
+export function isRallyPointExpired(rallyPoint: RallyPoint, now = new Date()): boolean {
+  return (
+    rallyPoint.status === 'expired' ||
+    (rallyPoint.expiresAt !== null && rallyPoint.expiresAt.getTime() <= now.getTime())
+  );
 }
 
 function normalizeTitle(title: string): string {

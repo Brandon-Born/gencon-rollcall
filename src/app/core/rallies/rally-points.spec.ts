@@ -1,0 +1,43 @@
+import { describe, expect, it } from 'vitest';
+
+import { isRallyPointExpired } from './rally-points';
+import type { RallyPoint } from '../models/rally-point';
+
+const now = new Date('2026-07-30T18:00:00.000Z');
+
+function rallyPoint(overrides: Partial<RallyPoint>): RallyPoint {
+  return {
+    id: 'rally-1',
+    title: 'Meetup',
+    note: '',
+    mapXPercent: 50,
+    mapYPercent: 50,
+    scheduledTime: null,
+    createdByMemberId: 'member-1',
+    createdByName: 'Member',
+    status: 'active',
+    expiresAt: null,
+    ...overrides,
+  };
+}
+
+describe('isRallyPointExpired', () => {
+  it('keeps active rallies without an expiry visible', () => {
+    expect(isRallyPointExpired(rallyPoint({}), now)).toBe(false);
+  });
+
+  it('expires rallies at their scheduled expiry time', () => {
+    expect(
+      isRallyPointExpired(rallyPoint({ expiresAt: new Date('2026-07-30T17:59:59.000Z') }), now),
+    ).toBe(true);
+  });
+
+  it('expires manually ended rallies regardless of their time', () => {
+    expect(
+      isRallyPointExpired(
+        rallyPoint({ status: 'expired', expiresAt: new Date('2026-07-30T19:00:00.000Z') }),
+        now,
+      ),
+    ).toBe(true);
+  });
+});

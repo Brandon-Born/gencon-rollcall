@@ -48,8 +48,10 @@ The map image itself is not treated as sensitive. The app gates access to map co
 - `authorizedUsers`: backend writes only; users may read their own authorization state if necessary.
 - `appConfig/current`: authorized users read; setup/admin backend writes.
 - `members/{uid}`: authorized users read all; a user writes only their own member document.
-- `rallyPoints`: authorized users read and create; creator or expiration process can update status.
-- `responses/{uid}`: authorized users read; each user writes only their own response document.
+- `rallyPoints`: authorized users read and create; only the creator can mark an active rally
+  expired, and that update can touch only `status` and `expiresAt`.
+- `responses/{uid}`: authorized users read; each user writes only their own response document
+  while the parent rally is active and has not reached `expiresAt`.
 
 ## Password Endpoint
 
