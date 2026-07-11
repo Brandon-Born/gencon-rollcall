@@ -89,6 +89,9 @@ Verified production setup:
 - Vercel production has `FIREBASE_SERVICE_ACCOUNT_JSON`.
 - Wrong-password API smoke test returns `401 invalid-password`.
 - Correct-password production smoke test passed: a password-holder could log in and create a user.
+- Official 2026 map cutover completed 2026-07-11: production config defaults to Exhibit Hall,
+  legacy synthetic coordinates are cleared, all six maps passed phone QA, and the delete/recreate
+  config rollback was exercised successfully.
 
 Firebase Storage is intentionally out of MVP scope now that Vercel is the host. Store the convention map as a Vercel static asset under `public/maps/` or as another static URL configured in Firestore.
 

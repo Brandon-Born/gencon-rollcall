@@ -18,7 +18,7 @@ Status values:
 
 ## Next 3
 
-1. `MAP-003` Cut production over to the official maps and complete release QA.
+1. No actionable release blocker is currently queued.
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
@@ -73,12 +73,32 @@ Implementation status:
 
 ### `MAP-003` Cut over production and complete release QA
 
-- [ ] Deploy compatible assets, client code, and Firestore rules before changing production map
+- [x] Deploy compatible assets, client code, and Firestore rules before changing production map
       config.
-- [ ] Hide/reset synthetic-map member locations and end/remove synthetic test rallies before
+- [x] Hide/reset synthetic-map member locations and end/remove synthetic test rallies before
       pointing `appConfig/current` at the official manifest.
-- [ ] Verify the complete authorized phone flow at 430×844 with two users, confirm Exhibit Hall is
+- [x] Verify the complete authorized phone flow at 430×844 with two users, confirm Exhibit Hall is
       the fresh-session default, run all automated gates, and retain a tested config rollback.
+
+Implementation status:
+
+- Production serves the MAP-002 client, released Firestore rules, manifest, and all six official
+  WebP maps with the expected content types. `appConfig/current` now points to
+  `/maps/gencon-2026/manifest-v1.json`, defaults to `exhibit-hall`, and uses the official Exhibit
+  Hall image as its non-synthetic compatibility fallback.
+- Before cutover, the sole legacy-visible member location was hidden and its coordinates cleared;
+  production contained no rallies. After QA, both test pins were hidden, the temporary member was
+  removed through the app, and the temporary rally plus response history were removed. The final
+  production state has one hidden member, zero saved coordinates, and zero rallies.
+- Two isolated authorized sessions at 430×844 verified the fresh Exhibit Hall default, all six map
+  selections with one active image at a time, per-map pin filtering, cross-map pin Undo, People and
+  rally deep links, live rally response, creator end, hide-location controls, and zero horizontal
+  overflow. Application console logs were clean.
+- `npm test` (16), `npm run typecheck:api`, `npm run test:rules` (10 via isolated emulator ports),
+  and `npm run build` pass. Production returns `200` for the web manifest and service worker.
+- The pre-cutover config was absent, so rollback is a conditional delete of `appConfig/current`.
+  Production rollback was exercised to the confirmed `404` no-config state, then the exact official
+  config was restored and re-verified in a fresh app reload.
 
 ## Milestone: UX Round 4 (2026-07-10 lifecycle review)
 

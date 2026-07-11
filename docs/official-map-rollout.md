@@ -136,6 +136,11 @@ Synthetic coordinates do not correspond to the official maps. Perform this order
 
 ## Acceptance Gate
 
+Completed in production on 2026-07-11. Two isolated authorized sessions at 430×844 exercised the
+map-aware pin, rally, response, deep-link, cleanup, and privacy flows across the official map set.
+The pre-cutover config was absent; conditional deletion back to that state and restoration of the
+official config were both tested successfully.
+
 `MAP-001` through `MAP-003` are complete only when all of the following are proven:
 
 - A fresh phone session at 430×844 opens the official 2026 Exhibit Hall map by default.
