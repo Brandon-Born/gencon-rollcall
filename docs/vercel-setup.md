@@ -92,7 +92,7 @@ Verified production setup:
 
 Firebase Storage is intentionally out of MVP scope now that Vercel is the host. Store the convention map as a Vercel static asset under `public/maps/` or as another static URL configured in Firestore.
 
-## Map Image Configuration
+## Map Manifest Configuration
 
 The map is a public Vercel asset, but its Firestore configuration is restricted to authorized
 users. Use a versioned filename so a PWA that has already cached an older map receives the new
@@ -100,34 +100,36 @@ asset instead of reusing the old URL.
 
 1. Review the map source and confirm the image can be used by this private POC. Do not add member
    locations, notes, credentials, or other private data to the image.
-2. Add the image under `public/maps/` with a lowercase, versioned filename and no spaces, for
-   example:
+2. Add immutable images and a versioned manifest under `public/maps/`; the current official set is:
 
 ```text
-public/maps/gencon-2026-v1.png
+public/maps/gencon-2026/manifest-v1.json
 ```
 
 3. Run the local release checks and deploy the app using the production release process below.
-4. Confirm the deployed asset returns `200` with the expected image `Content-Type` before changing
+4. Confirm the deployed manifest and every image return `200` with the expected content types before changing
    Firestore. A missing static path may fall through to the Angular rewrite, so `200` alone is not
    enough:
 
 ```bash
-curl --fail --head https://gencon-rollcall.vercel.app/maps/gencon-2026-v1.png
+curl --fail --head https://gencon-rollcall.vercel.app/maps/gencon-2026/manifest-v1.json
 ```
 
 5. In the Firebase console for `gencon-rollcall`, open **Firestore Database** → **Data**. Create or
    update collection `appConfig`, document `current`, with these exact field types:
 
 ```text
-mapImageUrl       string     "/maps/gencon-2026-v1.png"
+mapManifestUrl    string     "/maps/gencon-2026/manifest-v1.json"
+mapImageUrl       string     <retain the tested legacy fallback during cutover>
 mapDisplayName    string     "Gen Con Indy 2026"
 updatedAt         timestamp  <current time>
 ```
 
-6. Sign in as an authorized user and verify the title, image, pan/zoom behavior, existing percentage
-   pins, and new pin placement. Keep the previous asset in `public/maps/` until this check passes;
-   rollback is a Firestore change back to the previous `mapImageUrl`.
+6. Sign in as an authorized user and verify the Exhibit Hall default, every selectable map,
+   pan/zoom behavior, map-aware pins, and rally deep links. Keep the previous asset in
+   `public/maps/` until this check passes; rollback restores the prior config fields.
+
+Follow `docs/official-map-rollout.md` for the required data cleanup and ordered production cutover.
 
 The client cannot write `appConfig/current`; configure it through the Firebase console or an
 approved admin tool. If the document or image URL is missing, the app shows an empty map state.

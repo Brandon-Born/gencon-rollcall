@@ -26,6 +26,7 @@ const response = await fetch(documentUrl, {
   body: JSON.stringify({
     fields: {
       mapImageUrl: { stringValue: '/maps/local-dev-map.svg' },
+      mapId: { stringValue: 'local-dev' },
       mapDisplayName: { stringValue: 'Local Convention Test Map' },
       updatedAt: { timestampValue: new Date().toISOString() },
     },

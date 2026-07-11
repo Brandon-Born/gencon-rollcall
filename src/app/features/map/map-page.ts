@@ -76,6 +76,7 @@ interface MapPoint {
 }
 
 interface PreviousPinState {
+  mapId: string | null;
   x: number | null;
   y: number | null;
   locationVisible: boolean;
@@ -150,6 +151,17 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </button>
         </div>
       </header>
+
+      @if (availableMaps().length > 1) {
+        <label class="map-selector">
+          <span>Map</span>
+          <select [value]="activeMapId()" (change)="selectActiveMap($any($event.target).value)">
+            @for (map of availableMaps(); track map.id) {
+              <option [value]="map.id">{{ map.label }}</option>
+            }
+          </select>
+        </label>
+      }
 
       <section
         class="map-frame"
@@ -559,6 +571,27 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     .primary-action {
       background: var(--color-gencon-red);
       color: white;
+    }
+
+    .map-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: -2px 0 10px;
+      color: var(--color-muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .map-selector select {
+      min-height: 38px;
+      max-width: min(220px, 68vw);
+      padding: 0 32px 0 11px;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      font: inherit;
     }
 
     .map-frame {
@@ -1082,6 +1115,7 @@ export class MapPage {
   private isDestroyed = false;
   private requestedMemberId = this.route.snapshot.queryParamMap.get('member');
   private requestedRallyId = this.route.snapshot.queryParamMap.get('rally');
+  private requestedMapId = this.route.snapshot.queryParamMap.get('map');
   private readonly sharingLocationRequested =
     this.route.snapshot.queryParamMap.get('share') === 'location';
 
@@ -1169,7 +1203,12 @@ export class MapPage {
   readonly mapImageFailed = signal(false);
   readonly isMapLoading = this.appConfig.isLoading;
   readonly mapLoadError = this.appConfig.error;
-  readonly configuredMapUrl = computed(() => this.appConfig.config()?.mapImageUrl ?? '');
+  readonly activeMapId = signal('');
+  readonly availableMaps = computed(() => this.appConfig.config()?.maps ?? []);
+  readonly activeMap = computed(
+    () => this.availableMaps().find((map) => map.id === this.activeMapId()) ?? null,
+  );
+  readonly configuredMapUrl = computed(() => this.activeMap()?.imageUrl ?? '');
   readonly mapTitle = computed(() => this.appConfig.config()?.mapDisplayName ?? 'Shared map');
   readonly mapFrameLabel = computed(() => `${this.mapTitle()} image plane`);
   readonly mapLoadErrorMessage = computed(() => messageForMapError(this.mapLoadError()));
@@ -1217,6 +1256,7 @@ export class MapPage {
   readonly canSaveRally = computed(
     () =>
       !this.isRallySaving() &&
+      this.activeMapId().length > 0 &&
       this.rallyDraftTitle().length > 0 &&
       this.pendingRallyPoint() !== null &&
       !this.rallyScheduledTimeIsPast(),
@@ -1256,7 +1296,10 @@ export class MapPage {
     return this.members()
       .filter(
         (member) =>
-          member.locationVisible && member.mapXPercent !== null && member.mapYPercent !== null,
+          member.locationVisible &&
+          member.mapId === this.activeMapId() &&
+          member.mapXPercent !== null &&
+          member.mapYPercent !== null,
       )
       .map((member) => toMapPin(member, bounds, viewportWidth, viewportHeight, now, currentUid))
       .sort((first, second) => Number(first.isCurrentMember) - Number(second.isCurrentMember));
@@ -1269,17 +1312,19 @@ export class MapPage {
     const viewportWidth = this.mapViewportWidth();
     const viewportHeight = this.mapViewportHeight();
 
-    return this.rallyPoints().map((rallyPoint) =>
-      toMapRallyMarker(
-        rallyPoint,
-        bounds,
-        viewportWidth,
-        viewportHeight,
-        this.rallyResponses(),
-        this.members(),
-        this.authSession.user()?.uid ?? '',
-      ),
-    );
+    return this.rallyPoints()
+      .filter((rallyPoint) => rallyPoint.mapId === this.activeMapId())
+      .map((rallyPoint) =>
+        toMapRallyMarker(
+          rallyPoint,
+          bounds,
+          viewportWidth,
+          viewportHeight,
+          this.rallyResponses(),
+          this.members(),
+          this.authSession.user()?.uid ?? '',
+        ),
+      );
   });
   readonly selectedRally = computed(
     () =>
@@ -1385,7 +1430,32 @@ export class MapPage {
   async reloadMapConfig(): Promise<void> {
     this.mapImageFailed.set(false);
     this.resetMapView();
-    await this.appConfig.loadCurrentConfig({ force: true });
+    const config = await this.appConfig.loadCurrentConfig({ force: true });
+
+    if (!config) {
+      this.activeMapId.set('');
+      return;
+    }
+
+    const requestedMapIsValid = config.maps.some((map) => map.id === this.requestedMapId);
+    this.activeMapId.set(requestedMapIsValid ? this.requestedMapId! : config.defaultMapId);
+  }
+
+  selectActiveMap(mapId: string): void {
+    if (mapId === this.activeMapId() || !this.availableMaps().some((map) => map.id === mapId)) {
+      return;
+    }
+
+    this.activeMapId.set(mapId);
+    this.requestedMapId = null;
+    this.mapImageFailed.set(false);
+    this.mapImageNaturalWidth.set(0);
+    this.mapImageNaturalHeight.set(0);
+    this.selectedPinId.set(null);
+    this.selectedRallyId.set(null);
+    this.resetRallyDraft();
+    this.clearPinUndo();
+    this.resetMapView();
   }
 
   retryMapImage(): void {
@@ -1736,8 +1806,8 @@ export class MapPage {
 
     try {
       const member =
-        previous.locationVisible && previous.x !== null && previous.y !== null
-          ? await this.memberProfile.saveCurrentPin(previous.x, previous.y)
+        previous.locationVisible && previous.mapId && previous.x !== null && previous.y !== null
+          ? await this.memberProfile.saveCurrentPin(previous.mapId, previous.x, previous.y)
           : await this.memberProfile.hideCurrentLocation();
       this.previousPinState.set(null);
       this.selectedPinId.set(member.locationVisible ? member.id : null);
@@ -1771,6 +1841,7 @@ export class MapPage {
       const rallyPoint = await this.rallyPointsService.createRallyPoint({
         title: this.rallyTitle(),
         note: this.rallyNote(),
+        mapId: this.activeMapId(),
         mapXPercent: pendingPoint.x,
         mapYPercent: pendingPoint.y,
         scheduledTime: parseDateTimeLocal(this.rallyScheduledTimeInput()),
@@ -1818,7 +1889,7 @@ export class MapPage {
   private async savePinAtViewportPoint(point: MapPoint, viewport: HTMLElement): Promise<void> {
     const mapPercent = this.mapPercentFromViewportPoint(point, viewport);
 
-    if (!mapPercent || this.isPinSaving() || this.isLocationHiding()) {
+    if (!mapPercent || !this.activeMapId() || this.isPinSaving() || this.isLocationHiding()) {
       return;
     }
 
@@ -1832,8 +1903,13 @@ export class MapPage {
         currentMember?.locationVisible === true &&
         currentMember.mapXPercent !== null &&
         currentMember.mapYPercent !== null;
-      const member = await this.memberProfile.saveCurrentPin(mapPercent.x, mapPercent.y);
+      const member = await this.memberProfile.saveCurrentPin(
+        this.activeMapId(),
+        mapPercent.x,
+        mapPercent.y,
+      );
       this.previousPinState.set({
+        mapId: currentMember?.mapId ?? null,
         x: currentMember?.mapXPercent ?? null,
         y: currentMember?.mapYPercent ?? null,
         locationVisible: currentMember?.locationVisible ?? false,

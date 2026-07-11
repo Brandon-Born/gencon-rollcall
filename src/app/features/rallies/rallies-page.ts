@@ -13,6 +13,7 @@ import {
 
 interface RallyListItem {
   id: string;
+  mapId: string | null;
   title: string;
   note: string;
   creatorName: string;
@@ -90,7 +91,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                 <p class="meta">{{ rally.scheduledLabel }} · {{ rally.creatorName }}</p>
                 <p>{{ rally.note || 'No note added.' }}</p>
                 <div class="rally-actions">
-                  <a class="coordinate" routerLink="/app/map" [queryParams]="{ rally: rally.id }">
+                  <a
+                    class="coordinate"
+                    routerLink="/app/map"
+                    [queryParams]="{ rally: rally.id, map: rally.mapId }"
+                  >
                     View on map
                   </a>
 
@@ -821,6 +826,7 @@ function toRallyListItem(
 
   return {
     id: rallyPoint.id,
+    mapId: rallyPoint.mapId,
     title: rallyPoint.title,
     note: rallyPoint.note,
     creatorName: rallyPoint.createdByName,

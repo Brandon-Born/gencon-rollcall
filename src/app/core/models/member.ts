@@ -6,6 +6,7 @@ export interface Member {
   avatarStyle: string;
   status: MemberStatus;
   note: string;
+  mapId: string | null;
   mapXPercent: number | null;
   mapYPercent: number | null;
   locationVisible: boolean;

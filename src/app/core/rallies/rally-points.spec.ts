@@ -10,6 +10,7 @@ function rallyPoint(overrides: Partial<RallyPoint>): RallyPoint {
     id: 'rally-1',
     title: 'Meetup',
     note: '',
+    mapId: 'exhibit-hall',
     mapXPercent: 50,
     mapYPercent: 50,
     scheduledTime: null,

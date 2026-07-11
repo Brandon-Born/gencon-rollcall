@@ -13,6 +13,7 @@ import type {
 export interface CreateRallyPointInput {
   title: string;
   note: string;
+  mapId: string;
   mapXPercent: number;
   mapYPercent: number;
   scheduledTime: Date | null;
@@ -56,6 +57,7 @@ export class RallyPoints {
     const rallyPoint = {
       title,
       note: normalizeNote(input.note),
+      mapId: input.mapId,
       mapXPercent: normalizeMapPercent(input.mapXPercent),
       mapYPercent: normalizeMapPercent(input.mapYPercent),
       scheduledTime: input.scheduledTime,
@@ -73,6 +75,7 @@ export class RallyPoints {
       id: rallyRef.id,
       title: rallyPoint.title,
       note: rallyPoint.note,
+      mapId: rallyPoint.mapId,
       mapXPercent: rallyPoint.mapXPercent,
       mapYPercent: rallyPoint.mapYPercent,
       scheduledTime: rallyPoint.scheduledTime,
@@ -101,7 +104,7 @@ export class RallyPoints {
     const emitActiveRallyPoints = () =>
       onRallyPoints(
         allRallyPoints
-          .filter((rallyPoint) => !isRallyPointExpired(rallyPoint))
+          .filter((rallyPoint) => rallyPoint.mapId !== null && !isRallyPointExpired(rallyPoint))
           .sort(compareRallyPoints),
       );
     const unsubscribe = onSnapshot(
@@ -201,6 +204,7 @@ export class RallyPoints {
       id,
       title: stringValue(data['title']) || 'Untitled rally point',
       note: stringValue(data['note']),
+      mapId: stringValue(data['mapId']) || null,
       mapXPercent: numberValue(data['mapXPercent']),
       mapYPercent: numberValue(data['mapYPercent']),
       scheduledTime: dateOrNull(data['scheduledTime']),

@@ -14,9 +14,10 @@ import {
 } from 'firebase/firestore';
 
 const projectId = 'demo-gencon-rollcall-rules';
-const firestoreHost = '127.0.0.1';
-const firestorePort = 8080;
-const authOrigin = 'http://127.0.0.1:9099';
+const firestoreHost = process.env['FIRESTORE_RULES_TEST_HOST'] ?? '127.0.0.1';
+const firestorePort = Number(process.env['FIRESTORE_RULES_TEST_PORT'] ?? 8080);
+const authPort = Number(process.env['AUTH_RULES_TEST_PORT'] ?? 9099);
+const authOrigin = `http://${firestoreHost}:${authPort}`;
 const firestoreOrigin = `http://${firestoreHost}:${firestorePort}`;
 const apps: FirebaseApp[] = [];
 let appSequence = 0;
@@ -106,9 +107,10 @@ function memberFields(displayName: string): Record<string, unknown> {
     avatarStyle: { stringValue: 'default' },
     status: { stringValue: 'available' },
     note: { stringValue: '' },
+    mapId: nullValue(),
     mapXPercent: nullValue(),
     mapYPercent: nullValue(),
-    locationVisible: { booleanValue: true },
+    locationVisible: { booleanValue: false },
     joinedAt: timestampValue(now),
     lastUpdatedAt: timestampValue(now),
   };
@@ -121,6 +123,7 @@ function rallyFields(
   return {
     title: { stringValue: 'Rules test rally' },
     note: { stringValue: '' },
+    mapId: { stringValue: 'exhibit-hall' },
     mapXPercent: { doubleValue: 50 },
     mapYPercent: { doubleValue: 50 },
     scheduledTime: nullValue(),
@@ -229,13 +232,70 @@ describe('member ownership and lifecycle', () => {
     const otherUid = other.uid!;
     const ownerRef = doc(owner.db, 'members', ownerUid);
 
-    await expect(setDoc(ownerRef, { displayName: 'Owner' })).resolves.toBeUndefined();
+    await expect(
+      setDoc(ownerRef, {
+        displayName: 'Owner',
+        mapId: null,
+        mapXPercent: null,
+        mapYPercent: null,
+        locationVisible: false,
+      }),
+    ).resolves.toBeUndefined();
     await expect(updateDoc(ownerRef, { note: 'Updated by owner' })).resolves.toBeUndefined();
     await expectDenied(setDoc(doc(owner.db, 'members', otherUid), { displayName: 'Impostor' }));
     await expectDenied(updateDoc(doc(other.db, 'members', ownerUid), { note: 'Hijacked' }));
     await expectDenied(deleteDoc(doc(other.db, 'members', ownerUid)));
     await expect(deleteDoc(ownerRef)).resolves.toBeUndefined();
     expect((await getDoc(doc(other.db, 'members', ownerUid))).exists()).toBe(false);
+  });
+
+  it('requires valid map-aware visible locations and consistently cleared hidden locations', async () => {
+    const owner = await createClient({ authorized: true });
+    const uid = owner.uid!;
+    const ownerRef = doc(owner.db, 'members', uid);
+
+    await expect(
+      setDoc(ownerRef, {
+        displayName: 'Mapped owner',
+        mapId: 'exhibit-hall',
+        mapXPercent: 42.5,
+        mapYPercent: 18,
+        locationVisible: true,
+      }),
+    ).resolves.toBeUndefined();
+    await expectDenied(updateDoc(ownerRef, { mapId: 'arbitrary-map' }));
+    await expectDenied(updateDoc(ownerRef, { mapXPercent: 101 }));
+    await expectDenied(
+      updateDoc(ownerRef, {
+        mapId: null,
+        mapXPercent: null,
+        mapYPercent: null,
+        locationVisible: true,
+      }),
+    );
+    await expect(
+      updateDoc(ownerRef, {
+        mapId: null,
+        mapXPercent: null,
+        mapYPercent: null,
+        locationVisible: false,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('allows unrelated updates to legacy members but requires map-aware location changes', async () => {
+    const owner = await createClient({ authorized: true });
+    const uid = owner.uid!;
+    await adminSet(`members/${uid}`, {
+      displayName: { stringValue: 'Legacy owner' },
+      mapXPercent: { doubleValue: 50 },
+      mapYPercent: { doubleValue: 50 },
+      locationVisible: { booleanValue: true },
+    });
+    const ownerRef = doc(owner.db, 'members', uid);
+
+    await expect(updateDoc(ownerRef, { note: 'Still allowed' })).resolves.toBeUndefined();
+    await expectDenied(updateDoc(ownerRef, { mapXPercent: 55 }));
   });
 
   it('prevents clients from writing app config or authorization records', async () => {
@@ -260,9 +320,15 @@ describe('rally ownership and expiration', () => {
     await expect(
       setDoc(rallyRef, {
         title: 'Owned rally',
+        note: '',
+        mapId: 'exhibit-hall',
+        mapXPercent: 50,
+        mapYPercent: 50,
+        scheduledTime: null,
         createdByMemberId: creatorUid,
+        createdByName: 'Creator',
         status: 'active',
-        expiresAt: null,
+        expiresAt: Timestamp.fromDate(new Date('2099-01-01T00:00:00.000Z')),
       }),
     ).resolves.toBeUndefined();
     await expectDenied(
@@ -276,6 +342,43 @@ describe('rally ownership and expiration', () => {
       updateDoc(rallyRef, { status: 'expired', expiresAt: Timestamp.now() }),
     ).resolves.toBeUndefined();
     await expectDenied(deleteDoc(rallyRef));
+  });
+
+  it('rejects rallies with missing, unknown, or out-of-range map locations', async () => {
+    const creator = await createClient({ authorized: true });
+    const uid = creator.uid!;
+    const baseRally = {
+      title: 'Mapped rally',
+      note: '',
+      mapXPercent: 50,
+      mapYPercent: 50,
+      scheduledTime: null,
+      createdByMemberId: uid,
+      createdByName: 'Creator',
+      status: 'active',
+      expiresAt: Timestamp.fromDate(new Date('2099-01-01T00:00:00.000Z')),
+    };
+
+    await expectDenied(setDoc(doc(creator.db, 'rallyPoints', 'missing-map'), baseRally));
+    await expectDenied(
+      setDoc(doc(creator.db, 'rallyPoints', 'unknown-map'), {
+        ...baseRally,
+        mapId: 'somewhere-else',
+      }),
+    );
+    await expectDenied(
+      setDoc(doc(creator.db, 'rallyPoints', 'bad-coordinate'), {
+        ...baseRally,
+        mapId: 'level-2',
+        mapYPercent: -1,
+      }),
+    );
+    await expect(
+      setDoc(doc(creator.db, 'rallyPoints', 'valid-map'), {
+        ...baseRally,
+        mapId: 'level-2',
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 

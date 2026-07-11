@@ -8,7 +8,8 @@ The app helps the group coordinate without a constant stream of texts: members c
 
 The MVP app is implemented and deployed with the shared-password gate, anonymous sessions,
 Firestore-backed onboarding, manual map pins, status and People views, rally creation, responses,
-expiration, location privacy controls, and installable PWA support.
+expiration, location privacy controls, multi-map selection, and installable PWA support. The
+official-map production cutover remains release-blocking.
 
 Start with the docs in this order:
 
@@ -44,7 +45,7 @@ Start with the docs in this order:
 
 ## Map Source
 
-Treat [https://www.gencon.com/map](https://www.gencon.com/map) as the canonical source to review for the current official Gen Con map. For MVP implementation, store a static convention-map image in Vercel public assets and render it as an image/canvas surface with relative percentage coordinates.
+Treat [https://www.gencon.com/map](https://www.gencon.com/map) as the canonical source to review for the current official Gen Con map. Versioned static images and their manifest live under `public/maps/gencon-2026/`; the client renders one selected image plane with map-specific percentage coordinates.
 
 Do not depend on latitude/longitude, continuous GPS, or live scraping of the Gen Con page for MVP.
 
@@ -107,10 +108,10 @@ The production build may need to run outside this Codex sandbox on this machine;
 
 ## Map and Deployment Runbook
 
-Use a versioned public map asset so installed PWAs do not retain an old map at the same URL:
+Use a versioned public manifest and immutable assets so installed PWAs do not retain an old map at the same URL:
 
 ```text
-public/maps/gencon-2026-v1.png
+public/maps/gencon-2026/manifest-v1.json
 ```
 
 The complete map upload/configuration procedure, release commands, Firestore rules order, rollback

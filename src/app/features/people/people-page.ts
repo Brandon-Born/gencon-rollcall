@@ -9,6 +9,7 @@ import { peopleSummaryLabel } from './people-summary';
 
 interface PersonListItem {
   id: string;
+  mapId: string | null;
   displayName: string;
   initials: string;
   status: MemberStatus;
@@ -423,7 +424,9 @@ export class PeoplePage {
 
   openPersonOnMap(person: PersonListItem): void {
     if (person.canOpenMap) {
-      void this.router.navigate(['/app/map'], { queryParams: { member: person.id } });
+      void this.router.navigate(['/app/map'], {
+        queryParams: { member: person.id, map: person.mapId },
+      });
     }
   }
 
@@ -476,6 +479,7 @@ function toPersonListItem(member: Member, now: Date, currentUid: string): Person
 
   return {
     id: member.id,
+    mapId: member.mapId,
     displayName: member.displayName || 'Unnamed member',
     initials: initialsFor(member.displayName),
     status: member.status,
@@ -485,7 +489,10 @@ function toPersonListItem(member: Member, now: Date, currentUid: string): Person
     updatedAtIso: updatedAt.toISOString(),
     locationVisible: member.locationVisible,
     canOpenMap:
-      member.locationVisible && member.mapXPercent !== null && member.mapYPercent !== null,
+      member.locationVisible &&
+      member.mapId !== null &&
+      member.mapXPercent !== null &&
+      member.mapYPercent !== null,
     isCurrent: member.id === currentUid,
     tone: toneForStatus(member.status),
     isOffline,

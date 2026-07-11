@@ -18,8 +18,8 @@ Status values:
 
 ## Next 3
 
-1. `MAP-002` Add map selection and map-aware member/rally locations.
-2. `MAP-003` Cut production over to the official maps and complete release QA.
+1. `MAP-003` Cut production over to the official maps and complete release QA.
+2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
 ## Milestone: Official Gen Con 2026 map rollout
@@ -50,12 +50,26 @@ Implementation status:
 
 ### `MAP-002` Add map selection and map-aware locations
 
-- [ ] Load and validate the map manifest with a legacy single-image fallback; add a compact map
+- [x] Load and validate the map manifest with a legacy single-image fallback; add a compact map
       selector that defaults to Exhibit Hall and initially loads only the active image.
-- [ ] Store `mapId` with visible member pins and rally points, filter markers by active map, and
+- [x] Store `mapId` with visible member pins and rally points, filter markers by active map, and
       make People/rally deep links open the target's map before selecting it.
-- [ ] Update models, writes, Firestore rules, emulator seeds, and focused unit/rule coverage for
+- [x] Update models, writes, Firestore rules, emulator seeds, and focused unit/rule coverage for
       valid map ids, hidden locations, and legacy records.
+
+Implementation status:
+
+- The config service validates the versioned static manifest, safely falls back to a named legacy
+  image, selects `exhibit-hall` by default, and renders only the selected image behind a compact
+  phone-sized selector.
+- Member pins and rally points now persist an allowlisted `mapId`; map markers are filtered by the
+  active map, legacy locations are treated as hidden, and legacy rallies are excluded from active
+  views.
+- People and Rally Points links include the target map and browser QA at 430×844 confirmed each
+  link switches maps before centering/selecting its target. Pin/rally create, marker isolation,
+  hide, and cleanup flows passed with no horizontal overflow.
+- Focused manifest unit tests and emulator rules tests cover defaults, malformed manifests, valid
+  map ids, cleared hidden locations, legacy records, and rejected arbitrary/out-of-range writes.
 
 ### `MAP-003` Cut over production and complete release QA
 

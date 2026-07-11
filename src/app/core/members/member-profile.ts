@@ -82,9 +82,10 @@ export class MemberProfile {
         avatarStyle: avatarStyleFor(uid, trimmedName),
         status: 'available',
         note: '',
+        mapId: null,
         mapXPercent: null,
         mapYPercent: null,
-        locationVisible: true,
+        locationVisible: false,
         joinedAt: serverTimestamp(),
         lastUpdatedAt: serverTimestamp(),
       });
@@ -133,7 +134,7 @@ export class MemberProfile {
     throw new MemberProfileError('member-not-found');
   }
 
-  async saveCurrentPin(mapXPercent: number, mapYPercent: number): Promise<Member> {
+  async saveCurrentPin(mapId: string, mapXPercent: number, mapYPercent: number): Promise<Member> {
     const uid = this.authSession.user()?.uid;
 
     if (!uid || !this.authSession.isAuthorized()) {
@@ -146,6 +147,7 @@ export class MemberProfile {
     const memberRef = doc(await this.firebase.getFirestore(), 'members', uid);
 
     await updateDoc(memberRef, {
+      mapId,
       mapXPercent: normalizedX,
       mapYPercent: normalizedY,
       locationVisible: true,
@@ -163,6 +165,7 @@ export class MemberProfile {
     if (existingMember) {
       const fallbackMember = {
         ...existingMember,
+        mapId,
         mapXPercent: normalizedX,
         mapYPercent: normalizedY,
         locationVisible: true,
@@ -186,6 +189,7 @@ export class MemberProfile {
     const memberRef = doc(await this.firebase.getFirestore(), 'members', uid);
 
     await updateDoc(memberRef, {
+      mapId: null,
       mapXPercent: null,
       mapYPercent: null,
       locationVisible: false,
@@ -203,6 +207,7 @@ export class MemberProfile {
     if (existingMember) {
       const fallbackMember = {
         ...existingMember,
+        mapId: null,
         mapXPercent: null,
         mapYPercent: null,
         locationVisible: false,
@@ -257,6 +262,11 @@ export class MemberProfile {
   }
 
   private toMember(id: string, data: Record<string, unknown>): Member {
+    const mapId = stringOrNull(data['mapId']);
+    const mapXPercent = numberOrNull(data['mapXPercent']);
+    const mapYPercent = numberOrNull(data['mapYPercent']);
+    const hasMapAwareLocation = mapId !== null && mapXPercent !== null && mapYPercent !== null;
+
     return {
       id,
       displayName: stringValue(data['displayName']),
@@ -264,9 +274,10 @@ export class MemberProfile {
         stringValue(data['avatarStyle']) || avatarStyleFor(id, stringValue(data['displayName'])),
       status: memberStatusValue(data['status']),
       note: stringValue(data['note']),
-      mapXPercent: numberOrNull(data['mapXPercent']),
-      mapYPercent: numberOrNull(data['mapYPercent']),
-      locationVisible: data['locationVisible'] !== false,
+      mapId: hasMapAwareLocation ? mapId : null,
+      mapXPercent: hasMapAwareLocation ? mapXPercent : null,
+      mapYPercent: hasMapAwareLocation ? mapYPercent : null,
+      locationVisible: data['locationVisible'] === true && hasMapAwareLocation,
       joinedAt: dateValue(data['joinedAt']),
       lastUpdatedAt: dateValue(data['lastUpdatedAt']),
     };
@@ -281,9 +292,10 @@ export class MemberProfile {
       avatarStyle: avatarStyleFor(id, displayName),
       status: 'available',
       note: '',
+      mapId: null,
       mapXPercent: null,
       mapYPercent: null,
-      locationVisible: true,
+      locationVisible: false,
       joinedAt: now,
       lastUpdatedAt: now,
     };
@@ -328,6 +340,10 @@ function stringValue(value: unknown): string {
 
 function numberOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function memberStatusValue(value: unknown): MemberStatus {

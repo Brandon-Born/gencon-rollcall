@@ -14,6 +14,8 @@ Use this file when picking up the project in a new session.
 - Local Firebase Auth/Firestore emulator smoke tests work through Vercel dev with `local-dev-password`.
 - Rally creation, responses, and manual/scheduled expiration are implemented.
 - Production builds include installable PWA metadata and app-shell caching.
+- Official multi-map selection and map-aware member/rally locations are implemented; production
+  cutover and release QA remain.
 - UX Round 2 (`UX-001` through `UX-014`) is complete, including rally timing/names/map responses,
   member lifecycle and map links, rally awareness, location recovery, phone polish, and wording.
 
@@ -30,7 +32,7 @@ Use this file when picking up the project in a new session.
 
 ## Start Here
 
-Complete the release-blocking official-map rollout in `docs/official-map-rollout.md` before working
+Complete `MAP-003`, the production cutover and release QA in `docs/official-map-rollout.md`, before working
 the deferred UX polish or sharing the app with the group. Keep shared map/member/rally data behind
 the existing authorization checks.
 

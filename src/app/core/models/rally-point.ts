@@ -6,6 +6,7 @@ export interface RallyPoint {
   id: string;
   title: string;
   note: string;
+  mapId: string | null;
   mapXPercent: number;
   mapYPercent: number;
   scheduledTime: Date | null;

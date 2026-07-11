@@ -48,9 +48,11 @@ The map image itself is not treated as sensitive. The app gates access to map co
 - `authorizedUsers`: backend writes only; users may read their own authorization state if necessary.
 - `appConfig/current`: authorized users read; setup/admin backend writes.
 - `members/{uid}`: authorized users read all; a user writes and may delete only their own member
-  document. Self-deletion supports the explicit leave-app flow.
+  document. Visible location writes require an allowlisted `mapId` and 0–100 coordinates; hidden
+  locations must clear all three map fields. Self-deletion supports the explicit leave-app flow.
 - `rallyPoints`: authorized users read and create; only the creator can mark an active rally
-  expired, and that update can touch only `status` and `expiresAt`.
+  expired, and that update can touch only `status` and `expiresAt`. New rallies require an
+  allowlisted `mapId` and valid percentage coordinates.
 - `responses/{uid}`: authorized users read; each user writes only their own response document
   while the parent rally is active and has not reached `expiresAt`.
 

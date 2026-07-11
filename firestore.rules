@@ -28,6 +28,62 @@ service cloud.firestore {
         && request.resource.data.expiresAt is timestamp;
     }
 
+    function validMapId(mapId) {
+      return mapId in [
+        'exhibit-hall',
+        'basement',
+        'level-1',
+        'level-2',
+        'level-3',
+        'level-4',
+        'local-dev',
+        'legacy'
+      ];
+    }
+
+    function validMapPercent(value) {
+      return value is number && value >= 0 && value <= 100;
+    }
+
+    function validMemberLocation(member) {
+      return member.locationVisible is bool
+        && (
+          (
+            member.locationVisible == true
+            && validMapId(member.mapId)
+            && validMapPercent(member.mapXPercent)
+            && validMapPercent(member.mapYPercent)
+          )
+          || (
+            member.locationVisible == false
+            && member.mapId == null
+            && member.mapXPercent == null
+            && member.mapYPercent == null
+          )
+        );
+    }
+
+    function validMemberUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'mapId', 'mapXPercent', 'mapYPercent', 'locationVisible'
+        ])
+        || validMemberLocation(request.resource.data);
+    }
+
+    function validRallyPointCreate(rally) {
+      return rally.keys().hasOnly([
+          'title', 'note', 'mapId', 'mapXPercent', 'mapYPercent', 'scheduledTime',
+          'createdByMemberId', 'createdByName', 'status', 'expiresAt'
+        ])
+        && rally.createdByMemberId == request.auth.uid
+        && rally.status == 'active'
+        && validMapId(rally.mapId)
+        && validMapPercent(rally.mapXPercent)
+        && validMapPercent(rally.mapYPercent)
+        && (rally.scheduledTime == null || rally.scheduledTime is timestamp)
+        && rally.expiresAt is timestamp;
+    }
+
     function validResponse(response, rallyPointId, uid) {
       return response.keys().hasOnly(['rallyPointId', 'memberId', 'responseStatus', 'updatedAt'])
         && response.rallyPointId == rallyPointId
@@ -47,12 +103,15 @@ service cloud.firestore {
 
     match /members/{uid} {
       allow read: if authorized();
-      allow create, update: if authorized() && request.auth.uid == uid;
+      allow create: if authorized() && request.auth.uid == uid
+        && validMemberLocation(request.resource.data);
+      allow update: if authorized() && request.auth.uid == uid && validMemberUpdate();
       allow delete: if authorized() && request.auth.uid == uid;
     }
 
     match /rallyPoints/{rallyPointId} {
-      allow read, create: if authorized();
+      allow read: if authorized();
+      allow create: if authorized() && validRallyPointCreate(request.resource.data);
       allow update: if authorized() && validExpiration();
       allow delete: if false;
 

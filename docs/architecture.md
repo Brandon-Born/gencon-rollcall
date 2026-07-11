@@ -48,9 +48,13 @@ src/
 The map is a static image plane.
 
 - Pin coordinates are stored as percentages relative to the image bounds.
+- Each visible pin and rally point stores one allowlisted `mapId`; only the active map's markers
+  render, and records without a map id are treated as legacy synthetic data.
 - On render, convert `xPercent` and `yPercent` to CSS pixel positions inside the transformed map layer.
 - On tap/press, invert viewport transform and convert the pointer location back to percentages.
 - Pin data remains valid if the image renders at different sizes.
+- The static manifest supplies the available image planes and explicit default. Only the active
+  image is loaded; a configured single-image map remains available as a compatibility fallback.
 
 ## Map Interaction Rules
 

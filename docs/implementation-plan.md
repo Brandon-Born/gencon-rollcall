@@ -27,8 +27,11 @@ Current scaffold note: Angular uses the Firebase JavaScript SDK directly. Angula
 
 ```text
 AppConfig
+- mapManifestUrl
 - mapImageUrl
 - mapDisplayName
+- defaultMapId
+- maps[]
 - updatedAt
 
 Member
@@ -37,6 +40,7 @@ Member
 - avatarStyle
 - status
 - note
+- mapId
 - mapXPercent
 - mapYPercent
 - locationVisible
@@ -47,6 +51,7 @@ RallyPoint
 - id
 - title
 - note
+- mapId
 - mapXPercent
 - mapYPercent
 - scheduledTime
