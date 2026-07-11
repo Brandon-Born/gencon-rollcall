@@ -30,12 +30,12 @@ fresh session. The previous `Next 3` UX items remain queued below and resume aft
 
 ### `MAP-001` Prepare and verify official map assets
 
-- [ ] Export the official 2026 main Exhibit Hall map and required convention-center levels at a
-      consistent, legible resolution.
-- [ ] Add optimized, versioned assets and a static manifest under `public/maps/gencon-2026/` with
-      `defaultMapId: "exhibit-hall"`.
-- [ ] Compare recognizable labels, rooms, entrances, booth areas, and orientation against the
-      official source; verify deployed asset content types before changing Firestore config.
+- [/] Export the official 2026 main Exhibit Hall map and required convention-center levels at a
+  consistent, legible resolution.
+- [/] Add optimized, versioned assets and a static manifest under `public/maps/gencon-2026/` with
+  `defaultMapId: "exhibit-hall"`.
+- [/] Compare recognizable labels, rooms, entrances, booth areas, and orientation against the
+  official source; verify deployed asset content types before changing Firestore config.
 
 ### `MAP-002` Add map selection and map-aware locations
 

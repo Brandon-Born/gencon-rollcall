@@ -1,0 +1,77 @@
+{
+  "id": "gencon-2026-v1",
+  "displayName": "Gen Con Indy 2026",
+  "defaultMapId": "exhibit-hall",
+  "sourceUrl": "https://www.gencon.com/map",
+  "sourceVersion": "v9",
+  "conventionId": 27,
+  "capturedAt": "2026-07-11T00:25:46Z",
+  "maps": [
+    {
+      "id": "exhibit-hall",
+      "label": "Exhibit Hall",
+      "shortLabel": "Exhibit",
+      "imageUrl": "/maps/gencon-2026/exhibit-hall-v1.webp",
+      "width": 3840,
+      "height": 2270,
+      "sha256": "acc0c300eb1de05034b843dcae9e1fd30feba7fa652a36caaff23f248e5b4444",
+      "sourceFloor": 1,
+      "sourceZoom": 6
+    },
+    {
+      "id": "basement",
+      "label": "Basement",
+      "shortLabel": "B",
+      "imageUrl": "/maps/gencon-2026/basement-v1.webp",
+      "width": 2050,
+      "height": 2900,
+      "sha256": "e9386d4dcebe166daf33ad97aa92f3061fd63cd898164fbdd0698097d0e6ba7b",
+      "sourceFloor": 0,
+      "sourceZoom": 4
+    },
+    {
+      "id": "level-1",
+      "label": "Convention Level 1",
+      "shortLabel": "1",
+      "imageUrl": "/maps/gencon-2026/level-1-v1.webp",
+      "width": 2050,
+      "height": 2900,
+      "sha256": "105f679caeb6e110ac903cd1b5b2c8c1a460cb31a0d6846b0b6ca3e8f6d2a4ac",
+      "sourceFloor": 1,
+      "sourceZoom": 4
+    },
+    {
+      "id": "level-2",
+      "label": "Convention Level 2",
+      "shortLabel": "2",
+      "imageUrl": "/maps/gencon-2026/level-2-v1.webp",
+      "width": 2050,
+      "height": 2900,
+      "sha256": "cbab52c46c281f611f84a6d93a448dd24f8eec8ea242a2746e1fe3ecf1170955",
+      "sourceFloor": 2,
+      "sourceZoom": 4
+    },
+    {
+      "id": "level-3",
+      "label": "Convention Level 3",
+      "shortLabel": "3",
+      "imageUrl": "/maps/gencon-2026/level-3-v1.webp",
+      "width": 2050,
+      "height": 2900,
+      "sha256": "bf65f5d220188d9b465ecf6022ff84e64a3c7d9717564d8a45057df80f703487",
+      "sourceFloor": 3,
+      "sourceZoom": 4
+    },
+    {
+      "id": "level-4",
+      "label": "Convention Level 4",
+      "shortLabel": "4",
+      "imageUrl": "/maps/gencon-2026/level-4-v1.webp",
+      "width": 2050,
+      "height": 2900,
+      "sha256": "baa1185e0f08e5c75384e7cab9ee46c4ba7b87e83c7c2e0b05e5d6d3e51d6c1d",
+      "sourceFloor": 4,
+      "sourceZoom": 4
+    }
+  ]
+}

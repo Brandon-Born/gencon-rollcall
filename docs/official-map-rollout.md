@@ -100,6 +100,18 @@ Requirements:
 5. Verify each deployed asset returns the expected image content type and the manifest returns
    JSON rather than the Angular fallback document.
 
+Current asset set (captured 2026-07-11):
+
+- `exhibit-hall-v1.webp` is a 3840×2270 floor-1 detail export with the official convention 27
+  booth/area overlay and all 694 numbered exhibitor areas visible at source resolution.
+- `basement-v1.webp` and `level-1-v1.webp` through `level-4-v1.webp` are 2050×2900 exports using a
+  shared geographic extent for consistent orientation across the ICC and Lucas Oil Stadium.
+- `manifest-v1.json` identifies official tile source version `v9`, records the source floor/zoom,
+  dimensions, and SHA-256 digest for every immutable asset, and explicitly defaults to
+  `exhibit-hall`.
+- The level exports include the official floor-specific room/area overlays returned for Gen Con
+  convention id 27; they are not bare venue base tiles.
+
 ### `MAP-002` Implement map selection and map-aware data
 
 1. Extend app config loading with manifest validation and the legacy single-image fallback.
