@@ -18,9 +18,9 @@ Status values:
 
 ## Next 3
 
-1. `MAP-001` Prepare and verify the official Gen Con Indy 2026 map assets.
-2. `MAP-002` Add map selection and map-aware member/rally locations.
-3. `MAP-003` Cut production over to the official maps and complete release QA.
+1. `MAP-002` Add map selection and map-aware member/rally locations.
+2. `MAP-003` Cut production over to the official maps and complete release QA.
+3. No third actionable release blocker is currently queued.
 
 ## Milestone: Official Gen Con 2026 map rollout
 
@@ -30,12 +30,23 @@ fresh session. The previous `Next 3` UX items remain queued below and resume aft
 
 ### `MAP-001` Prepare and verify official map assets
 
-- [/] Export the official 2026 main Exhibit Hall map and required convention-center levels at a
-  consistent, legible resolution.
-- [/] Add optimized, versioned assets and a static manifest under `public/maps/gencon-2026/` with
-  `defaultMapId: "exhibit-hall"`.
-- [/] Compare recognizable labels, rooms, entrances, booth areas, and orientation against the
-  official source; verify deployed asset content types before changing Firestore config.
+- [x] Export the official 2026 main Exhibit Hall map and required convention-center levels at a
+      consistent, legible resolution.
+- [x] Add optimized, versioned assets and a static manifest under `public/maps/gencon-2026/` with
+      `defaultMapId: "exhibit-hall"`.
+- [x] Compare recognizable labels, rooms, entrances, booth areas, and orientation against the
+      official source; verify deployed asset content types before changing Firestore config.
+
+Implementation status:
+
+- Six immutable lossless WebP assets cover the detailed Exhibit Hall plus Basement and convention
+  Levels 1–4. The Exhibit Hall includes the official convention-27 area overlay and all 694
+  numbered exhibitor areas; level exports include their official floor-specific overlays.
+- `manifest-v1.json` explicitly defaults to `exhibit-hall` and records stable ids, dimensions,
+  source version/floor/zoom, capture time, and SHA-256 digests.
+- Visual comparison confirmed the official hall/booth layout, concourses, ICC, and Lucas Oil
+  Stadium orientation. Production returns `application/json` for the manifest and `image/webp` for
+  all six images, whose downloaded hashes match the manifest.
 
 ### `MAP-002` Add map selection and map-aware locations
 
