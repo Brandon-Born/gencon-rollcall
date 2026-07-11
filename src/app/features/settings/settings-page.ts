@@ -3,6 +3,10 @@ import { Router } from '@angular/router';
 
 import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
+import {
+  PushNotificationError,
+  PushNotifications,
+} from '../../core/notifications/push-notifications';
 import { SessionStore } from '../../core/session/session-store';
 
 @Component({
@@ -34,6 +38,26 @@ import { SessionStore } from '../../core/session/session-store';
         @if (saveMessage()) {
           <p class="save-message" [class.error]="saveMessageIsError()" role="status">
             {{ saveMessage() }}
+          </p>
+        }
+      </section>
+
+      <section class="panel">
+        <div>
+          <strong>Rally notifications</strong>
+          <p>{{ notificationDescription() }}</p>
+        </div>
+        <button
+          type="button"
+          [class.secondary]="notifications.isEnabled()"
+          [disabled]="notifications.isBusy() || !notifications.isSupported"
+          (click)="toggleNotifications()"
+        >
+          {{ notificationButtonLabel() }}
+        </button>
+        @if (notificationMessage()) {
+          <p class="save-message" [class.error]="notificationMessageIsError()" role="status">
+            {{ notificationMessage() }}
           </p>
         }
       </section>
@@ -216,6 +240,7 @@ import { SessionStore } from '../../core/session/session-store';
 export class SettingsPage {
   private readonly authSession = inject(AuthSession);
   private readonly memberProfile = inject(MemberProfile);
+  readonly notifications = inject(PushNotifications);
   private readonly router = inject(Router);
   private readonly session = inject(SessionStore);
 
@@ -230,6 +255,23 @@ export class SettingsPage {
   readonly confirmingLeave = signal(false);
   readonly isLeaving = signal(false);
   readonly leaveMessage = signal('');
+  readonly notificationMessage = signal('');
+  readonly notificationMessageIsError = signal(false);
+  readonly notificationDescription = computed(() => {
+    if (!this.notifications.isSupported) {
+      return 'Push notifications are unavailable until web push is configured for this app and supported by this browser.';
+    }
+    if (this.notifications.permission() === 'denied') {
+      return 'Notifications are blocked in this browser. Allow them in the site settings to turn them on.';
+    }
+    return this.notifications.isEnabled()
+      ? 'This device gets new rally alerts and response updates for rallies you create.'
+      : 'Get new rally alerts and response updates on this device. Location changes never send alerts.';
+  });
+  readonly notificationButtonLabel = computed(() => {
+    if (this.notifications.isBusy()) return 'Saving...';
+    return this.notifications.isEnabled() ? 'Turn off notifications' : 'Turn on notifications';
+  });
   readonly locationButtonLabel = computed(() => {
     if (this.isHidingLocation()) {
       return 'Hiding...';
@@ -279,6 +321,11 @@ export class SettingsPage {
     this.leaveMessage.set('');
 
     try {
+      try {
+        await this.notifications.disable();
+      } catch {
+        // Leaving must still remove the member when a best-effort token cleanup is offline.
+      }
       await this.memberProfile.deleteCurrentMember();
       await this.authSession.leaveApp();
       void this.router.navigateByUrl('/gate');
@@ -287,6 +334,23 @@ export class SettingsPage {
         'Could not remove your member entry. Check your connection and try again.',
       );
       this.isLeaving.set(false);
+    }
+  }
+
+  async toggleNotifications(): Promise<void> {
+    this.notificationMessage.set('');
+    this.notificationMessageIsError.set(false);
+    try {
+      if (this.notifications.isEnabled()) {
+        await this.notifications.disable();
+        this.notificationMessage.set('Notifications turned off on this device.');
+      } else {
+        await this.notifications.enable();
+        this.notificationMessage.set('Notifications turned on for this device.');
+      }
+    } catch (error) {
+      this.notificationMessage.set(notificationMessageFor(error));
+      this.notificationMessageIsError.set(true);
     }
   }
 
@@ -353,4 +417,14 @@ function locationMessageFor(error: unknown): string {
   }
 
   return 'Could not hide your location. Check your connection and try again.';
+}
+
+function notificationMessageFor(error: unknown): string {
+  if (error instanceof PushNotificationError && error.code === 'permission-denied') {
+    return 'Notifications were not allowed. You can change that in this browser’s site settings.';
+  }
+  if (error instanceof PushNotificationError && error.code === 'unsupported') {
+    return 'This browser cannot receive push notifications for this app.';
+  }
+  return 'Could not update notifications. Check your connection and try again.';
 }

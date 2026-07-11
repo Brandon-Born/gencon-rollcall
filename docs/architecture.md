@@ -76,6 +76,13 @@ The map is a static image plane.
 
 ## PWA Notes
 
+- Browser notifications are opt-in per device. Firebase Cloud Messaging creates a device token
+  against Angular's existing service-worker registration; an authenticated server route stores it
+  in the server-only `pushSubscriptions` collection.
+- After a successful rally or response write, the client asks an authenticated Vercel route to
+  notify. The route verifies the actor against the persisted Firestore event, deduplicates sends,
+  excludes the actor, never reacts to member/location writes, and deletes invalid tokens.
+
 - Angular's service worker caches the versioned app shell, icons, and other static assets.
 - Map images are cached lazily only after a user loads them; a newly deployed map is fetched when
   its asset URL changes.

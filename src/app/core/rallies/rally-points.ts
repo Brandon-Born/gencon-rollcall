@@ -9,6 +9,7 @@ import type {
   RallyResponse,
   RallyResponseStatus,
 } from '../models/rally-point';
+import { environment } from '../../../environments/environment';
 
 export interface CreateRallyPointInput {
   title: string;
@@ -70,6 +71,7 @@ export class RallyPoints {
     };
 
     await setDoc(rallyRef, rallyPoint);
+    await this.requestNotification('rally-created', rallyRef.id);
 
     return {
       id: rallyRef.id,
@@ -167,6 +169,7 @@ export class RallyPoints {
       },
       { merge: true },
     );
+    await this.requestNotification('rally-response', rallyPointId);
   }
 
   async watchRallyResponses(
@@ -213,6 +216,29 @@ export class RallyPoints {
       status: rallyPointStatusValue(data['status']),
       expiresAt: dateOrNull(data['expiresAt']),
     };
+  }
+
+  private async requestNotification(
+    kind: 'rally-created' | 'rally-response',
+    rallyPointId: string,
+  ): Promise<void> {
+    const user = this.authSession.user();
+    if (!user || environment.firebaseEmulators.enabled) {
+      return;
+    }
+
+    try {
+      await fetch('/api/send-rally-notification', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${await user.getIdToken()}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ kind, rallyPointId }),
+      });
+    } catch {
+      // Notification delivery is best effort and must never undo a successful rally write.
+    }
   }
 
   private toRallyResponse(id: string, data: Record<string, unknown>): RallyResponse {

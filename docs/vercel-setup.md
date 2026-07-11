@@ -32,6 +32,12 @@ On success, the API route writes `authorizedUsers/{uid}` for the UID from the Fi
 
 ## Vercel Environment Variables
 
+Browser notifications also require the public Web Push certificate key from Firebase Console →
+Project settings → Cloud Messaging → Web configuration. Copy that public key to
+`webPushPublicKey` in the Angular environment files (it is public, not a secret). The existing
+Firebase Admin credential in Vercel sends messages through the authenticated API routes; no
+messaging private key belongs in the browser.
+
 Required:
 
 ```text

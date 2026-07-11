@@ -86,3 +86,11 @@ Required behavior:
 - The local map fixture is synthetic and contains no member or production convention data.
 - Automated rules tests run through `firebase emulators:exec` with the separate
   `demo-gencon-rollcall-rules` project id and clear only that emulator namespace between cases.
+
+## Push subscriptions
+
+`pushSubscriptions` is denied to all Firebase Web SDK reads and writes. The authenticated
+`/api/notification-subscription` route verifies the Firebase ID token and authorization record
+before saving or deleting a device token. The authenticated notification route independently
+verifies the persisted rally/response and event actor before using Firebase Admin to send; it never
+exposes another member's token to a client. `notificationEvents` is server-only deduplication state.

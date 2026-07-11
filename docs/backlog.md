@@ -22,6 +22,29 @@ Status values:
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
+## Milestone: Browser notifications
+
+### `NOTIFY-001` Add opt-in rally notifications
+
+- [x] Let each authorized device explicitly enable or disable browser notifications in Settings.
+- [x] Notify other subscribed members when a rally is created, and notify the rally creator when
+      another member responds. Do not notify for location changes or the actor's own action.
+- [x] Keep push tokens server-readable only, remove the current device token when notifications are
+      disabled or the member leaves, and document Firebase/Vercel deployment setup.
+
+Implementation status:
+
+- Production Settings explicitly opts each device in or out, uses the Firebase-managed VAPID key,
+  and successfully registered a Chrome device token without exposing it to another client.
+- Authenticated Vercel routes own subscription storage and notification delivery. Delivery verifies
+  the persisted rally or response actor, deduplicates events, excludes self-notifications, and is
+  best effort so a temporary messaging failure never rolls back a successful rally action.
+- Firestore rules deny client access to tokens and notification event records. The Vercel service
+  account has only the existing datastore role plus Firebase Cloud Messaging Admin for sends.
+- Production deployment, unauthenticated endpoint rejection, device registration, and a private
+  FCM delivery smoke test passed. `npm test` (16), `npm run typecheck:api`, the isolated Firestore
+  rules suite (10), and `npm run build` pass.
+
 ## Milestone: Official Gen Con 2026 map rollout
 
 This milestone blocks sharing the app with the friend group. Follow

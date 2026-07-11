@@ -306,6 +306,14 @@ describe('member ownership and lifecycle', () => {
       setDoc(doc(authorized.db, 'appConfig', 'current'), { mapDisplayName: 'Client override' }),
     );
     await expectDenied(setDoc(doc(authorized.db, 'authorizedUsers', uid), { authorized: false }));
+    await expectDenied(
+      setDoc(doc(authorized.db, 'pushSubscriptions', 'client-token'), {
+        uid,
+        token: 'clients-must-not-store-push-tokens-directly',
+        enabled: true,
+      }),
+    );
+    await expectDenied(getDoc(doc(authorized.db, 'pushSubscriptions', 'client-token')));
   });
 });
 
