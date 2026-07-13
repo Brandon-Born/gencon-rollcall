@@ -2082,8 +2082,18 @@ export class MapPage {
     this.pinSaveIsError.set(false);
 
     try {
-      await this.rallyPointsService.saveResponse(rallyPointId, responseStatus);
-      this.pinSaveMessage.set('Rally response saved.');
+      const rallyPoint = this.rallyPoints().find((rally) => rally.id === rallyPointId);
+
+      if (!rallyPoint) {
+        throw new RallyPointError('rally-location-invalid');
+      }
+
+      await this.rallyPointsService.saveResponse(rallyPoint, responseStatus);
+      this.pinSaveMessage.set(
+        responseStatus === 'arrived'
+          ? 'Arrived. Your pin moved to the rally point.'
+          : 'Rally response saved.',
+      );
     } catch (error) {
       this.pinSaveMessage.set(messageForRallyResponseError(error));
       this.pinSaveIsError.set(true);

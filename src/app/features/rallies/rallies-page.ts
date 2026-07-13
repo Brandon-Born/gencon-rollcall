@@ -659,10 +659,19 @@ export class RalliesPage {
     this.responseNotice.set(null);
 
     try {
-      await this.rallyPoints.saveResponse(rallyPointId, responseStatus);
+      const rallyPoint = this.rallyPointData().find((rally) => rally.id === rallyPointId);
+
+      if (!rallyPoint) {
+        throw new RallyPointError('rally-location-invalid');
+      }
+
+      await this.rallyPoints.saveResponse(rallyPoint, responseStatus);
       this.responseNotice.set({
         rallyId: rallyPointId,
-        message: 'Response saved.',
+        message:
+          responseStatus === 'arrived'
+            ? 'Arrived. Your pin moved to the rally point.'
+            : 'Response saved.',
         isError: false,
       });
     } catch (error) {

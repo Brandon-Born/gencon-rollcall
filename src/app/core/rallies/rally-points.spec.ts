@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isRallyPointExpired, isRallyPointMeetingNow } from './rally-points';
+import {
+  arrivalLocationForResponse,
+  isRallyPointExpired,
+  isRallyPointMeetingNow,
+} from './rally-points';
 import type { RallyPoint } from '../models/rally-point';
 
 const now = new Date('2026-07-30T18:00:00.000Z');
@@ -84,5 +88,30 @@ describe('isRallyPointMeetingNow', () => {
         now,
       ),
     ).toBe(false);
+  });
+});
+
+describe('arrivalLocationForResponse', () => {
+  it('uses the rally map and coordinates for an arrived response', () => {
+    expect(
+      arrivalLocationForResponse(
+        rallyPoint({ mapId: 'level-2', mapXPercent: 42.1234, mapYPercent: 67.8906 }),
+        'arrived',
+      ),
+    ).toEqual({
+      mapId: 'level-2',
+      mapXPercent: 42.123,
+      mapYPercent: 67.891,
+    });
+  });
+
+  it('does not move a pin for non-arrival responses', () => {
+    expect(arrivalLocationForResponse(rallyPoint({}), 'heading-there')).toBeNull();
+    expect(arrivalLocationForResponse(rallyPoint({}), 'cannot-make-it')).toBeNull();
+  });
+
+  it('rejects an arrived response without a valid map location', () => {
+    expect(arrivalLocationForResponse(rallyPoint({ mapId: null }), 'arrived')).toBeNull();
+    expect(arrivalLocationForResponse(rallyPoint({ mapXPercent: 101 }), 'arrived')).toBeNull();
   });
 });

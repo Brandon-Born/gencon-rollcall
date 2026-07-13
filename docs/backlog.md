@@ -24,6 +24,26 @@ Status values:
 
 ## Milestone: Navigation polish
 
+### `UX-028` Move an arrived member to the rally point
+
+- [x] When the current member responds `Arrived`, move and reveal their pin at that rally's saved
+      map and coordinates.
+- [x] Save the arrival response and pin move atomically while leaving the other response options
+      location-neutral.
+- [x] Verify the behavior from both the map detail and Rallies page at phone size.
+
+Implementation status:
+
+- An `Arrived` response now batches the response document and current member location in one
+  Firestore commit. It uses the rally's saved `mapId` and coordinates, reveals a previously hidden
+  pin, and updates location freshness; a failed or expired rally leaves both documents unchanged.
+- `Heading there` and `Can't make it` continue to update only the response. Both the map detail and
+  Rallies page confirm an arrival with `Arrived. Your pin moved to the rally point.`
+- Browser QA at 430×844 moved the member pin from `(20,25)` to a rally at `(75,65)` from the map.
+  From Rallies, `Heading there` preserved a reset `(15,15)` pin before `Arrived` moved it; a repeat
+  arrival also restored a hidden pin at the rally. The saved response and member document matched,
+  layout had no horizontal overflow, and the console stayed clear.
+
 ### `UX-027` Rotate overlapping map markers
 
 - [x] Detect member pins and rally points whose visible marker areas overlap.

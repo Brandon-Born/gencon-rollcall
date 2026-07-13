@@ -144,7 +144,7 @@ export class RallyPoints {
     });
   }
 
-  async saveResponse(rallyPointId: string, responseStatus: RallyResponseStatus): Promise<void> {
+  async saveResponse(rallyPoint: RallyPoint, responseStatus: RallyResponseStatus): Promise<void> {
     const uid = this.authSession.user()?.uid;
 
     if (!uid || !this.authSession.isAuthorized()) {
@@ -155,21 +155,38 @@ export class RallyPoints {
       throw new RallyPointError('response-invalid');
     }
 
-    const { doc, serverTimestamp, setDoc } = await import('firebase/firestore');
-    const firestore = await this.firebase.getFirestore();
-    const responseRef = doc(firestore, 'rallyPoints', rallyPointId, 'responses', uid);
+    const arrivalLocation = arrivalLocationForResponse(rallyPoint, responseStatus);
 
-    await setDoc(
+    if (responseStatus === 'arrived' && !arrivalLocation) {
+      throw new RallyPointError('rally-location-invalid');
+    }
+
+    const { doc, serverTimestamp, writeBatch } = await import('firebase/firestore');
+    const firestore = await this.firebase.getFirestore();
+    const responseRef = doc(firestore, 'rallyPoints', rallyPoint.id, 'responses', uid);
+    const batch = writeBatch(firestore);
+
+    batch.set(
       responseRef,
       {
-        rallyPointId,
+        rallyPointId: rallyPoint.id,
         memberId: uid,
         responseStatus,
         updatedAt: serverTimestamp(),
       },
       { merge: true },
     );
-    await this.requestNotification('rally-response', rallyPointId);
+
+    if (arrivalLocation) {
+      batch.update(doc(firestore, 'members', uid), {
+        ...arrivalLocation,
+        locationVisible: true,
+        lastUpdatedAt: serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+    await this.requestNotification('rally-response', rallyPoint.id);
   }
 
   async watchRallyResponses(
@@ -257,7 +274,34 @@ export type RallyPointErrorCode =
   | 'member-not-found'
   | 'title-required'
   | 'scheduled-time-past'
-  | 'response-invalid';
+  | 'response-invalid'
+  | 'rally-location-invalid';
+
+export interface RallyArrivalLocation {
+  mapId: string;
+  mapXPercent: number;
+  mapYPercent: number;
+}
+
+export function arrivalLocationForResponse(
+  rallyPoint: RallyPoint,
+  responseStatus: RallyResponseStatus,
+): RallyArrivalLocation | null {
+  if (
+    responseStatus !== 'arrived' ||
+    !rallyPoint.mapId ||
+    !validMapPercent(rallyPoint.mapXPercent) ||
+    !validMapPercent(rallyPoint.mapYPercent)
+  ) {
+    return null;
+  }
+
+  return {
+    mapId: rallyPoint.mapId,
+    mapXPercent: normalizeMapPercent(rallyPoint.mapXPercent),
+    mapYPercent: normalizeMapPercent(rallyPoint.mapYPercent),
+  };
+}
 
 export function isRallyPointMeetingNow(rallyPoint: RallyPoint, now = new Date()): boolean {
   return (
@@ -302,6 +346,10 @@ function normalizeNote(note: string): string {
 
 function normalizeMapPercent(value: number): number {
   return Math.round(Math.min(100, Math.max(0, value)) * 1000) / 1000;
+}
+
+function validMapPercent(value: number): boolean {
+  return Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 function stringValue(value: unknown): string {
