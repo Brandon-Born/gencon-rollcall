@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { SwUpdate } from '@angular/service-worker';
 
 import { AuthSession } from '../../core/auth/auth-session';
 import { MemberProfile, MemberProfileError } from '../../core/members/member-profile';
@@ -90,6 +91,21 @@ import { SessionStore } from '../../core/session/session-store';
             {{ locationMessage() }}
           </p>
         }
+      </section>
+
+      <section class="panel">
+        <div>
+          <h2>Latest version</h2>
+          <p>Reload if something looks out of date.</p>
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="isUpdatingApp()"
+          (click)="updateAndReload()"
+        >
+          {{ isUpdatingApp() ? 'Updating...' : 'Update & reload' }}
+        </button>
       </section>
 
       @if (confirmingLeave()) {
@@ -269,6 +285,7 @@ export class SettingsPage {
   readonly notifications = inject(PushNotifications);
   private readonly router = inject(Router);
   private readonly session = inject(SessionStore);
+  private readonly swUpdate = inject(SwUpdate);
 
   readonly displayName = signal(this.session.displayName());
   readonly isSavingName = signal(false);
@@ -283,6 +300,7 @@ export class SettingsPage {
   readonly leaveMessage = signal('');
   readonly notificationMessage = signal('');
   readonly notificationMessageIsError = signal(false);
+  readonly isUpdatingApp = signal(false);
   readonly notificationDescription = computed(() => {
     if (!this.notifications.isSupported) {
       return 'Rally alerts aren’t available in this browser.';
@@ -380,6 +398,22 @@ export class SettingsPage {
     }
   }
 
+  async updateAndReload(): Promise<void> {
+    if (this.isUpdatingApp()) {
+      return;
+    }
+
+    this.isUpdatingApp.set(true);
+
+    try {
+      await activateLatestAppVersion(this.swUpdate);
+    } catch {
+      // A normal reload is still useful when the update check is temporarily unavailable.
+    } finally {
+      window.location.reload();
+    }
+  }
+
   async hideLocation(): Promise<void> {
     if (this.isHidingLocation() || !this.locationVisible()) {
       return;
@@ -418,6 +452,18 @@ export class SettingsPage {
       );
       this.locationMessageIsError.set(true);
     }
+  }
+}
+
+export interface AppUpdateClient {
+  readonly isEnabled: boolean;
+  checkForUpdate(): Promise<boolean>;
+  activateUpdate(): Promise<boolean>;
+}
+
+export async function activateLatestAppVersion(update: AppUpdateClient): Promise<void> {
+  if (update.isEnabled && (await update.checkForUpdate())) {
+    await update.activateUpdate();
   }
 }
 

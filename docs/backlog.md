@@ -24,6 +24,27 @@ Status values:
 
 ## Milestone: Navigation polish
 
+### `UX-025` Add an app update and reload control
+
+- [x] Add a clear Settings action that checks for the latest service-worker version, activates it
+      when available, and reloads the app.
+- [x] Keep the copy human and useful without exposing implementation details.
+- [x] Verify the reload flow at phone size and preserve the accepted Settings layout.
+
+Implementation status:
+
+- Settings now includes a `Latest version` section with an `Update & reload` action. It checks for
+  and activates an available Angular service-worker update, then reloads even if the update check
+  is unavailable so the control remains useful in every browser.
+- Browser QA at 430×844 proved a real document reload: an unsaved temporary display name reverted
+  to the persisted `Update Proof` value on the same Settings route. The button remained visible and
+  the console stayed free of relevant warnings or errors.
+- The accepted Settings hierarchy, open-section layout, button family, type, dividers, and bottom
+  navigation remain visually faithful. Focused unit coverage exercises update available, already
+  current, and service-worker-disabled branches. `npm test` (22), `npm run build`,
+  `npm run typecheck:api`, and `git diff --check` pass; the temporary emulator member was removed
+  afterward.
+
 ### `UX-024` Return to the page top from bottom navigation
 
 - [x] Pressing any bottom navigation tab scrolls the page to the top before showing that section.
