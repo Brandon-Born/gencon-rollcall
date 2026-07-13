@@ -18,7 +18,7 @@ Status values:
 
 ## Next 3
 
-1. `AUTH-005` Make Vercel authoritative for member names.
+1. No actionable release blocker is currently queued.
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
@@ -26,12 +26,12 @@ Status values:
 
 ### `AUTH-005` Make Vercel authoritative for member names
 
-- [/] Route member creation, case-insensitive rejoin, rename, and leave through an authenticated
-  Vercel function backed by an atomic normalized-name index.
-- [/] Reject direct client member creation, name changes, and deletion in Firestore rules so stale
-  cached clients cannot create duplicate identities.
-- [/] Remove the duplicate legacy production names after the compatible rules and Vercel flow are
-  deployed, then verify a fresh production rejoin uses one stable member record.
+- [x] Route member creation, case-insensitive rejoin, rename, and leave through an authenticated
+      Vercel function backed by an atomic normalized-name index.
+- [x] Reject direct client member creation, name changes, and deletion in Firestore rules so stale
+      cached clients cannot create duplicate identities.
+- [x] Remove the duplicate legacy production names after the compatible rules and Vercel flow are
+      deployed, then verify a fresh production rejoin uses one stable member record.
 
 Acceptance criteria:
 
@@ -39,6 +39,23 @@ Acceptance criteria:
 - The identity lifecycle runs on Vercel using the existing Firebase Admin credential; it does not
   require Firebase Cloud Functions or a paid Firebase plan.
 - A stale client may fail safely, but cannot create or rename a member outside the Vercel flow.
+
+Implementation status:
+
+- `/api/member-identity` now owns create/rejoin, rename, and leave. A SHA-256 normalized-name
+  reservation and its member document change in one Firebase Admin transaction running on Vercel;
+  no Firebase Cloud Function or paid Firebase plan is used.
+- Production Firestore rules reject Web SDK member creation, identity-field updates, deletion, and
+  all `memberNames` access. The emulator regression suite and a live stale-client REST attempt both
+  confirmed direct creation is denied.
+- The two legacy `meatmug` member records were deleted with update-time preconditions after the new
+  rules and Vercel deployment were live. Production then proved `Prod Identity Proof` and
+  `pRoD iDeNtItY pRoOf` resolve to one UID and one reservation; all QA member, reservation,
+  authorization, and Auth records were removed afterward. Final state: zero members and zero name
+  reservations.
+- Local verification passed: 19 unit tests, 10 Firestore rule tests, API typecheck, production
+  build, transactional concurrent-join/rejoin/rename/leave emulator tests, and 430×844 browser QA
+  with no relevant console warnings or errors.
 
 ### `AUTH-004` Rejoin an existing member by display name
 

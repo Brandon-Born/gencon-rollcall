@@ -108,6 +108,9 @@ Verified production setup:
 - Vercel production has `FIREBASE_SERVICE_ACCOUNT_JSON`.
 - Wrong-password API smoke test returns `401 invalid-password`.
 - Correct-password production smoke test passed: a password-holder could log in and create a user.
+- The Vercel-owned member identity lifecycle passed a production create/rejoin proof on 2026-07-13:
+  case/whitespace variants resolved to one UID and one normalized-name reservation, stale direct
+  client creation was denied, and all proof data was removed afterward.
 - Official 2026 map cutover completed 2026-07-11: production config defaults to Exhibit Hall,
   legacy synthetic coordinates are cleared, all six maps passed phone QA, and the delete/recreate
   config rollback was exercised successfully.
