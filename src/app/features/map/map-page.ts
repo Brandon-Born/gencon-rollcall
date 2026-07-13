@@ -166,6 +166,27 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
         <p class="map-name">{{ map.label }}</p>
       }
 
+      @if (exhibitHallAvailable()) {
+        <form class="booth-finder" (submit)="placePinAtBooth($event)">
+          <label>
+            <span>Booth</span>
+            <input
+              type="text"
+              maxlength="16"
+              autocomplete="off"
+              autocapitalize="characters"
+              placeholder="1401 or AA"
+              [value]="boothNumber()"
+              [disabled]="isBoothSaving() || isRallyDraftOpen()"
+              (input)="updateBoothNumber($any($event.target).value)"
+            />
+          </label>
+          <button type="submit" [disabled]="!canPlaceAtBooth()">
+            {{ isBoothSaving() ? 'Placing...' : 'Place me' }}
+          </button>
+        </form>
+      }
+
       <section
         class="map-frame"
         [style.height.px]="mapFrameHeight()"
@@ -434,8 +455,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </label>
 
           <p class="save-message">
-            Timed rallies stick around for an hour after meetup time. No time? They last four
-            hours.
+            Timed rallies stick around for an hour after meetup time. No time? They last four hours.
           </p>
 
           <p class="rally-coordinate">{{ rallyCoordinateLabel() }}</p>
@@ -1146,6 +1166,7 @@ export class MapPage {
   private tapCandidate: MapTapCandidate | null = null;
   private mapViewportElement: HTMLElement | null = null;
   private viewportResizeObserver: ResizeObserver | null = null;
+  private pendingBoothFocus: MapPoint | null = null;
   private pinUndoTimeout: number | null = null;
   private membersUnsubscribe: (() => void) | null = null;
   private rallyPointsUnsubscribe: (() => void) | null = null;
@@ -1246,6 +1267,9 @@ export class MapPage {
   readonly activeMap = computed(
     () => this.availableMaps().find((map) => map.id === this.activeMapId()) ?? null,
   );
+  readonly exhibitHallAvailable = computed(() =>
+    this.availableMaps().some((map) => map.id === 'exhibit-hall'),
+  );
   readonly configuredMapUrl = computed(() => this.activeMap()?.imageUrl ?? '');
   readonly mapTitle = computed(() => this.appConfig.config()?.mapDisplayName ?? 'Shared map');
   readonly mapFrameLabel = computed(() => `${this.mapTitle()} image plane`);
@@ -1273,6 +1297,16 @@ export class MapPage {
   readonly previousPinState = signal<PreviousPinState | null>(null);
   readonly pinSaveMessage = signal('');
   readonly pinSaveIsError = signal(false);
+  readonly boothNumber = signal('');
+  readonly isBoothSaving = signal(false);
+  readonly canPlaceAtBooth = computed(
+    () =>
+      this.boothNumber().trim().length > 0 &&
+      !this.isBoothSaving() &&
+      !this.isPinSaving() &&
+      !this.isLocationHiding() &&
+      !this.isRallyDraftOpen(),
+  );
   readonly selectedPinId = signal<string | null>(null);
   readonly selectedRallyId = signal<string | null>(null);
   readonly isRallyDraftOpen = signal(false);
@@ -1517,6 +1551,7 @@ export class MapPage {
     this.resetMapView();
     this.focusRequestedMember();
     this.focusRequestedRally();
+    this.focusPendingBooth();
   }
 
   markMapImageFailed(): void {
@@ -1761,6 +1796,81 @@ export class MapPage {
     this.clearStatusMessage();
   }
 
+  updateBoothNumber(value: string): void {
+    this.boothNumber.set(value.slice(0, 16));
+
+    if (this.pinSaveIsError()) {
+      this.pinSaveMessage.set('');
+      this.pinSaveIsError.set(false);
+    }
+  }
+
+  async placePinAtBooth(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+
+    if (!this.canPlaceAtBooth()) {
+      return;
+    }
+
+    this.isBoothSaving.set(true);
+    this.isPinSaving.set(true);
+    this.pinSaveMessage.set('Finding booth...');
+    this.pinSaveIsError.set(false);
+
+    try {
+      const { EXHIBIT_HALL_MAP_ID, findBoothLocation, normalizeBoothLabel } =
+        await import('./booth-locations');
+      const booth = findBoothLocation(this.boothNumber());
+
+      if (!booth) {
+        const value = normalizeBoothLabel(this.boothNumber()) || this.boothNumber().trim();
+        this.pinSaveMessage.set(`Booth ${value} isn’t on the 2026 Exhibit Hall map.`);
+        this.pinSaveIsError.set(true);
+        return;
+      }
+
+      if (!this.availableMaps().some((map) => map.id === EXHIBIT_HALL_MAP_ID)) {
+        this.pinSaveMessage.set('Booth lookup isn’t available with the current map set.');
+        this.pinSaveIsError.set(true);
+        return;
+      }
+
+      const currentMember = this.currentMember();
+      const previousPin: PreviousPinState = {
+        mapId: currentMember?.mapId ?? null,
+        x: currentMember?.mapXPercent ?? null,
+        y: currentMember?.mapYPercent ?? null,
+        locationVisible: currentMember?.locationVisible ?? false,
+      };
+
+      if (this.activeMapId() !== EXHIBIT_HALL_MAP_ID) {
+        this.selectActiveMap(EXHIBIT_HALL_MAP_ID);
+      }
+
+      this.pendingBoothFocus = { x: booth.xPercent, y: booth.yPercent };
+      const member = await this.memberProfile.saveCurrentPin(
+        EXHIBIT_HALL_MAP_ID,
+        booth.xPercent,
+        booth.yPercent,
+      );
+
+      this.boothNumber.set(booth.number);
+      this.previousPinState.set(previousPin);
+      this.selectedPinId.set(member.id);
+      this.selectedRallyId.set(null);
+      this.pinSaveMessage.set(`Pin placed at booth ${booth.number}.`);
+      this.startPinUndoTimeout();
+      this.focusPendingBooth();
+    } catch (error) {
+      this.pendingBoothFocus = null;
+      this.pinSaveMessage.set(messageForPinError(error));
+      this.pinSaveIsError.set(true);
+    } finally {
+      this.isPinSaving.set(false);
+      this.isBoothSaving.set(false);
+    }
+  }
+
   updateRallyTitle(value: string): void {
     this.rallyTitle.set(value.slice(0, 48));
     this.clearRallyMessage();
@@ -1852,6 +1962,16 @@ export class MapPage {
           ? await this.memberProfile.saveCurrentPin(previous.mapId, previous.x, previous.y)
           : await this.memberProfile.hideCurrentLocation();
       this.previousPinState.set(null);
+
+      if (
+        member.locationVisible &&
+        member.mapId &&
+        member.mapId !== this.activeMapId() &&
+        this.availableMaps().some((map) => map.id === member.mapId)
+      ) {
+        this.selectActiveMap(member.mapId);
+      }
+
       this.selectedPinId.set(member.locationVisible ? member.id : null);
       this.pinSaveMessage.set('Previous pin restored.');
     } catch (error) {
@@ -2214,6 +2334,35 @@ export class MapPage {
     this.selectedRallyId.set(rallyId);
     this.selectedPinId.set(null);
     this.requestedRallyId = null;
+  }
+
+  private focusPendingBooth(): void {
+    const point = this.pendingBoothFocus;
+    const viewport = this.mapViewportElement;
+    const bounds = this.mapImageBounds();
+
+    if (!point || !viewport || !bounds) {
+      return;
+    }
+
+    const renderPoint = renderPercentForMapPoint(
+      point.x,
+      point.y,
+      bounds,
+      viewport.clientWidth,
+      viewport.clientHeight,
+    );
+    const scale = MAX_MAP_SCALE;
+    this.applyMapView(
+      {
+        scale,
+        translateX: viewport.clientWidth / 2 - (renderPoint.x / 100) * viewport.clientWidth * scale,
+        translateY:
+          viewport.clientHeight / 2 - (renderPoint.y / 100) * viewport.clientHeight * scale,
+      },
+      viewport,
+    );
+    this.pendingBoothFocus = null;
   }
 
   private mapPercentFromViewportPoint(point: MapPoint, viewport: HTMLElement): MapPoint | null {

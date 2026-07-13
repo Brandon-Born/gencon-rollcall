@@ -265,6 +265,32 @@ Implementation status:
   Production rollback was exercised to the confirmed `404` no-config state, then the exact official
   config was restored and re-verified in a fresh app reload.
 
+### `MAP-004` Place a member pin by booth number
+
+- [x] Add a compact booth lookup to the map that accepts every official 2026 Exhibit Hall booth,
+      Art Show number, and Author Avenue letter.
+- [x] Switch to the Exhibit Hall when necessary, save the current member pin at the official booth
+      center, and keep the existing manual pin and Undo behavior.
+- [x] Handle unknown booth labels clearly and verify lookup, placement, persistence, and phone
+      layout against the official booth index.
+
+Implementation status:
+
+- The Map page now has a compact `Booth` entry row whenever the official Exhibit Hall is configured.
+  It accepts normal variations such as `1401`, `Booth #1401`, Art Show numbers, and Author Avenue
+  letters, while an unknown value remains unsaved and gets a clear inline map message.
+- A version-locked lazy chunk contains all 694 official convention-27 floor-1 area centers aligned
+  to `exhibit-hall-v1.webp`; no Gen Con API call occurs at runtime. A valid entry switches to the
+  Exhibit Hall, saves through the existing private member-pin write, zooms to the booth, selects the
+  current member, and retains the ten-second Undo path.
+- Browser QA at 430×844 placed a manual pin on Level 2, entered booth `1401`, verified the switch to
+  Exhibit Hall and 400% centered pin, confirmed persisted `mapId: exhibit-hall` with coordinates
+  `46.224, 71.145`, then used Undo to restore both the previous Level 2 pin and map selection. The
+  unknown-booth, hide-location, and leave cleanup paths also passed with a clean console and zero
+  remaining emulator members or name reservations.
+- `npm test` (29), `npm run test:rules` (10), `npm run typecheck:api`, the warning-free production
+  build, and `git diff --check` pass. The 17.07 kB booth index is lazy-loaded only when submitted.
+
 ## Milestone: UX Round 4 (2026-07-10 lifecycle review)
 
 A third usability pass focused on flows earlier rounds had not exercised end to end. Everything

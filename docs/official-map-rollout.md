@@ -112,6 +112,19 @@ Current asset set (captured 2026-07-11):
 - The level exports include the official floor-specific room/area overlays returned for Gen Con
   convention id 27; they are not bare venue base tiles.
 
+### Booth lookup index
+
+`src/app/features/map/booth-locations.ts` is a static, version-locked index for the immutable
+`exhibit-hall-v1.webp` asset. It contains the center of all 694 official convention-27 floor-1
+numbered areas, including the Art Show numbers and Author Avenue letters. The app lazy-loads this
+index only after a booth lookup; it never calls the Gen Con map API at runtime.
+
+The index was projected from the official map-v9 geometry at source zoom 6 and aligned to the
+3840×2270 Exhibit Hall crop (`world x: 7980`, `world y: 6365`). Each stored percentage uses the
+official polygon bounds center, matching the official map's own search-marker placement. Treat the
+index and image as one versioned unit: if the official source changes, publish a new image and booth
+index together, visually verify known booths near each edge and in the center, then update the app.
+
 ### `MAP-002` Implement map selection and map-aware data
 
 1. Extend app config loading with manifest validation and the legacy single-image fallback.

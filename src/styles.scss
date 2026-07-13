@@ -134,3 +134,47 @@ input:focus-visible {
   background: var(--color-surface);
   color: var(--color-text);
 }
+
+.map-page .booth-finder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.map-page .booth-finder label {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.map-page .booth-finder input {
+  min-height: 42px;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.map-page .booth-finder button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-gencon-red);
+  color: white;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.map-page .booth-finder button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
