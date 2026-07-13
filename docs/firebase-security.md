@@ -21,6 +21,24 @@ Flow:
 
 Creating the anonymous user first does not authorize shared-data access. The user remains blocked by Firestore rules until the password succeeds and `authorizedUsers/{uid}` exists.
 
+## Display-name identity recovery
+
+After shared-password authorization, onboarding may exchange the temporary anonymous identity for
+an existing member identity through `/api/claim-member`:
+
+1. The endpoint verifies the current Firebase ID token and its server-managed authorization record.
+2. It normalizes the submitted display name for case and whitespace and compares it with existing
+   member names server-side.
+3. Exactly one match receives a short-lived Firebase custom token for that member UID. The endpoint
+   authorizes the matched UID before returning the token.
+4. The client signs in with the custom token and reads the existing `members/{uid}` document.
+
+The endpoint never returns the member list or accepts an arbitrary UID. Because this is a private
+shared-password app, knowing an existing display name after entering the group password is treated
+as sufficient recovery proof. Duplicate normalized names are rejected as ambiguous. The temporary
+anonymous authorization remains valid so a dropped custom-token exchange can be retried safely; it
+has no member document and disappears from the active member model.
+
 This avoids relying on immediate custom-claims propagation during MVP. Custom claims can replace or supplement the authorization document later.
 
 ## Collections

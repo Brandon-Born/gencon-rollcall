@@ -43,6 +43,17 @@ src/
 - Convert Firestore streams to readonly signals near feature boundaries.
 - Keep optimistic local UI updates small and reversible.
 
+## Member Identity Recovery
+
+- Onboarding calls the authenticated `/api/claim-member` route before creating a member document.
+- The route requires an already authorized Firebase ID token, normalizes the submitted display name
+  for case and whitespace, and searches the small private-group member collection.
+- A single match receives a Firebase custom token for the existing member UID. The client signs in
+  with that token and loads the original member document, preserving UID-based rally ownership,
+  responses, status, notes, and location. No match continues through normal member creation.
+- Multiple normalized matches are treated as ambiguous instead of selecting an identity
+  unpredictably.
+
 ## Map Coordinate Model
 
 The map is a static image plane.

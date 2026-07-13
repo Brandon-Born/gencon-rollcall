@@ -22,6 +22,32 @@ Status values:
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
+## Milestone: Member identity recovery
+
+### `AUTH-004` Rejoin an existing member by display name
+
+- [x] When onboarding submits a display name that matches exactly after case and whitespace
+      normalization, sign the authorized device into that existing Firebase member identity.
+- [x] Preserve the existing member document, pin, status, notes, rally ownership, and responses;
+      do not copy profile data into a second member document.
+- [x] Keep unmatched names on the existing new-member creation path and cover matching behavior,
+      authorization boundaries, and user-visible errors with focused verification.
+
+Implementation status:
+
+- Authorized onboarding now checks `/api/claim-member` before creating a member. A single
+  case/whitespace-normalized match returns a Firebase custom token for the existing member UID;
+  unmatched names still create a new member and ambiguous duplicates are rejected.
+- The endpoint exposes neither the member list nor arbitrary UID selection and rejects requests
+  without an authorized ID token. The temporary UID never receives a member document; its existing
+  authorization remains so a dropped custom-token exchange is safely retryable.
+- Two isolated 430×844 emulator browser sessions proved `Restore Proof` and
+  `rEsToRe   pRoOf` resolve to one unchanged UID with its saved `Gaming` status and
+  `Original state` note. The unauthorized endpoint smoke test returned `401 auth-required`, and
+  both browser consoles remained free of warnings/errors. QA records were removed afterward.
+- `npm test` (19), `npm run build`, `npm run typecheck:api`, the Firestore rules suite (10), and
+  `git diff --check` pass.
+
 ## Milestone: Product voice and visual design pass
 
 ### `UX-023` Make the app feel intentionally designed

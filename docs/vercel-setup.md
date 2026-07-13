@@ -10,6 +10,17 @@ Serverless API route:
 api/verify-shared-password.ts
 ```
 
+Member recovery route:
+
+```text
+api/claim-member.ts
+```
+
+The recovery route uses the same Firebase Admin credential as password verification. It requires
+an authorized Firebase ID token, then returns a Firebase custom token only when the submitted
+display name matches exactly one existing member after case and whitespace normalization. No new
+environment variable is required.
+
 Expected request:
 
 ```http

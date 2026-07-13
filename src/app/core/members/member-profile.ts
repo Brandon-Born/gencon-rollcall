@@ -1,19 +1,35 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { AuthSession } from '../auth/auth-session';
 import { FirebaseClient } from '../firebase/firebase-client';
 import type { Member } from '../models/member';
 import { SessionStore } from '../session/session-store';
 import type { MemberStatus } from '../../shared/status/status-options';
+import { normalizeDisplayName } from './member-name';
 
 @Injectable({ providedIn: 'root' })
 export class MemberProfile {
   private readonly authSession = inject(AuthSession);
   private readonly firebase = inject(FirebaseClient);
+  private readonly http = inject(HttpClient);
   private readonly session = inject(SessionStore);
   private loadedUid: string | null = null;
 
   readonly member = signal<Member | null>(null);
+
+  async joinCurrentMember(displayName: string): Promise<Member> {
+    const trimmedName = normalizeDisplayName(displayName);
+
+    if (!trimmedName) {
+      throw new MemberProfileError('display-name-required');
+    }
+
+    const existingMember = await this.claimExistingMember(trimmedName);
+    return existingMember ?? this.saveCurrentMember(trimmedName);
+  }
 
   async loadCurrentMember(options: { force?: boolean } = {}): Promise<Member | null> {
     const uid = this.authSession.user()?.uid;
@@ -261,6 +277,65 @@ export class MemberProfile {
     this.member.set(null);
   }
 
+  private async claimExistingMember(displayName: string): Promise<Member | null> {
+    const user = this.authSession.user();
+    const claimUrl = environment.memberClaimUrl.trim();
+
+    if (!user || !this.authSession.isAuthorized()) {
+      throw new MemberProfileError('not-authorized');
+    }
+
+    if (!claimUrl) {
+      throw new MemberProfileError('member-claim-unavailable');
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ ok: boolean; matched: boolean; customToken?: string }>(
+          claimUrl,
+          { displayName },
+          {
+            headers: {
+              Authorization: `Bearer ${await user.getIdToken()}`,
+            },
+          },
+        ),
+      );
+
+      if (!response.matched) {
+        return null;
+      }
+
+      if (!response.customToken) {
+        throw new MemberProfileError('member-claim-unavailable');
+      }
+
+      await this.authSession.signInWithCustomToken(response.customToken);
+      this.clearLoadedMember();
+      const member = await this.loadCurrentMember({ force: true });
+
+      if (!member) {
+        throw new MemberProfileError('member-not-found');
+      }
+
+      return member;
+    } catch (error) {
+      if (error instanceof MemberProfileError) {
+        throw error;
+      }
+
+      if (
+        error instanceof HttpErrorResponse &&
+        error.status === 409 &&
+        error.error?.error === 'ambiguous-display-name'
+      ) {
+        throw new MemberProfileError('ambiguous-display-name');
+      }
+
+      throw new MemberProfileError('member-claim-unavailable');
+    }
+  }
+
   private toMember(id: string, data: Record<string, unknown>): Member {
     const mapId = stringOrNull(data['mapId']);
     const mapXPercent = numberOrNull(data['mapXPercent']);
@@ -303,16 +378,16 @@ export class MemberProfile {
 }
 
 export type MemberProfileErrorCode =
-  'display-name-required' | 'not-authorized' | 'member-not-found';
+  | 'display-name-required'
+  | 'not-authorized'
+  | 'member-not-found'
+  | 'ambiguous-display-name'
+  | 'member-claim-unavailable';
 
 export class MemberProfileError extends Error {
   constructor(readonly code: MemberProfileErrorCode) {
     super(code);
   }
-}
-
-function normalizeDisplayName(displayName: string): string {
-  return displayName.trim().replace(/\s+/g, ' ').slice(0, 32);
 }
 
 function normalizeNote(note: string): string {

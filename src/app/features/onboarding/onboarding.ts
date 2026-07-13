@@ -127,7 +127,7 @@ import { SessionStore } from '../../core/session/session-store';
       font-weight: 750;
       line-height: 1.35;
     }
-  `
+  `,
 })
 export class Onboarding {
   private readonly memberProfile = inject(MemberProfile);
@@ -147,7 +147,7 @@ export class Onboarding {
     this.errorMessage.set('');
 
     try {
-      await this.memberProfile.saveCurrentMember(this.displayName());
+      await this.memberProfile.joinCurrentMember(this.displayName());
       void this.router.navigateByUrl('/app/map');
     } catch (error) {
       this.errorMessage.set(messageFor(error));
@@ -164,6 +164,14 @@ function messageFor(error: unknown): string {
 
   if (error instanceof MemberProfileError && error.code === 'not-authorized') {
     return 'We lost your place. Go back and enter the crew password again.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'ambiguous-display-name') {
+    return 'More than one person already uses that name. Ask the crew which one to keep.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'member-claim-unavailable') {
+    return 'Couldn’t check the crew list. Check your connection and try again.';
   }
 
   return 'Could not save your display name. Check your connection and try again.';

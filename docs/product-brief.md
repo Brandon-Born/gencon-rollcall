@@ -23,7 +23,8 @@ The primary location mechanism is manual pin placement on a convention-map image
 - One shared site password.
 - Password validation must happen server-side with an environment secret.
 - After successful validation, use anonymous Firebase Authentication or an equivalent lightweight authenticated session.
-- On first entry, ask only for display name.
+- On first entry, ask only for display name. If it matches an existing member after case and
+  whitespace normalization, restore that Firebase member identity instead of creating a duplicate.
 - Persist authorization and display name until sign-out or local data clearing.
 
 Do not build group creation, invite links, join codes, multi-tenancy, public discovery, or complex role management for MVP.
@@ -32,7 +33,7 @@ Do not build group creation, invite links, join codes, multi-tenancy, public dis
 
 1. Open site.
 2. Enter shared password.
-3. Enter display name.
+3. Enter display name; rejoin the matching existing member when one exists.
 4. See shared convention map.
 5. Tap the map to place or move personal pin.
 6. Select a status and optional note.

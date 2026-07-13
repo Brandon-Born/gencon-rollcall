@@ -36,7 +36,8 @@ export class AuthSession {
       throw new AuthSessionFailure('firebase-not-configured');
     }
 
-    const { browserLocalPersistence, setPersistence, signInAnonymously } = await import('firebase/auth');
+    const { browserLocalPersistence, setPersistence, signInAnonymously } =
+      await import('firebase/auth');
     const auth = await this.firebase.getAuth();
     await setPersistence(auth, browserLocalPersistence);
 
@@ -53,6 +54,18 @@ export class AuthSession {
     this.isAuthorized.set(true);
     this.authorizationReady.set(true);
     this.resolveReady();
+  }
+
+  async signInWithCustomToken(token: string): Promise<User> {
+    if (!this.firebase.isConfigured) {
+      throw new AuthSessionFailure('firebase-not-configured');
+    }
+
+    const { signInWithCustomToken } = await import('firebase/auth');
+    const credential = await signInWithCustomToken(await this.firebase.getAuth(), token);
+    this.user.set(credential.user);
+    this.markAuthorized(credential.user.uid);
+    return credential.user;
   }
 
   async leaveApp(): Promise<void> {
@@ -86,7 +99,9 @@ export class AuthSession {
 
     try {
       const { doc, getDoc } = await import('firebase/firestore');
-      const snapshot = await getDoc(doc(await this.firebase.getFirestore(), 'authorizedUsers', uid));
+      const snapshot = await getDoc(
+        doc(await this.firebase.getFirestore(), 'authorizedUsers', uid),
+      );
       const isAuthorized = snapshot.exists() && snapshot.data()?.['authorized'] === true;
       this.isAuthorized.set(isAuthorized);
 
@@ -105,7 +120,8 @@ export class AuthSession {
 
   private async watchAuthState(): Promise<void> {
     try {
-      const { browserLocalPersistence, onAuthStateChanged, setPersistence } = await import('firebase/auth');
+      const { browserLocalPersistence, onAuthStateChanged, setPersistence } =
+        await import('firebase/auth');
       const auth = await this.firebase.getAuth();
       await setPersistence(auth, browserLocalPersistence);
 

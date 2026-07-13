@@ -15,6 +15,7 @@ export const environment = {
     firestorePort: 8080,
   },
   passwordVerificationUrl: '/api/verify-shared-password',
+  memberClaimUrl: '/api/claim-member',
   webPushPublicKey:
     'BD3q0GrXuBxBWPZTyLJrhM7bko7IyZUML1kaQhI1XV6VznmtMwWxLigwxtL502GcgdYt_V-gUlNF8n3_tGsAI1Y',
 };
