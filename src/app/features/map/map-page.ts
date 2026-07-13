@@ -22,6 +22,7 @@ import {
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
 import { mapPercentWithinBounds } from '../../shared/map-canvas/map-coordinate';
 import { isRallyCreationRequested } from '../rallies/rally-navigation';
+import { mapMarkerZIndexes } from './map-marker-stacking';
 
 interface MapPin {
   id: string;
@@ -119,6 +120,9 @@ const minuteMs = 60 * 1000;
 const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
 const pinUndoLifetimeMs = 10_000;
+const markerRotationIntervalMs = 2_500;
+const memberMarkerDiameterPx = 46;
+const rallyMarkerDiameterPx = 42;
 const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: string }> = [
   { value: 'heading-there', label: 'Heading there' },
   { value: 'arrived', label: 'Arrived' },
@@ -245,6 +249,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                   [class.selected]="selectedPin()?.id === pin.id"
                   [style.left.%]="pin.renderX"
                   [style.top.%]="pin.renderY"
+                  [style.z-index]="markerZIndex('member:' + pin.id)"
                   [style.transform]="pinTransform()"
                   [style.opacity]="pin.visualOpacity"
                   [style.filter]="pin.visualFilter"
@@ -272,6 +277,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                   [class.selected]="selectedRally()?.id === rally.id"
                   [style.left.%]="rally.renderX"
                   [style.top.%]="rally.renderY"
+                  [style.z-index]="markerZIndex('rally:' + rally.id)"
                   [style.transform]="pinTransform()"
                   [attr.aria-label]="
                     'Rally point: ' + rally.title + ', created by ' + rally.creatorName
@@ -1309,6 +1315,7 @@ export class MapPage {
   );
   readonly selectedPinId = signal<string | null>(null);
   readonly selectedRallyId = signal<string | null>(null);
+  readonly markerRotationStep = signal(0);
   readonly isRallyDraftOpen = signal(false);
   readonly pendingRallyPoint = signal<MapPoint | null>(null);
   readonly rallyTitle = signal('');
@@ -1402,6 +1409,38 @@ export class MapPage {
     () =>
       this.rallyMarkers().find((rallyPoint) => rallyPoint.id === this.selectedRallyId()) ?? null,
   );
+  readonly markerZIndexes = computed(() => {
+    const markers = [
+      ...this.pins().map((pin) => ({
+        key: `member:${pin.id}`,
+        xPercent: pin.renderX,
+        yPercent: pin.renderY,
+        diameterPx: memberMarkerDiameterPx,
+        baseZIndex: 2,
+      })),
+      ...this.rallyMarkers().map((rally) => ({
+        key: `rally:${rally.id}`,
+        xPercent: rally.renderX,
+        yPercent: rally.renderY,
+        diameterPx: rallyMarkerDiameterPx,
+        baseZIndex: 3,
+      })),
+    ];
+    const selectedKey = this.selectedPinId()
+      ? `member:${this.selectedPinId()}`
+      : this.selectedRallyId()
+        ? `rally:${this.selectedRallyId()}`
+        : null;
+
+    return mapMarkerZIndexes(
+      markers,
+      this.mapViewportWidth(),
+      this.mapViewportHeight(),
+      this.mapScale(),
+      this.markerRotationStep(),
+      selectedKey,
+    );
+  });
   readonly pendingRallyMarker = computed(() => {
     const pendingPoint = this.pendingRallyPoint();
 
@@ -1453,10 +1492,15 @@ export class MapPage {
 
   constructor() {
     const interval = window.setInterval(() => this.now.set(new Date()), minuteMs);
+    const markerRotationInterval = window.setInterval(
+      () => this.markerRotationStep.update((step) => (step + 1) % 1_000_000),
+      markerRotationIntervalMs,
+    );
 
     this.destroyRef.onDestroy(() => {
       this.isDestroyed = true;
       window.clearInterval(interval);
+      window.clearInterval(markerRotationInterval);
       this.clearPinUndo();
       this.viewportResizeObserver?.disconnect();
       this.viewportResizeObserver = null;
@@ -1476,6 +1520,10 @@ export class MapPage {
     void this.loadStatusDraft();
     void this.startMembersStream();
     void this.startRallyPointsStream();
+  }
+
+  markerZIndex(markerKey: string): number {
+    return this.markerZIndexes().get(markerKey) ?? 2;
   }
 
   async loadStatusDraft(): Promise<void> {

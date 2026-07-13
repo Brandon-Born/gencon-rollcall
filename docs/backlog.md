@@ -24,6 +24,26 @@ Status values:
 
 ## Milestone: Navigation polish
 
+### `UX-027` Rotate overlapping map markers
+
+- [x] Detect member pins and rally points whose visible marker areas overlap.
+- [x] Periodically bring each marker in an overlap group to the front without affecting markers
+      elsewhere on the map.
+- [x] Keep a selected marker on top and verify member/member and member/rally collisions at phone
+      size.
+
+Implementation status:
+
+- The map now measures marker collisions in rendered screen space at the current zoom and rotates
+  only the colliding member pins and rally points to the front every 2.5 seconds. Zooming far enough
+  to separate a group restores each marker's normal stacking level.
+- A selected member or rally stays above the rotation until its detail closes. The pending rally
+  marker keeps its existing draft priority and is not included in active-marker cycling.
+- Browser QA at 430×844 placed two member pins and a rally at the exact same pixel. All three took
+  a turn at the front, the selected rally stayed above a later rotation, the page had no horizontal
+  overflow, and the console stayed clear. Focused tests cover two- and three-marker groups,
+  selection, separation, and zoom-aware overlap.
+
 ### `UX-026` Start rally creation from the Rallies empty state
 
 - [x] Make `Start a rally` enter the same map-selection state as the map page’s `New rally`
