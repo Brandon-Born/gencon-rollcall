@@ -3,8 +3,6 @@ const { cert, getApps, initializeApp } =
 const { getAuth } = require('firebase-admin/auth') as typeof import('firebase-admin/auth');
 const { FieldValue, getFirestore } =
   require('firebase-admin/firestore') as typeof import('firebase-admin/firestore');
-const { memberNameKey } =
-  require('../src/app/core/members/member-name') as typeof import('../src/app/core/members/member-name');
 
 interface RequestLike {
   method?: string;
@@ -25,6 +23,12 @@ interface ServiceAccount {
   client_email?: string;
   privateKey?: string;
   private_key?: string;
+}
+
+function memberNameKey(value: unknown): string {
+  return typeof value === 'string'
+    ? value.trim().replace(/\s+/g, ' ').slice(0, 32).toLocaleLowerCase('en-US')
+    : '';
 }
 
 function headerValue(value: string | string[] | undefined): string {
