@@ -12,28 +12,34 @@ import {
   template: `
     <main class="gate-page">
       <form class="gate-card" (submit)="submit($event)">
-        <p class="brand-mark" aria-hidden="true">d20</p>
-        <h1>Gen Con Roll Call</h1>
-        <p class="lede">Private map check-ins and rally points for the crew.</p>
+        <header>
+          <h1><span>Gen Con</span><span>Roll Call</span></h1>
+          <p class="lede">Find the crew. Pick a spot. Rally up.</p>
+        </header>
 
         <label class="field">
-          <span>Shared password</span>
+          <span>Crew password</span>
           <input
             [type]="showPassword() ? 'text' : 'password'"
             autocomplete="current-password"
             [value]="password()"
             [disabled]="isSubmitting()"
             [attr.aria-invalid]="errorMessage() ? 'true' : null"
-            aria-describedby="password-error password-helper"
+            aria-describedby="password-error"
             (input)="password.set($any($event.target).value)"
           />
           <button
             type="button"
             class="password-toggle"
             [attr.aria-pressed]="showPassword()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
             (click)="showPassword.update((visible) => !visible)"
           >
-            {{ showPassword() ? 'Hide password' : 'Show password' }}
+            @if (showPassword()) {
+              <span aria-hidden="true">Hide</span>
+            } @else {
+              <span aria-hidden="true">Show</span>
+            }
           </button>
         </label>
 
@@ -42,13 +48,15 @@ import {
         }
 
         <button class="primary-action" type="submit" [disabled]="!canSubmit()">
-          {{ isSubmitting() ? 'Checking...' : 'Continue' }}
+          {{ isSubmitting() ? 'Checking...' : 'Let me in' }}
         </button>
-
-        <p id="password-helper" class="helper">
-          Password verification runs on the server. The shared password is never stored in this app
-          bundle.
-        </p>
+        <img
+          class="gate-illustration"
+          src="/images/indy-convention-center.webp"
+          alt=""
+          aria-hidden="true"
+        />
+        <p class="event-date">Gen Con Indy <span aria-hidden="true">·</span> July 30–Aug 2</p>
       </form>
     </main>
   `,
@@ -57,67 +65,65 @@ import {
       min-height: 100svh;
       display: grid;
       place-items: center;
-      padding: 24px;
-      background:
-        radial-gradient(circle at 18% 12%, rgba(214, 56, 47, 0.12), transparent 26rem),
-        var(--color-bg);
+      padding: 0;
+      background: var(--color-surface);
     }
 
     .gate-card {
-      width: min(100%, 390px);
-      padding: 28px;
-      border: 1px solid var(--color-border);
-      border-radius: 16px;
+      width: min(100%, 430px);
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(42px, 9svh, 78px) 28px max(26px, env(safe-area-inset-bottom));
       background: var(--color-surface);
-      box-shadow: 0 18px 48px var(--color-shadow);
     }
 
-    .brand-mark {
-      width: 54px;
-      height: 54px;
-      display: grid;
-      place-items: center;
-      margin: 0 0 18px;
-      border-radius: 14px;
-      background: var(--color-gencon-red);
-      color: white;
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+    header {
+      margin-bottom: clamp(34px, 7svh, 58px);
     }
 
     h1 {
       margin: 0;
-      color: var(--color-text);
-      font-size: 31px;
-      line-height: 1.05;
+      font-family: var(--font-display);
+      font-size: clamp(54px, 15vw, 68px);
+      font-stretch: condensed;
+      font-weight: 950;
+      letter-spacing: -0.065em;
+      line-height: 0.84;
+      text-transform: uppercase;
     }
 
-    .lede,
-    .helper {
-      color: var(--color-muted);
+    h1 span {
+      display: block;
+    }
+
+    h1 span:last-child {
+      color: var(--color-gencon-red);
     }
 
     .lede {
-      margin: 10px 0 28px;
-      font-size: 16px;
-      line-height: 1.45;
+      margin: 22px 0 0;
+      color: var(--color-muted);
+      font-size: 17px;
+      font-weight: 520;
+      letter-spacing: -0.01em;
+      line-height: 1.35;
     }
 
     .field {
+      position: relative;
       display: grid;
       gap: 8px;
       color: var(--color-text);
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 850;
     }
 
     input {
-      min-height: 48px;
-      padding: 0 14px;
-      border: 1px solid var(--color-border);
-      border-radius: 10px;
+      min-height: 58px;
+      padding: 0 70px 0 15px;
+      border: 1.5px solid var(--color-text);
+      border-radius: 8px;
       color: var(--color-text);
       font: inherit;
       font-size: 16px;
@@ -126,26 +132,29 @@ import {
 
     .primary-action {
       width: 100%;
-      min-height: 48px;
+      min-height: 58px;
       display: grid;
       place-items: center;
-      margin-top: 18px;
+      margin-top: 16px;
       border: 0;
-      border-radius: 10px;
+      border-radius: 6px;
       background: var(--color-gencon-red);
       color: white;
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 17px;
+      font-weight: 850;
     }
 
     .password-toggle {
-      justify-self: start;
-      min-height: 36px;
-      padding: 0;
+      position: absolute;
+      right: 9px;
+      bottom: 9px;
+      min-width: 52px;
+      min-height: 40px;
+      padding: 0 8px;
       border: 0;
       background: transparent;
-      color: var(--color-map-blue);
-      font-size: 13px;
+      color: var(--color-muted);
+      font-size: 12px;
       font-weight: 800;
     }
 
@@ -162,10 +171,34 @@ import {
       line-height: 1.35;
     }
 
-    .helper {
-      margin: 16px 0 0;
-      font-size: 12px;
-      line-height: 1.4;
+    .gate-illustration {
+      width: calc(100% + 20px);
+      max-height: 250px;
+      object-fit: contain;
+      margin: auto -10px 8px;
+    }
+
+    .event-date {
+      margin: 0;
+      color: var(--color-muted);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+      text-align: center;
+    }
+
+    @media (max-height: 700px) {
+      .gate-card {
+        padding-top: 28px;
+      }
+
+      header {
+        margin-bottom: 24px;
+      }
+
+      .gate-illustration {
+        max-height: 160px;
+      }
     }
   `,
 })
@@ -203,19 +236,19 @@ export class Gate {
   private messageFor(error: PasswordVerificationError | null): string {
     switch (error) {
       case 'missing-config':
-        return 'Password verification is not configured yet.';
+        return 'Roll Call isn’t ready yet.';
       case 'invalid-password':
         return 'That password did not work.';
       case 'too-many-attempts':
         return 'Too many attempts. Wait a few minutes and try again.';
       case 'server-not-configured':
-        return 'The password service is missing its secret. Check Firebase setup.';
+        return 'Roll Call isn’t ready yet.';
       case 'firebase-not-configured':
-        return 'Firebase is not configured yet. Add the public Firebase web config first.';
+        return 'Roll Call isn’t ready yet.';
       case 'auth-required':
-        return 'Could not create an authorized session. Try again.';
+        return 'Couldn’t let you in. Try again.';
       case 'network-error':
-        return 'Could not reach the password service. Check your connection and try again.';
+        return 'Couldn’t connect. Check your signal and try again.';
       default:
         return 'Something went wrong checking the password.';
     }

@@ -16,13 +16,25 @@ const knownRallyIdsKey = 'gencon-roll-call-known-rallies';
 
       <nav class="tab-bar" aria-label="Main navigation">
         <a routerLink="/app/map" routerLinkActive="active">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m3 5 5-2 8 3 5-2v15l-5 2-8-3-5 2V5Z" />
+            <path d="M8 3v15M16 6v15" />
+          </svg>
           <strong>Map</strong>
         </a>
         <a routerLink="/app/people" routerLinkActive="active">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="3" />
+            <circle cx="17" cy="10" r="2.5" />
+            <path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M14.5 15.5a4 4 0 0 1 6 3.5v1" />
+          </svg>
           <strong>People</strong>
         </a>
         <a routerLink="/app/rallies" routerLinkActive="active">
-          <strong>Rally Points</strong>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 21V3M6 4h10l-2 3 2 3H6" />
+          </svg>
+          <strong>Rallies</strong>
           @if (newRallyCount()) {
             <span class="badge" [attr.aria-label]="newRallyCount() + ' new rally points'">
               {{ newRallyCount() }}
@@ -30,6 +42,10 @@ const knownRallyIdsKey = 'gencon-roll-call-known-rallies';
           }
         </a>
         <a routerLink="/app/settings" routerLinkActive="active">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 3.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2L3 14.5l2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 3.1h5l.4-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4L18.9 13a7 7 0 0 0 .1-1Z" />
+          </svg>
           <strong>Settings</strong>
         </a>
       </nav>
@@ -38,46 +54,71 @@ const knownRallyIdsKey = 'gencon-roll-call-known-rallies';
   styles: `
     .app-shell {
       min-height: 100svh;
-      padding-bottom: calc(74px + env(safe-area-inset-bottom));
+      padding-bottom: calc(78px + env(safe-area-inset-bottom));
       background: var(--color-bg);
     }
 
     .tab-bar {
       position: fixed;
-      right: 0;
       bottom: 0;
-      left: 0;
+      left: 50%;
       z-index: 20;
+      width: min(100%, 820px);
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
-      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      gap: 0;
+      padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
       border-top: 1px solid var(--color-border);
       background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(16px);
+      transform: translateX(-50%);
     }
 
     a {
       position: relative;
-      min-height: 54px;
+      min-height: 60px;
       display: flex;
+      flex-direction: column;
+      gap: 4px;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
       color: var(--color-muted);
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 750;
       text-decoration: none;
     }
 
     a.active {
-      background: rgba(214, 56, 47, 0.09);
       color: var(--color-gencon-red);
+    }
+
+    a::before {
+      position: absolute;
+      top: -8px;
+      width: 28px;
+      height: 3px;
+      border-radius: 0 0 3px 3px;
+      background: transparent;
+      content: '';
+    }
+
+    a.active::before {
+      background: var(--color-gencon-red);
+    }
+
+    svg {
+      width: 23px;
+      height: 23px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
     }
 
     .badge {
       position: absolute;
-      top: 4px;
+      top: 2px;
       right: max(5px, calc(50% - 38px));
       min-width: 19px;
       height: 19px;

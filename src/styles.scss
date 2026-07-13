@@ -1,16 +1,17 @@
 :root {
-  --color-bg: #f8fafc;
+  --color-bg: #f4f6f8;
   --color-surface: #ffffff;
-  --color-surface-warm: #fff8e7;
-  --color-text: #151821;
-  --color-muted: #667085;
-  --color-border: #d8dee8;
-  --color-map-blue: #2f80ed;
-  --color-gencon-red: #d6382f;
-  --color-gold: #f4b740;
-  --color-green: #1e9f6e;
-  --color-orange: #f97316;
-  --color-shadow: rgba(15, 23, 42, 0.14);
+  --color-surface-warm: #fff9e8;
+  --color-text: #102033;
+  --color-muted: #596777;
+  --color-border: #d9dee4;
+  --color-map-blue: #1769aa;
+  --color-gencon-red: #d52b1e;
+  --color-gold: #c98a00;
+  --color-green: #14865c;
+  --color-orange: #d26714;
+  --color-shadow: rgba(16, 32, 51, 0.13);
+  --font-display: 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', sans-serif;
   color-scheme: light;
   font-family:
     Inter,
@@ -42,6 +43,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+::selection {
+  background: rgba(213, 43, 30, 0.16);
+}
+
 button,
 input {
   font: inherit;
@@ -49,6 +54,12 @@ input {
 
 button {
   cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  background: var(--color-surface);
 }
 
 button:focus-visible,

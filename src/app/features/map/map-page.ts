@@ -121,7 +121,7 @@ const pinUndoLifetimeMs = 10_000;
 const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: string }> = [
   { value: 'heading-there', label: 'Heading there' },
   { value: 'arrived', label: 'Arrived' },
-  { value: 'cannot-make-it', label: 'Cannot make it' },
+  { value: 'cannot-make-it', label: 'Can’t make it' },
 ];
 
 @Component({
@@ -130,8 +130,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     <main class="map-page">
       <header>
         <div>
-          <p>Gen Con Roll Call</p>
-          <h1>{{ mapTitle() }}</h1>
+          <h1>Roll Call</h1>
         </div>
         <div class="header-actions">
           <button
@@ -144,6 +143,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </button>
           <button
             type="button"
+            class="location-action"
             [disabled]="isLocationHiding() || currentMemberLocationHidden()"
             (click)="hideCurrentLocation()"
           >
@@ -154,13 +154,15 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
       @if (availableMaps().length > 1) {
         <label class="map-selector">
-          <span>Map</span>
+          <span class="visually-hidden">Map</span>
           <select [value]="activeMapId()" (change)="selectActiveMap($any($event.target).value)">
             @for (map of availableMaps(); track map.id) {
               <option [value]="map.id">{{ map.label }}</option>
             }
           </select>
         </label>
+      } @else if (activeMap(); as map) {
+        <p class="map-name">{{ map.label }}</p>
       }
 
       <section
@@ -172,7 +174,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           <div class="map-state">
             <span class="map-state-icon" aria-hidden="true"></span>
             <strong>Loading map</strong>
-            <p>Checking the current convention map configuration.</p>
+            <p>Getting the hall ready.</p>
           </div>
         } @else if (mapLoadError()) {
           <div class="map-state map-state-error">
@@ -182,19 +184,14 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </div>
         } @else if (!configuredMapUrl()) {
           <div class="map-state">
-            <strong>No map configured yet</strong>
-            <p>
-              Add a static map asset and set <code>appConfig/current</code> before placing pins.
-            </p>
+            <strong>Map not ready yet</strong>
+            <p>Ask whoever set up Roll Call to add the convention map.</p>
           </div>
         } @else if (mapImageFailed()) {
           <div class="map-state map-state-error">
-            <strong>Map image did not load</strong>
-            <p>
-              Check that <code>{{ configuredMapUrl() }}</code> is a deployed static asset or
-              reachable URL.
-            </p>
-            <button type="button" (click)="retryMapImage()">Retry image</button>
+            <strong>That map didn’t load</strong>
+            <p>Give it another try.</p>
+            <button type="button" (click)="retryMapImage()">Try again</button>
           </div>
         } @else {
           <div
@@ -436,7 +433,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </label>
 
           <p class="save-message">
-            Timed rallies stay visible for one hour after the meetup. No-time rallies last four
+            Timed rallies stick around for an hour after meetup time. No time? They last four
             hours.
           </p>
 
@@ -466,8 +463,8 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
         <form class="status-sheet" (submit)="saveStatus($event)">
           <div class="sheet-header">
             <div>
-              <p>Your status</p>
-              <strong>{{ selectedStatusLabel() }}</strong>
+              <p>Quick check-in</p>
+              <strong>You’re {{ selectedStatusLabel().toLowerCase() }}</strong>
             </div>
             <span class="status-meta" [class.error]="statusSaveIsError()">{{
               statusMetaLabel()
@@ -503,7 +500,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           </label>
 
           <button type="submit" class="status-save" [disabled]="!canSaveStatus()">
-            {{ isStatusSaving() ? 'Saving...' : 'Save update' }}
+            {{ isStatusSaving() ? 'Sharing...' : 'Share update' }}
           </button>
 
           @if (statusSaveMessage()) {
@@ -517,8 +514,12 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
   `,
   styles: `
     .map-page {
+      width: min(100%, 820px);
       min-height: 100svh;
-      padding: 14px 14px 18px;
+      margin: 0 auto;
+      padding: 0 0 18px;
+      border-right: 1px solid var(--color-border);
+      border-left: 1px solid var(--color-border);
       background: var(--color-bg);
     }
 
@@ -527,7 +528,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 12px;
+      min-height: 68px;
+      margin: 0;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface);
     }
 
     header > div:first-child {
@@ -539,7 +544,6 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       gap: 8px;
     }
 
-    header p,
     .sheet-header p {
       margin: 0 0 3px;
       color: var(--color-muted);
@@ -551,9 +555,14 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       overflow: hidden;
       margin: 0;
       color: var(--color-text);
-      font-size: 20px;
-      line-height: 1.1;
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-stretch: condensed;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+      line-height: 0.95;
       text-overflow: ellipsis;
+      text-transform: uppercase;
       white-space: nowrap;
     }
 
@@ -561,7 +570,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       min-height: 40px;
       padding: 0 11px;
       border: 1px solid var(--color-border);
-      border-radius: 999px;
+      border-radius: 6px;
       background: var(--color-surface);
       color: var(--color-text);
       font-size: 13px;
@@ -569,39 +578,63 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .primary-action {
+      border-color: var(--color-gencon-red);
       background: var(--color-gencon-red);
       color: white;
     }
 
-    .map-selector {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: -2px 0 10px;
+    .location-action {
       color: var(--color-muted);
-      font-size: 12px;
-      font-weight: 800;
+    }
+
+    .map-selector {
+      display: block;
+      margin: 0;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface);
     }
 
     .map-selector select {
-      min-height: 38px;
-      max-width: min(220px, 68vw);
-      padding: 0 32px 0 11px;
-      border: 1px solid var(--color-border);
-      border-radius: 999px;
+      width: 100%;
+      min-height: 48px;
+      padding: 0 44px 0 16px;
+      border: 0;
       background: var(--color-surface);
       color: var(--color-text);
-      font: inherit;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .map-name {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      margin: 0;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface);
+      font-size: 16px;
+      font-weight: 850;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
 
     .map-frame {
       position: relative;
       overflow: hidden;
       height: clamp(320px, 52svh, 560px);
-      border: 1px solid var(--color-border);
-      border-radius: 16px;
+      border: 0;
+      border-bottom: 1px solid var(--color-border);
       background: var(--color-surface);
-      box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
     }
 
     .map-viewport {
@@ -868,7 +901,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       margin: 0;
       padding: 8px 10px;
       border: 1px solid rgba(216, 222, 232, 0.9);
-      border-radius: 999px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.92);
       color: var(--color-muted);
       font-size: 12px;
@@ -897,11 +930,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       right: 10px;
       z-index: 3;
       display: grid;
-      grid-template-columns: 36px minmax(52px, auto) 36px;
-      gap: 2px;
-      padding: 4px;
+      grid-template-columns: 38px 58px 38px;
+      gap: 0;
+      padding: 3px;
       border: 1px solid rgba(216, 222, 232, 0.9);
-      border-radius: 999px;
+      border-radius: 9px;
       background: rgba(255, 255, 255, 0.92);
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
       backdrop-filter: blur(12px);
@@ -910,7 +943,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     .map-controls button {
       min-height: 36px;
       border: 0;
-      border-radius: 999px;
+      border-radius: 6px;
       background: var(--color-surface);
       color: var(--color-text);
       font-size: 18px;
@@ -935,9 +968,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       position: relative;
       z-index: 2;
       margin-top: -28px;
-      padding: 18px;
-      border: 1px solid var(--color-border);
-      border-radius: 16px 16px 0 0;
+      padding: 20px 18px 18px;
+      border: 0;
+      border-top: 1px solid var(--color-border);
+      border-radius: 18px 18px 0 0;
       background: var(--color-surface);
       box-shadow: 0 -10px 36px rgba(15, 23, 42, 0.13);
     }
@@ -957,7 +991,8 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       display: block;
       overflow-wrap: anywhere;
       color: var(--color-text);
-      font-size: 20px;
+      font-size: 21px;
+      letter-spacing: -0.02em;
     }
 
     .sheet-header span {
@@ -974,7 +1009,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       display: grid;
       grid-auto-columns: max-content;
       grid-auto-flow: column;
-      grid-template-rows: repeat(2, auto);
+      grid-template-rows: 1fr;
       gap: 8px;
       overflow-x: auto;
       margin: 18px -18px 16px;
@@ -990,10 +1025,11 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     .status-grid button {
       flex: 0 0 auto;
-      min-height: 38px;
-      padding: 0 13px;
+      min-height: 48px;
+      max-width: 120px;
+      padding: 0 14px;
       border: 1px solid var(--color-border);
-      border-radius: 999px;
+      border-radius: 8px;
       background: var(--color-surface);
       color: var(--color-text);
       font-size: 13px;
@@ -1002,8 +1038,9 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     .status-grid button.active {
       border-color: var(--color-gencon-red);
-      background: rgba(214, 56, 47, 0.1);
+      background: var(--color-surface);
       color: var(--color-gencon-red);
+      box-shadow: inset 0 0 0 1px var(--color-gencon-red);
     }
 
     .status-grid button:disabled,
@@ -1035,10 +1072,10 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     input {
       width: 100%;
       min-width: 0;
-      min-height: 44px;
+      min-height: 50px;
       padding: 0 12px;
       border: 1px solid var(--color-border);
-      border-radius: 10px;
+      border-radius: 8px;
       color: var(--color-text);
       font-size: 15px;
       font-weight: 600;
@@ -1046,9 +1083,9 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     .status-save,
     .secondary-action {
-      min-height: 44px;
+      min-height: 50px;
       padding: 0 16px;
-      border-radius: 10px;
+      border-radius: 6px;
       font-size: 15px;
       font-weight: 850;
     }
@@ -2240,9 +2277,9 @@ export class MapPage {
 function messageForMapError(error: AppConfigLoadError | null): string {
   switch (error) {
     case 'firebase-not-configured':
-      return 'Firebase is not configured yet. Add the public Firebase web config first.';
+      return 'The map isn’t ready yet.';
     case 'load-failed':
-      return 'Could not read appConfig/current. Check your connection and authorization, then try again.';
+      return 'Couldn’t load the map. Check your connection and try again.';
     default:
       return '';
   }

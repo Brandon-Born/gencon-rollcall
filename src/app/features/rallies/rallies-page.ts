@@ -40,7 +40,7 @@ interface RallyResponseNames {
 const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: string }> = [
   { value: 'heading-there', label: 'Heading there' },
   { value: 'arrived', label: 'Arrived' },
-  { value: 'cannot-make-it', label: 'Cannot make it' },
+  { value: 'cannot-make-it', label: 'Can’t make it' },
 ];
 
 @Component({
@@ -50,8 +50,8 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     <main class="page">
       <header>
         <div>
-          <h1>Rally Points</h1>
-          <p>Coordinate meetups without a text storm.</p>
+          <h1>Rallies</h1>
+          <p>Pick a place. See who’s in.</p>
         </div>
         <a routerLink="/app/map">Map</a>
       </header>
@@ -63,8 +63,8 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       @if (isLoading()) {
         <section class="state" aria-live="polite">
           <span class="state-icon" aria-hidden="true"></span>
-          <strong>Loading rally points</strong>
-          <p>Subscribing to active meetup spots.</p>
+          <strong>Loading rallies</strong>
+          <p>Checking the meetup spots.</p>
         </section>
       } @else if (loadError()) {
         <section class="state error" role="alert">
@@ -74,18 +74,18 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
         </section>
       } @else if (!rallyItems().length) {
         <section class="state">
-          <strong>No active rally points</strong>
-          <p>
-            Expired rallies stay in history. Create one from the map when the group needs a meetup
-            spot.
-          </p>
-          <a routerLink="/app/map">Open map</a>
+          <span class="empty-marker" aria-hidden="true">+</span>
+          <strong>No rallies yet</strong>
+          <p>Pick a spot on the map and invite the crew.</p>
+          <a routerLink="/app/map">Start a rally</a>
         </section>
       } @else {
         <section class="list" aria-label="Active rally points">
           @for (rally of rallyItems(); track rally.id) {
             <article class="rally">
-              <span class="marker" aria-hidden="true">RP</span>
+              <span class="marker" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M6 21V3M7 4h10l-2 3 2 3H7" /></svg>
+              </span>
               <div>
                 <h2>{{ rally.title }}</h2>
                 <p class="meta">{{ rally.scheduledLabel }} · {{ rally.creatorName }}</p>
@@ -166,7 +166,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
                   <p class="response-counts" aria-live="polite">
                     <span>{{ rally.responseCounts.headingThere }} heading there</span>
                     <span>{{ rally.responseCounts.arrived }} arrived</span>
-                    <span>{{ rally.responseCounts.cannotMakeIt }} cannot make it</span>
+                    <span>{{ rally.responseCounts.cannotMakeIt }} can’t make it</span>
                   </p>
                   @if (rally.responseNames.headingThere.length) {
                     <p class="response-names">
@@ -203,17 +203,23 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
   `,
   styles: `
     .page {
+      width: min(100%, 820px);
       min-height: 100svh;
-      padding: 22px 16px;
+      margin: 0 auto;
+      padding: 26px 0 22px;
+      border-right: 1px solid var(--color-border);
+      border-left: 1px solid var(--color-border);
       background: var(--color-bg);
     }
 
     header {
       display: flex;
-      align-items: start;
+      align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 18px;
+      margin-bottom: 8px;
+      padding: 0 18px 20px;
+      border-bottom: 1px solid var(--color-border);
     }
 
     h1,
@@ -224,8 +230,13 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
 
     h1 {
       color: var(--color-text);
-      font-size: 28px;
-      line-height: 1.08;
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-stretch: condensed;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+      line-height: 0.95;
+      text-transform: uppercase;
     }
 
     header p,
@@ -236,7 +247,8 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     header p {
-      margin-top: 6px;
+      margin-top: 5px;
+      font-size: 15px;
     }
 
     header a,
@@ -246,30 +258,26 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0 16px;
+      padding: 0 4px;
       border: 0;
-      border-radius: 999px;
-      background: var(--color-gencon-red);
-      color: white;
+      background: transparent;
+      color: var(--color-gencon-red);
       font-size: 14px;
       font-weight: 900;
       text-decoration: none;
     }
 
     .list {
-      display: grid;
-      gap: 10px;
+      background: var(--color-surface);
     }
 
     .rally {
       display: grid;
-      grid-template-columns: 54px minmax(0, 1fr);
+      grid-template-columns: 58px minmax(0, 1fr);
       gap: 14px;
-      padding: 16px;
-      border: 1px solid var(--color-border);
-      border-radius: 14px;
+      padding: 20px 18px;
+      border-bottom: 1px solid var(--color-border);
       background: var(--color-surface);
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
     }
 
     .marker {
@@ -277,20 +285,26 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       height: 50px;
       display: grid;
       place-items: center;
-      border: 3px solid white;
-      border-radius: 14px 14px 14px 5px;
-      background: var(--color-gencon-red);
-      color: white;
-      font-size: 11px;
-      font-weight: 950;
-      letter-spacing: 0;
-      box-shadow: 0 8px 18px rgba(214, 56, 47, 0.22);
+      border: 2px solid var(--color-gencon-red);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-gencon-red);
+    }
+
+    .marker svg {
+      width: 26px;
+      height: 26px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
     }
 
     h2 {
       overflow-wrap: anywhere;
       color: var(--color-text);
-      font-size: 19px;
+      font-size: 20px;
       line-height: 1.2;
     }
 
@@ -324,7 +338,8 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .page-notice {
-      margin: -6px 0 14px;
+      margin: 0;
+      padding: 12px 18px;
       color: var(--color-green);
       font-size: 14px;
       font-weight: 800;
@@ -475,12 +490,12 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
     }
 
     .state {
+      min-height: 360px;
       display: grid;
       justify-items: center;
       gap: 10px;
-      padding: 32px 20px;
-      border: 1px solid var(--color-border);
-      border-radius: 14px;
+      padding: 44px 20px;
+      border-bottom: 1px solid var(--color-border);
       background: var(--color-surface);
       text-align: center;
     }
@@ -489,6 +504,27 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
       color: var(--color-text);
       font-size: 18px;
       line-height: 1.2;
+    }
+
+    .state a,
+    .state button {
+      min-width: 132px;
+      padding: 0 16px;
+      border-radius: 6px;
+      background: var(--color-gencon-red);
+      color: white;
+    }
+
+    .empty-marker {
+      width: 64px;
+      height: 64px;
+      display: grid;
+      place-items: center;
+      border: 2px dashed var(--color-gencon-red);
+      border-radius: 999px;
+      color: var(--color-gencon-red);
+      font-size: 34px;
+      font-weight: 350;
     }
 
     .state p {

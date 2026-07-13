@@ -5,5 +5,5 @@ export interface PeopleSummaryMember {
 
 export function peopleSummaryLabel(people: ReadonlyArray<PeopleSummaryMember>): string {
   const activeCount = people.filter((person) => !person.isOffline && !person.isStale).length;
-  return `${activeCount}/${people.length} active`;
+  return `${activeCount} here now`;
 }

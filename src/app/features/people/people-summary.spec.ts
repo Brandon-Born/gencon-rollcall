@@ -10,10 +10,10 @@ describe('peopleSummaryLabel', () => {
         { isOffline: false, isStale: true },
         { isOffline: true, isStale: false },
       ]),
-    ).toBe('1/3 active');
+    ).toBe('1 here now');
   });
 
   it('reports an empty group without inventing active members', () => {
-    expect(peopleSummaryLabel([])).toBe('0/0 active');
+    expect(peopleSummaryLabel([])).toBe('0 here now');
   });
 });

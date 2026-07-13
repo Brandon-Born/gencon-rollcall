@@ -10,9 +10,10 @@ import { SessionStore } from '../../core/session/session-store';
   template: `
     <main class="onboarding-page">
       <section class="panel">
-        <a class="back-link" routerLink="/gate">Back</a>
-        <h1>What should the crew call you?</h1>
-        <p>This name labels your pin, status, notes, and rally responses.</p>
+        <a class="back-link" routerLink="/gate">← Back</a>
+        <p class="wordmark" aria-hidden="true">Roll Call</p>
+        <h1>What should we call you?</h1>
+        <p class="lede">This is how the crew will spot you on the map.</p>
 
         <label class="field">
           <span>Display name</span>
@@ -26,7 +27,7 @@ import { SessionStore } from '../../core/session/session-store';
         </label>
 
         <button type="button" [disabled]="isSaving() || !displayName().trim()" (click)="continue()">
-          {{ isSaving() ? 'Saving...' : 'Enter map' }}
+          {{ isSaving() ? 'Saving...' : 'Join the crew' }}
         </button>
 
         @if (errorMessage()) {
@@ -41,35 +42,49 @@ import { SessionStore } from '../../core/session/session-store';
       display: grid;
       place-items: center;
       padding: 24px;
-      background: var(--color-bg);
+      background: var(--color-surface);
     }
 
     .panel {
       width: min(100%, 390px);
-      padding: 28px;
-      border-radius: 16px;
+      padding: 30px 28px;
       background: var(--color-surface);
-      box-shadow: 0 18px 48px var(--color-shadow);
     }
 
     .back-link {
-      color: var(--color-muted);
+      color: var(--color-gencon-red);
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 850;
       text-decoration: none;
     }
 
-    h1 {
-      margin: 18px 0 10px;
-      color: var(--color-text);
-      font-size: 27px;
-      line-height: 1.1;
+    .wordmark {
+      margin: clamp(46px, 12svh, 100px) 0 18px;
+      color: var(--color-gencon-red);
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
     }
 
-    p {
+    h1 {
+      margin: 0 0 10px;
+      color: var(--color-text);
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-stretch: condensed;
+      font-weight: 950;
+      letter-spacing: -0.045em;
+      line-height: 0.98;
+      text-transform: uppercase;
+    }
+
+    .lede {
       margin: 0 0 24px;
       color: var(--color-muted);
-      line-height: 1.45;
+      font-size: 16px;
+      line-height: 1.4;
     }
 
     .field {
@@ -80,10 +95,10 @@ import { SessionStore } from '../../core/session/session-store';
     }
 
     input {
-      min-height: 48px;
+      min-height: 54px;
       padding: 0 14px;
       border: 1px solid var(--color-border);
-      border-radius: 10px;
+      border-radius: 8px;
       color: var(--color-text);
       font-size: 16px;
       font-weight: 650;
@@ -91,14 +106,14 @@ import { SessionStore } from '../../core/session/session-store';
 
     button {
       width: 100%;
-      min-height: 48px;
+      min-height: 54px;
       margin-top: 18px;
       border: 0;
-      border-radius: 10px;
+      border-radius: 6px;
       background: var(--color-gencon-red);
       color: white;
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 16px;
+      font-weight: 850;
     }
 
     button:disabled {
@@ -148,7 +163,7 @@ function messageFor(error: unknown): string {
   }
 
   if (error instanceof MemberProfileError && error.code === 'not-authorized') {
-    return 'Your session is not authorized yet. Go back and enter the shared password again.';
+    return 'We lost your place. Go back and enter the crew password again.';
   }
 
   return 'Could not save your display name. Check your connection and try again.';

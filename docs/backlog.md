@@ -22,6 +22,30 @@ Status values:
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
+## Milestone: Product voice and visual design pass
+
+### `UX-023` Make the app feel intentionally designed
+
+- [x] Audit every user-facing screen for implementation-facing, generic, or overly explanatory
+      copy and replace it with concise language appropriate for a private friend group.
+- [x] Establish and apply a cohesive mobile-first visual system across the gate, onboarding, map,
+      people, rally, settings, navigation, forms, sheets, empty states, and feedback states.
+- [x] Preserve all existing coordination, privacy, and accessibility behavior while reducing card
+      repetition and improving type, spacing, hierarchy, controls, and responsive polish.
+- [x] Verify the complete phone workflow in a browser, then run the automated build and test gates.
+
+Implementation status:
+
+- A new editorial field-guide system now covers every screen: condensed mastheads, crisp white and
+  cool-gray surfaces, restrained convention red/map blue accents, open divided rows, purpose-built
+  map sheets, and one optimized Indianapolis convention-center illustration on the gate.
+- The product-voice pass removed implementation and security commentary from the UI, shortened
+  labels and empty states, and made privacy and rally language sound appropriate for a friend group.
+- Browser QA at 430×844 exercised password entry, onboarding, pin placement, status/note sharing,
+  rally creation, response, People, Settings, and hide-pin behavior with no horizontal overflow or
+  console warnings/errors. A 1280×720 pass verified the centered desktop companion layout.
+- `npm test` (16), `npm run typecheck:api`, `npm run build`, and `git diff --check` pass.
+
 ## Milestone: Browser notifications
 
 ### `NOTIFY-001` Add opt-in rally notifications

@@ -2,55 +2,59 @@
 
 ## Concept Reference
 
-Initial generated concept:
+Current UX-023 concepts:
 
-![Gen Con Roll Call mobile concept](assets/gencon-roll-call-mobile-concept.png)
+![Gate and primary map concept](assets/ux-023-primary-concept.png)
 
-This is an early visual direction, not an accepted final implementation spec. Use it to keep the first build visually coherent, then update this document when the app UI is approved.
+![People, rallies, and settings concept](assets/ux-023-supporting-concept.png)
 
-Do not treat generated mockup content as product truth. The mockup includes placeholder examples such as non-final status wording and sample rally dates; implementation must use the statuses and event dates in the product brief.
+These concepts define the active visual direction. Product behavior and the canonical status/rally
+vocabulary still come from the product brief; sample names, notes, and times are illustrative.
 
 ## Design Position
 
-Mobile-first operational tool with restrained convention flavor.
+Mobile-first convention field guide for one friend group.
 
 The app should feel like a clear coordination surface at a busy tabletop convention: fast, legible, and friendly, without becoming a fantasy-themed dashboard or public social app.
 
 ## Visual Direction
 
 - Main screen is the shared map, not a marketing page.
-- Use a crisp light base with controlled warm accents.
-- Use Gen Con-inspired red and gold as action/status accents, not as full-page decoration.
+- Use editorial condensed mastheads, crisp white surfaces, and open rows divided by fine rules.
+- Use convention red and gold as action/status accents, not as full-page decoration.
 - Use map-blue for location and navigation affordances.
 - Use ink-black text for high contrast.
 - Use subtle dice/checkpoint motifs only when they clarify interactions.
-- Avoid purple gradients, dark blue/slate dashboard styling, beige/brown-heavy themes, and nested card stacks.
+- Avoid purple gradients, dark blue/slate dashboard styling, beige/brown-heavy themes, generic
+  rounded-card stacks, and implementation-facing copy.
 
 ## Color Tokens
 
 These are starting tokens for implementation. Adjust only after browser screenshots and design review.
 
 ```text
---color-bg: #F8FAFC
+--color-bg: #F4F6F8
 --color-surface: #FFFFFF
 --color-surface-warm: #FFF8E7
---color-text: #151821
---color-muted: #667085
---color-border: #D8DEE8
---color-map-blue: #2F80ED
---color-gencon-red: #D6382F
---color-gold: #F4B740
---color-green: #1E9F6E
---color-orange: #F97316
---color-shadow: rgba(15, 23, 42, 0.14)
+--color-text: #102033
+--color-muted: #596777
+--color-border: #D9DEE4
+--color-map-blue: #1769AA
+--color-gencon-red: #D52B1E
+--color-gold: #C98A00
+--color-green: #14865C
+--color-orange: #D26714
+--color-shadow: rgba(16, 32, 51, 0.13)
 ```
 
 ## Typography
 
-Use a modern sans-serif stack until a brand font is chosen:
+Use the system sans stack for body and UI text. Display mastheads use a condensed system stack so
+the app keeps its editorial voice without requiring a font download:
 
 ```css
 font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+--font-display: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", sans-serif;
 ```
 
 Starting scale:
@@ -84,8 +88,8 @@ Do not rely on browser-default control typography.
 ### Sheets and Panels
 
 - Use bottom sheets for mobile actions.
-- Radius: 8px for cards/sheets unless a platform component requires otherwise.
-- Avoid nested cards.
+- Radius: 6–10px for controls and 18px only for the mobile map sheet.
+- Prefer open sections and divided rows; avoid nested cards.
 - Use a single sheet at a time for member status, rally creation, or marker details.
 
 ### Status Indicators

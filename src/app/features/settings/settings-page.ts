@@ -15,10 +15,11 @@ import { SessionStore } from '../../core/session/session-store';
     <main class="page">
       <header>
         <h1>Settings</h1>
-        <p>Control your name, visibility, and local session.</p>
+        <p>Your name, alerts, and privacy.</p>
       </header>
 
       <section class="panel">
+        <h2>Profile</h2>
         <label>
           <span>Display name</span>
           <input
@@ -44,7 +45,7 @@ import { SessionStore } from '../../core/session/session-store';
 
       <section class="panel">
         <div>
-          <strong>Rally notifications</strong>
+          <h2>Rally alerts</h2>
           <p>{{ notificationDescription() }}</p>
         </div>
         <button
@@ -64,12 +65,12 @@ import { SessionStore } from '../../core/session/session-store';
 
       <section class="panel">
         <div>
-          <strong>Location visibility</strong>
+          <h2>Map pin</h2>
           <p>
             {{
               locationVisible()
-                ? 'Hide your map pin while staying visible in the people list.'
-                : 'Your map pin is hidden. Tap the map anytime to share a new pin.'
+                ? 'The crew can see your pin. Your status stays visible either way.'
+                : 'Your pin is hidden until you place one on the map.'
             }}
           </p>
         </div>
@@ -82,7 +83,7 @@ import { SessionStore } from '../../core/session/session-store';
           {{ locationButtonLabel() }}
         </button>
         @if (!locationVisible()) {
-          <button type="button" (click)="shareLocationAgain()">Share my location again</button>
+          <button type="button" (click)="shareLocationAgain()">Share a pin</button>
         }
         @if (locationMessage()) {
           <p class="save-message" [class.error]="locationMessageIsError()" role="status">
@@ -96,8 +97,8 @@ import { SessionStore } from '../../core/session/session-store';
           <div>
             <strong id="leave-title">Leave Gen Con Roll Call?</strong>
             <p>
-              This removes your member entry and anonymous identity from this device. Returning
-              later creates a new entry after you use the shared password again.
+              This removes you from the crew on this device. You can always come back with the
+              crew password.
             </p>
           </div>
           <div class="confirm-actions">
@@ -119,26 +120,42 @@ import { SessionStore } from '../../core/session/session-store';
         </section>
       } @else {
         <button type="button" class="danger leave-trigger" (click)="confirmingLeave.set(true)">
-          Leave app
+          Leave Roll Call
         </button>
       }
     </main>
   `,
   styles: `
     .page {
+      width: min(100%, 820px);
       min-height: 100svh;
-      padding: 22px 16px;
+      margin: 0 auto;
+      padding: 26px 0 22px;
+      border-right: 1px solid var(--color-border);
+      border-left: 1px solid var(--color-border);
       background: var(--color-bg);
     }
 
     h1,
+    h2,
     p {
       margin: 0;
     }
 
     h1 {
       color: var(--color-text);
-      font-size: 28px;
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-stretch: condensed;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+      line-height: 0.95;
+      text-transform: uppercase;
+    }
+
+    header {
+      padding: 0 18px 20px;
+      border-bottom: 1px solid var(--color-border);
     }
 
     header p,
@@ -148,17 +165,27 @@ import { SessionStore } from '../../core/session/session-store';
     }
 
     header p {
-      margin-top: 6px;
+      margin-top: 5px;
+      font-size: 15px;
     }
 
     .panel {
       display: grid;
       gap: 14px;
-      margin-top: 16px;
-      padding: 16px;
-      border: 1px solid var(--color-border);
-      border-radius: 16px;
+      margin: 0;
+      padding: 22px 18px;
+      border-bottom: 1px solid var(--color-border);
       background: var(--color-surface);
+    }
+
+    h2 {
+      font-family: inherit;
+      font-size: 18px;
+      font-stretch: normal;
+      font-weight: 850;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      text-transform: none;
     }
 
     label {
@@ -179,15 +206,10 @@ import { SessionStore } from '../../core/session/session-store';
       font-weight: 700;
     }
 
-    strong {
-      color: var(--color-text);
-      font-size: 17px;
-    }
-
     button {
       min-height: 46px;
       border: 0;
-      border-radius: 10px;
+      border-radius: 6px;
       background: var(--color-gencon-red);
       color: white;
       font-size: 15px;
@@ -218,12 +240,16 @@ import { SessionStore } from '../../core/session/session-store';
     }
 
     .danger {
-      background: #151821;
+      background: var(--color-text);
     }
 
     .leave-trigger {
-      width: 100%;
-      margin-top: 18px;
+      width: auto;
+      min-height: 52px;
+      margin: 18px;
+      border: 1px solid rgba(213, 43, 30, 0.3);
+      background: transparent;
+      color: var(--color-gencon-red);
     }
 
     .leave-confirmation {
@@ -259,25 +285,25 @@ export class SettingsPage {
   readonly notificationMessageIsError = signal(false);
   readonly notificationDescription = computed(() => {
     if (!this.notifications.isSupported) {
-      return 'Push notifications are unavailable until web push is configured for this app and supported by this browser.';
+      return 'Rally alerts aren’t available in this browser.';
     }
     if (this.notifications.permission() === 'denied') {
       return 'Notifications are blocked in this browser. Allow them in the site settings to turn them on.';
     }
     return this.notifications.isEnabled()
-      ? 'This device gets new rally alerts and response updates for rallies you create.'
-      : 'Get new rally alerts and response updates on this device. Location changes never send alerts.';
+      ? 'You’ll get new rally alerts and replies to rallies you start.'
+      : 'Get a heads-up when someone picks a meetup spot.';
   });
   readonly notificationButtonLabel = computed(() => {
     if (this.notifications.isBusy()) return 'Saving...';
-    return this.notifications.isEnabled() ? 'Turn off notifications' : 'Turn on notifications';
+    return this.notifications.isEnabled() ? 'Turn off alerts' : 'Turn on alerts';
   });
   readonly locationButtonLabel = computed(() => {
     if (this.isHidingLocation()) {
       return 'Hiding...';
     }
 
-    return this.locationVisible() ? 'Hide my location' : 'Location hidden';
+    return this.locationVisible() ? 'Hide my pin' : 'Pin hidden';
   });
 
   constructor() {
@@ -366,7 +392,7 @@ export class SettingsPage {
     try {
       const member = await this.memberProfile.hideCurrentLocation();
       this.locationVisible.set(member.locationVisible);
-      this.locationMessage.set('Location hidden. Your status and note still appear in People.');
+      this.locationMessage.set('Pin hidden. Your status and note still show in People.');
     } catch (error) {
       this.locationMessage.set(locationMessageFor(error));
       this.locationMessageIsError.set(true);

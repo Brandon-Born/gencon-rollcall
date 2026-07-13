@@ -37,8 +37,8 @@ const dayMs = 24 * hourMs;
     <main class="page">
       <header>
         <div>
-          <p>Group status</p>
           <h1>People</h1>
+          <p>Where the crew’s at</p>
         </div>
         @if (!isLoading() && people().length) {
           <span class="summary">{{ summaryLabel() }}</span>
@@ -49,7 +49,7 @@ const dayMs = 24 * hourMs;
         <section class="state" aria-live="polite">
           <span class="state-icon" aria-hidden="true"></span>
           <strong>Loading people</strong>
-          <p>Subscribing to the group status list.</p>
+          <p>Checking who’s around.</p>
         </section>
       } @else if (loadError()) {
         <section class="state error" role="alert">
@@ -59,8 +59,8 @@ const dayMs = 24 * hourMs;
         </section>
       } @else if (!people().length) {
         <section class="state">
-          <strong>No one is listed yet</strong>
-          <p>Members appear here after they finish onboarding.</p>
+          <strong>It’s quiet in here</strong>
+          <p>The crew will show up as they join.</p>
         </section>
       } @else {
         <section class="list" aria-label="Group status list">
@@ -111,63 +111,69 @@ const dayMs = 24 * hourMs;
   `,
   styles: `
     .page {
+      width: min(100%, 820px);
       min-height: 100svh;
-      padding: 18px 14px 22px;
+      margin: 0 auto;
+      padding: 26px 0 22px;
+      border-right: 1px solid var(--color-border);
+      border-left: 1px solid var(--color-border);
       background: var(--color-bg);
     }
 
     header {
       display: flex;
-      align-items: end;
+      align-items: center;
       justify-content: space-between;
       gap: 14px;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
+      padding: 0 18px 20px;
+      border-bottom: 1px solid var(--color-border);
     }
 
     header p {
-      margin: 0 0 3px;
+      margin: 5px 0 0;
       color: var(--color-muted);
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 15px;
+      font-weight: 500;
     }
 
     h1 {
       margin: 0;
       color: var(--color-text);
-      font-size: 28px;
-      line-height: 1.08;
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-stretch: condensed;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+      line-height: 0.95;
+      text-transform: uppercase;
     }
 
     .summary {
       flex: 0 0 auto;
-      padding: 8px 10px;
-      border: 1px solid var(--color-border);
-      border-radius: 999px;
-      background: var(--color-surface);
+      padding: 0;
       color: var(--color-muted);
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 700;
       white-space: nowrap;
     }
 
     .list {
-      display: grid;
-      gap: 10px;
+      background: var(--color-surface);
     }
 
     .person {
       display: grid;
       grid-template-columns: 50px minmax(0, 1fr) auto;
-      gap: 12px;
-      padding: 14px;
-      border: 1px solid var(--color-border);
-      border-radius: 14px;
+      gap: 14px;
+      min-height: 112px;
+      padding: 18px;
+      border-bottom: 1px solid var(--color-border);
       background: var(--color-surface);
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
     }
 
     .person.stale {
-      background: linear-gradient(90deg, rgba(249, 115, 22, 0.07), var(--color-surface) 42%);
+      background: #faf7f2;
     }
 
     .person.offline {
@@ -193,19 +199,19 @@ const dayMs = 24 * hourMs;
 
     .you-label {
       color: var(--color-map-blue);
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .avatar {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       display: grid;
       place-items: center;
       border: 3px solid var(--color-map-blue);
       border-radius: 999px;
       background: var(--color-surface);
       color: var(--color-text);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
     }
 
@@ -266,7 +272,7 @@ const dayMs = 24 * hourMs;
       min-width: 0;
       overflow-wrap: anywhere;
       color: var(--color-text);
-      font-size: 16px;
+      font-size: 17px;
       line-height: 1.2;
     }
 
@@ -316,8 +322,7 @@ const dayMs = 24 * hourMs;
       align-content: center;
       gap: 10px;
       padding: 28px;
-      border: 1px solid var(--color-border);
-      border-radius: 14px;
+      border-bottom: 1px solid var(--color-border);
       background: var(--color-surface);
       color: var(--color-text);
       text-align: center;
@@ -336,7 +341,7 @@ const dayMs = 24 * hourMs;
       min-height: 42px;
       padding: 0 14px;
       border: 0;
-      border-radius: 999px;
+      border-radius: 6px;
       background: var(--color-gencon-red);
       color: white;
       font-size: 14px;
@@ -401,7 +406,7 @@ export class PeoplePage {
   });
   readonly errorMessage = computed(() =>
     this.loadError()
-      ? 'Could not read the group list. Check your session and connection, then try again.'
+      ? 'Couldn’t load the crew. Check your connection and try again.'
       : '',
   );
 
