@@ -166,11 +166,7 @@ function messageFor(error: unknown): string {
     return 'We lost your place. Go back and enter the crew password again.';
   }
 
-  if (error instanceof MemberProfileError && error.code === 'ambiguous-display-name') {
-    return 'More than one person already uses that name. Ask the crew which one to keep.';
-  }
-
-  if (error instanceof MemberProfileError && error.code === 'member-claim-unavailable') {
+  if (error instanceof MemberProfileError && error.code === 'member-identity-unavailable') {
     return 'Couldn’t check the crew list. Check your connection and try again.';
   }
 

@@ -10,16 +10,17 @@ Serverless API route:
 api/verify-shared-password.ts
 ```
 
-Member recovery route:
+Member identity route:
 
 ```text
-api/claim-member.ts
+api/member-identity.ts
 ```
 
-The recovery route uses the same Firebase Admin credential as password verification. It requires
-an authorized Firebase ID token, then returns a Firebase custom token only when the submitted
-display name matches exactly one existing member after case and whitespace normalization. No new
-environment variable is required.
+The identity route uses the same Firebase Admin credential as password verification. It requires
+an authorized Firebase ID token and owns member creation, case/whitespace-insensitive rejoin,
+rename, and leave. A Firestore Admin transaction updates a server-only normalized-name reservation
+and member document together. It returns a Firebase custom token when an existing identity is
+claimed. No Firebase Cloud Function, paid Firebase plan, or new environment variable is required.
 
 Expected request:
 
@@ -79,6 +80,7 @@ Vercel serves the API route from the same origin as the Angular app, so the clie
 
 ```text
 passwordVerificationUrl: '/api/verify-shared-password'
+memberIdentityUrl: '/api/member-identity'
 ```
 
 The Firebase Web app config in `src/environments/environment.ts` is public client configuration, not a secret.
@@ -257,7 +259,8 @@ Verified local emulator smoke test:
 - Wrong password returns `401`.
 - `local-dev-password` returns `200` from `/api/verify-shared-password`.
 - `authorizedUsers/{uid}` is written in emulator Firestore.
-- An authorized user can write and read `members/{uid}` through Firestore rules.
+- Vercel can create a member and normalized-name reservation after authorization; the authorized
+  client can read the member and update non-identity profile fields through Firestore rules.
 - `appConfig/current` points to the synthetic local map and the map page is usable immediately.
 
 ### Firestore Rules Regression Tests
@@ -355,16 +358,17 @@ result.
 9. Check the browser console for relevant errors. Confirm `manifest.webmanifest` and
    `ngsw-worker.js` return `200`, then verify the browser offers installation and the installed app
    opens in standalone mode.
-10. If a fresh test member or rally was created only for release verification, remove that test data
-    through the Firebase console after recording the result. Do not delete real member or rally
-    history.
+10. If a fresh test member was created only for release verification, use the app's leave flow so
+    Vercel removes both the member and normalized-name reservation. Remove test rally history with
+    an approved admin tool after recording the result. Do not delete real member or rally history.
 
 If the app shell looks stale after a deployment, reload once to let Angular's service worker detect
 the new version, then reload again to use it. A map change still requires a new versioned asset URL.
 
 ## Security Notes
 
-- The endpoint accepts only `POST`.
+- The password endpoint accepts only `POST`; the member identity endpoint accepts `POST` and
+  `DELETE`.
 - Submitted passwords are not logged.
 - Repeated failed attempts are throttled in memory per serverless instance and IP.
 - In-memory throttling is a lightweight MVP guard, not a durable abuse-prevention system.

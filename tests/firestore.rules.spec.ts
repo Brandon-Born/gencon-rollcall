@@ -225,14 +225,14 @@ describe('shared-data authorization', () => {
 });
 
 describe('member ownership and lifecycle', () => {
-  it('allows self-owned member creates, updates, and deletion only', async () => {
+  it('reserves identity creation, names, and deletion for the Vercel backend', async () => {
     const owner = await createClient({ authorized: true });
     const other = await createClient({ authorized: true });
     const ownerUid = owner.uid!;
     const otherUid = other.uid!;
     const ownerRef = doc(owner.db, 'members', ownerUid);
 
-    await expect(
+    await expectDenied(
       setDoc(ownerRef, {
         displayName: 'Owner',
         mapId: null,
@@ -240,13 +240,17 @@ describe('member ownership and lifecycle', () => {
         mapYPercent: null,
         locationVisible: false,
       }),
-    ).resolves.toBeUndefined();
+    );
+    await adminSet(`members/${ownerUid}`, memberFields('Owner'));
     await expect(updateDoc(ownerRef, { note: 'Updated by owner' })).resolves.toBeUndefined();
+    await expectDenied(updateDoc(ownerRef, { displayName: 'Renamed outside Vercel' }));
+    await expectDenied(updateDoc(ownerRef, { nameKey: 'renamed outside vercel' }));
     await expectDenied(setDoc(doc(owner.db, 'members', otherUid), { displayName: 'Impostor' }));
     await expectDenied(updateDoc(doc(other.db, 'members', ownerUid), { note: 'Hijacked' }));
     await expectDenied(deleteDoc(doc(other.db, 'members', ownerUid)));
-    await expect(deleteDoc(ownerRef)).resolves.toBeUndefined();
-    expect((await getDoc(doc(other.db, 'members', ownerUid))).exists()).toBe(false);
+    await expectDenied(deleteDoc(ownerRef));
+    expect((await getDoc(doc(other.db, 'members', ownerUid))).exists()).toBe(true);
+    await expectDenied(getDoc(doc(owner.db, 'memberNames', 'server-owned-normalized-name-index')));
   });
 
   it('requires valid map-aware visible locations and consistently cleared hidden locations', async () => {
@@ -254,9 +258,9 @@ describe('member ownership and lifecycle', () => {
     const uid = owner.uid!;
     const ownerRef = doc(owner.db, 'members', uid);
 
+    await adminSet(`members/${uid}`, memberFields('Mapped owner'));
     await expect(
-      setDoc(ownerRef, {
-        displayName: 'Mapped owner',
+      updateDoc(ownerRef, {
         mapId: 'exhibit-hall',
         mapXPercent: 42.5,
         mapYPercent: 18,

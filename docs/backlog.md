@@ -18,11 +18,27 @@ Status values:
 
 ## Next 3
 
-1. No actionable release blocker is currently queued.
+1. `AUTH-005` Make Vercel authoritative for member names.
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
 ## Milestone: Member identity recovery
+
+### `AUTH-005` Make Vercel authoritative for member names
+
+- [/] Route member creation, case-insensitive rejoin, rename, and leave through an authenticated
+  Vercel function backed by an atomic normalized-name index.
+- [/] Reject direct client member creation, name changes, and deletion in Firestore rules so stale
+  cached clients cannot create duplicate identities.
+- [/] Remove the duplicate legacy production names after the compatible rules and Vercel flow are
+  deployed, then verify a fresh production rejoin uses one stable member record.
+
+Acceptance criteria:
+
+- Two concurrent requests for the same normalized name resolve to one member UID.
+- The identity lifecycle runs on Vercel using the existing Firebase Admin credential; it does not
+  require Firebase Cloud Functions or a paid Firebase plan.
+- A stale client may fail safely, but cannot create or rename a member outside the Vercel flow.
 
 ### `AUTH-004` Rejoin an existing member by display name
 
@@ -33,11 +49,11 @@ Status values:
 - [x] Keep unmatched names on the existing new-member creation path and cover matching behavior,
       authorization boundaries, and user-visible errors with focused verification.
 
-Implementation status:
+Historical implementation status (superseded by `AUTH-005`):
 
-- Authorized onboarding now checks `/api/claim-member` before creating a member. A single
-  case/whitespace-normalized match returns a Firebase custom token for the existing member UID;
-  unmatched names still create a new member and ambiguous duplicates are rejected.
+- Authorized onboarding checked `/api/claim-member` before client-side member creation. A single
+  case/whitespace-normalized match returned a Firebase custom token for the existing member UID;
+  unmatched names continued to client-side creation and ambiguous duplicates were rejected.
 - The endpoint exposes neither the member list nor arbitrary UID selection and rejects requests
   without an authorized ID token. The temporary UID never receives a member document; its existing
   authorization remains so a dropped custom-token exchange is safely retryable.

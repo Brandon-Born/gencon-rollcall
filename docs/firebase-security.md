@@ -21,23 +21,27 @@ Flow:
 
 Creating the anonymous user first does not authorize shared-data access. The user remains blocked by Firestore rules until the password succeeds and `authorizedUsers/{uid}` exists.
 
-## Display-name identity recovery
+## Display-name identity lifecycle
 
-After shared-password authorization, onboarding may exchange the temporary anonymous identity for
-an existing member identity through `/api/claim-member`:
+After shared-password authorization, onboarding exchanges the temporary anonymous identity for an
+existing member or creates a new one through Vercel's `/api/member-identity` route:
 
 1. The endpoint verifies the current Firebase ID token and its server-managed authorization record.
-2. It normalizes the submitted display name for case and whitespace and compares it with existing
-   member names server-side.
-3. Exactly one match receives a short-lived Firebase custom token for that member UID. The endpoint
-   authorizes the matched UID before returning the token.
-4. The client signs in with the custom token and reads the existing `members/{uid}` document.
+2. It normalizes the submitted display name for case and whitespace and hashes that key into a
+   server-only `memberNames/{nameHash}` document id.
+3. A Firebase Admin transaction either reserves the unused name and creates `members/{uid}`, or
+   resolves the existing reservation to one member UID. Concurrent requests cannot create two
+   reservations for the same normalized name.
+4. For a match, the endpoint authorizes the matched UID and returns a short-lived Firebase custom
+   token. The client signs in with it and reads the original member document.
+5. Settings rename and leave use the same endpoint so the reservation and member document change
+   atomically.
 
 The endpoint never returns the member list or accepts an arbitrary UID. Because this is a private
 shared-password app, knowing an existing display name after entering the group password is treated
-as sufficient recovery proof. Duplicate normalized names are rejected as ambiguous. The temporary
-anonymous authorization remains valid so a dropped custom-token exchange can be retried safely; it
-has no member document and disappears from the active member model.
+as sufficient recovery proof. The temporary anonymous authorization remains valid when rejoining
+so a dropped custom-token exchange can be retried safely; it has no member document and disappears
+from the active member model.
 
 This avoids relying on immediate custom-claims propagation during MVP. Custom claims can replace or supplement the authorization document later.
 
@@ -47,6 +51,7 @@ This avoids relying on immediate custom-claims propagation during MVP. Custom cl
 appConfig/current
 authorizedUsers/{uid}
 members/{uid}
+memberNames/{nameHash}
 rallyPoints/{rallyPointId}
 rallyPoints/{rallyPointId}/responses/{uid}
 ```
@@ -65,9 +70,12 @@ The map image itself is not treated as sensitive. The app gates access to map co
 
 - `authorizedUsers`: backend writes only; users may read their own authorization state if necessary.
 - `appConfig/current`: authorized users read; setup/admin backend writes.
-- `members/{uid}`: authorized users read all; a user writes and may delete only their own member
-  document. Visible location writes require an allowlisted `mapId` and 0–100 coordinates; hidden
-  locations must clear all three map fields. Self-deletion supports the explicit leave-app flow.
+- `members/{uid}`: authorized users read all and may update only their own non-identity profile
+  fields. Creation, `displayName`/`nameKey` changes, and deletion are server-only through Vercel.
+  Visible location writes require an allowlisted `mapId` and 0–100 coordinates; hidden locations
+  must clear all three map fields.
+- `memberNames/{nameHash}`: denied to all Firebase Web SDK reads and writes; Vercel maintains this
+  normalized-name reservation with Firebase Admin.
 - `rallyPoints`: authorized users read and create; only the creator can mark an active rally
   expired, and that update can touch only `status` and `expiresAt`. New rallies require an
   allowlisted `mapId` and valid percentage coordinates.

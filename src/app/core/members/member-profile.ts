@@ -21,14 +21,7 @@ export class MemberProfile {
   readonly member = signal<Member | null>(null);
 
   async joinCurrentMember(displayName: string): Promise<Member> {
-    const trimmedName = normalizeDisplayName(displayName);
-
-    if (!trimmedName) {
-      throw new MemberProfileError('display-name-required');
-    }
-
-    const existingMember = await this.claimExistingMember(trimmedName);
-    return existingMember ?? this.saveCurrentMember(trimmedName);
+    return this.persistMemberIdentity(displayName, 'join');
   }
 
   async loadCurrentMember(options: { force?: boolean } = {}): Promise<Member | null> {
@@ -61,54 +54,7 @@ export class MemberProfile {
   }
 
   async saveCurrentMember(displayName: string): Promise<Member> {
-    const uid = this.authSession.user()?.uid;
-
-    if (!uid || !this.authSession.isAuthorized()) {
-      throw new MemberProfileError('not-authorized');
-    }
-
-    const trimmedName = normalizeDisplayName(displayName);
-
-    if (!trimmedName) {
-      throw new MemberProfileError('display-name-required');
-    }
-
-    const { doc, runTransaction, serverTimestamp } = await import('firebase/firestore');
-    const firestore = await this.firebase.getFirestore();
-    const memberRef = doc(firestore, 'members', uid);
-
-    await runTransaction(firestore, async (transaction) => {
-      const snapshot = await transaction.get(memberRef);
-
-      if (snapshot.exists()) {
-        transaction.set(
-          memberRef,
-          {
-            displayName: trimmedName,
-            avatarStyle: snapshot.data()['avatarStyle'] ?? avatarStyleFor(uid, trimmedName),
-            lastUpdatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
-        return;
-      }
-
-      transaction.set(memberRef, {
-        displayName: trimmedName,
-        avatarStyle: avatarStyleFor(uid, trimmedName),
-        status: 'available',
-        note: '',
-        mapId: null,
-        mapXPercent: null,
-        mapYPercent: null,
-        locationVisible: false,
-        joinedAt: serverTimestamp(),
-        lastUpdatedAt: serverTimestamp(),
-      });
-    });
-
-    this.session.setDisplayName(trimmedName);
-    return (await this.loadCurrentMember({ force: true })) ?? this.fallbackMember(uid, trimmedName);
+    return this.persistMemberIdentity(displayName, 'rename');
   }
 
   async saveCurrentStatus(status: MemberStatus, note: string): Promise<Member> {
@@ -237,16 +183,34 @@ export class MemberProfile {
   }
 
   async deleteCurrentMember(): Promise<void> {
-    const uid = this.authSession.user()?.uid;
+    const user = this.authSession.user();
+    const identityUrl = environment.memberIdentityUrl.trim();
 
-    if (!uid || !this.authSession.isAuthorized()) {
+    if (!user || !this.authSession.isAuthorized()) {
       throw new MemberProfileError('not-authorized');
     }
 
-    const { deleteDoc, doc } = await import('firebase/firestore');
-    await deleteDoc(doc(await this.firebase.getFirestore(), 'members', uid));
-    this.clearLoadedMember();
-    this.session.setDisplayName('');
+    if (!identityUrl) {
+      throw new MemberProfileError('member-identity-unavailable');
+    }
+
+    try {
+      await firstValueFrom(
+        this.http.delete<{ ok: boolean }>(identityUrl, {
+          headers: {
+            Authorization: `Bearer ${await user.getIdToken()}`,
+          },
+        }),
+      );
+      this.clearLoadedMember();
+      this.session.setDisplayName('');
+    } catch (error) {
+      if (error instanceof MemberProfileError) {
+        throw error;
+      }
+
+      throw new MemberProfileError('member-identity-unavailable');
+    }
   }
 
   async watchMembers(
@@ -277,23 +241,31 @@ export class MemberProfile {
     this.member.set(null);
   }
 
-  private async claimExistingMember(displayName: string): Promise<Member | null> {
+  private async persistMemberIdentity(
+    displayName: string,
+    mode: 'join' | 'rename',
+  ): Promise<Member> {
+    const trimmedName = normalizeDisplayName(displayName);
     const user = this.authSession.user();
-    const claimUrl = environment.memberClaimUrl.trim();
+    const identityUrl = environment.memberIdentityUrl.trim();
+
+    if (!trimmedName) {
+      throw new MemberProfileError('display-name-required');
+    }
 
     if (!user || !this.authSession.isAuthorized()) {
       throw new MemberProfileError('not-authorized');
     }
 
-    if (!claimUrl) {
-      throw new MemberProfileError('member-claim-unavailable');
+    if (!identityUrl) {
+      throw new MemberProfileError('member-identity-unavailable');
     }
 
     try {
       const response = await firstValueFrom(
-        this.http.post<{ ok: boolean; matched: boolean; customToken?: string }>(
-          claimUrl,
-          { displayName },
+        this.http.post<{ ok: boolean; outcome: string; customToken?: string }>(
+          identityUrl,
+          { displayName: trimmedName, mode },
           {
             headers: {
               Authorization: `Bearer ${await user.getIdToken()}`,
@@ -302,15 +274,10 @@ export class MemberProfile {
         ),
       );
 
-      if (!response.matched) {
-        return null;
+      if (response.customToken) {
+        await this.authSession.signInWithCustomToken(response.customToken);
       }
 
-      if (!response.customToken) {
-        throw new MemberProfileError('member-claim-unavailable');
-      }
-
-      await this.authSession.signInWithCustomToken(response.customToken);
       this.clearLoadedMember();
       const member = await this.loadCurrentMember({ force: true });
 
@@ -327,12 +294,20 @@ export class MemberProfile {
       if (
         error instanceof HttpErrorResponse &&
         error.status === 409 &&
-        error.error?.error === 'ambiguous-display-name'
+        error.error?.error === 'display-name-taken'
       ) {
-        throw new MemberProfileError('ambiguous-display-name');
+        throw new MemberProfileError('display-name-taken');
       }
 
-      throw new MemberProfileError('member-claim-unavailable');
+      if (
+        error instanceof HttpErrorResponse &&
+        error.status === 404 &&
+        error.error?.error === 'member-not-found'
+      ) {
+        throw new MemberProfileError('member-not-found');
+      }
+
+      throw new MemberProfileError('member-identity-unavailable');
     }
   }
 
@@ -357,32 +332,14 @@ export class MemberProfile {
       lastUpdatedAt: dateValue(data['lastUpdatedAt']),
     };
   }
-
-  private fallbackMember(id: string, displayName: string): Member {
-    const now = new Date();
-
-    return {
-      id,
-      displayName,
-      avatarStyle: avatarStyleFor(id, displayName),
-      status: 'available',
-      note: '',
-      mapId: null,
-      mapXPercent: null,
-      mapYPercent: null,
-      locationVisible: false,
-      joinedAt: now,
-      lastUpdatedAt: now,
-    };
-  }
 }
 
 export type MemberProfileErrorCode =
   | 'display-name-required'
   | 'not-authorized'
   | 'member-not-found'
-  | 'ambiguous-display-name'
-  | 'member-claim-unavailable';
+  | 'display-name-taken'
+  | 'member-identity-unavailable';
 
 export class MemberProfileError extends Error {
   constructor(readonly code: MemberProfileErrorCode) {

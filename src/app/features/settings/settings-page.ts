@@ -97,8 +97,8 @@ import { SessionStore } from '../../core/session/session-store';
           <div>
             <strong id="leave-title">Leave Gen Con Roll Call?</strong>
             <p>
-              This removes you from the crew on this device. You can always come back with the
-              crew password.
+              This removes you from the crew on this device. You can always come back with the crew
+              password.
             </p>
           </div>
           <div class="confirm-actions">
@@ -428,6 +428,10 @@ function messageFor(error: unknown): string {
 
   if (error instanceof MemberProfileError && error.code === 'not-authorized') {
     return 'Your session is not authorized. Sign in again before saving.';
+  }
+
+  if (error instanceof MemberProfileError && error.code === 'display-name-taken') {
+    return 'That name is already in the crew.';
   }
 
   return 'Could not save your name. Check your connection and try again.';

@@ -45,14 +45,19 @@ src/
 
 ## Member Identity Recovery
 
-- Onboarding calls the authenticated `/api/claim-member` route before creating a member document.
-- The route requires an already authorized Firebase ID token, normalizes the submitted display name
-  for case and whitespace, and searches the small private-group member collection.
-- A single match receives a Firebase custom token for the existing member UID. The client signs in
-  with that token and loads the original member document, preserving UID-based rally ownership,
-  responses, status, notes, and location. No match continues through normal member creation.
-- Multiple normalized matches are treated as ambiguous instead of selecting an identity
-  unpredictably.
+- Onboarding, Settings rename, and leave call the authenticated Vercel
+  `/api/member-identity` route. The browser never creates, renames, or deletes a member document
+  directly.
+- Vercel normalizes display names for case and whitespace and uses a SHA-256 document id in the
+  server-only `memberNames` collection. A Firestore Admin transaction owns both the name index and
+  member write, so concurrent requests for the same normalized name resolve to one UID.
+- An indexed match receives a Firebase custom token for the existing member UID. The client signs
+  in with that token and loads the original member document, preserving UID-based rally ownership,
+  responses, status, notes, and location. An unclaimed name creates the member and index in the
+  same transaction.
+- Renames move the normalized-name reservation transactionally. Leave deletes both the member and
+  its reservation. Firestore rules reject client-side member creation, name changes, and deletion;
+  this keeps older cached app shells from bypassing identity uniqueness.
 
 ## Map Coordinate Model
 

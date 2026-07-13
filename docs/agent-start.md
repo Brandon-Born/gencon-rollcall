@@ -11,8 +11,9 @@ Use this file when picking up the project in a new session.
 - Production is deployed at `https://gencon-rollcall.vercel.app`.
 - Anonymous Auth, wrong-password API behavior, and correct-password login/member creation are live-verified.
 - Firestore-backed member onboarding profiles are implemented.
-- Onboarding restores an existing Firebase member identity when its display name matches without
-  regard to case or repeated whitespace, preserving UID-based profile and rally data.
+- Vercel owns member creation, case/whitespace-insensitive identity recovery, rename, and leave.
+  Firestore rules reject direct client identity writes, and a transactional normalized-name index
+  prevents stale PWAs or concurrent requests from creating duplicate member names.
 - Local Firebase Auth/Firestore emulator smoke tests work through Vercel dev with `local-dev-password`.
 - Rally creation, responses, and manual/scheduled expiration are implemented.
 - Production builds include installable PWA metadata and app-shell caching.

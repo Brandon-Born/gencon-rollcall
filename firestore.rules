@@ -65,9 +65,14 @@ service cloud.firestore {
 
     function validMemberUpdate() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'mapId', 'mapXPercent', 'mapYPercent', 'locationVisible'
+          'displayName', 'nameKey', 'avatarStyle', 'joinedAt'
         ])
-        || validMemberLocation(request.resource.data);
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'mapId', 'mapXPercent', 'mapYPercent', 'locationVisible'
+          ])
+          || validMemberLocation(request.resource.data)
+        );
     }
 
     function validRallyPointCreate(rally) {
@@ -103,10 +108,13 @@ service cloud.firestore {
 
     match /members/{uid} {
       allow read: if authorized();
-      allow create: if authorized() && request.auth.uid == uid
-        && validMemberLocation(request.resource.data);
+      allow create: if false;
       allow update: if authorized() && request.auth.uid == uid && validMemberUpdate();
-      allow delete: if authorized() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    match /memberNames/{nameId} {
+      allow read, write: if false;
     }
 
     match /rallyPoints/{rallyPointId} {

@@ -37,6 +37,7 @@ AppConfig
 Member
 - id
 - displayName
+- nameKey
 - avatarStyle
 - status
 - note
@@ -65,6 +66,14 @@ RallyResponse
 - rallyPointId
 - memberId
 - responseStatus
+- updatedAt
+
+MemberName
+- id (SHA-256 of normalized name)
+- uid
+- nameKey
+- displayName
+- createdAt
 - updatedAt
 ```
 
