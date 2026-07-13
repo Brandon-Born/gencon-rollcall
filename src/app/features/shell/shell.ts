@@ -15,22 +15,24 @@ const knownRallyIdsKey = 'gencon-roll-call-known-rallies';
       <router-outlet />
 
       <nav class="tab-bar" aria-label="Main navigation">
-        <a routerLink="/app/map" routerLinkActive="active">
+        <a routerLink="/app/map" routerLinkActive="active" (click)="scrollToTop()">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m3 5 5-2 8 3 5-2v15l-5 2-8-3-5 2V5Z" />
             <path d="M8 3v15M16 6v15" />
           </svg>
           <strong>Map</strong>
         </a>
-        <a routerLink="/app/people" routerLinkActive="active">
+        <a routerLink="/app/people" routerLinkActive="active" (click)="scrollToTop()">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="9" cy="8" r="3" />
             <circle cx="17" cy="10" r="2.5" />
-            <path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M14.5 15.5a4 4 0 0 1 6 3.5v1" />
+            <path
+              d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M14.5 15.5a4 4 0 0 1 6 3.5v1"
+            />
           </svg>
           <strong>People</strong>
         </a>
-        <a routerLink="/app/rallies" routerLinkActive="active">
+        <a routerLink="/app/rallies" routerLinkActive="active" (click)="scrollToTop()">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5 21V3M6 4h10l-2 3 2 3H6" />
           </svg>
@@ -41,10 +43,12 @@ const knownRallyIdsKey = 'gencon-roll-call-known-rallies';
             </span>
           }
         </a>
-        <a routerLink="/app/settings" routerLinkActive="active">
+        <a routerLink="/app/settings" routerLinkActive="active" (click)="scrollToTop()">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="3" />
-            <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 3.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2L3 14.5l2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 3.1h5l.4-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4L18.9 13a7 7 0 0 0 .1-1Z" />
+            <path
+              d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 3.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2L3 14.5l2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 3.1h5l.4-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4L18.9 13a7 7 0 0 0 .1-1Z"
+            />
           </svg>
           <strong>Settings</strong>
         </a>
@@ -163,6 +167,10 @@ export class Shell {
     });
 
     void this.startRallyStream();
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }
 
   private async startRallyStream(): Promise<void> {

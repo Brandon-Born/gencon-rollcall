@@ -22,6 +22,24 @@ Status values:
 2. No second actionable release blocker is currently queued.
 3. No third actionable release blocker is currently queued.
 
+## Milestone: Navigation polish
+
+### `UX-024` Return to the page top from bottom navigation
+
+- [x] Pressing any bottom navigation tab scrolls the page to the top before showing that section.
+- [x] Pressing the currently active tab also returns a scrolled page to the top.
+- [x] Verify the behavior at phone size without changing the accepted navigation design.
+
+Implementation status:
+
+- All four bottom navigation links now reset the window scroll position before Angular handles the
+  route, so both tab switches and active-tab presses return to the top.
+- Browser QA at 430×844 confirmed an active Settings press moved `scrollY` from 78 to 0 and a
+  Settings-to-People switch landed at 0. The accepted navigation styling and above-the-fold copy
+  remain unchanged, with no relevant console warnings or errors.
+- `npm test` (19), `npm run build`, `npm run typecheck:api`, and `git diff --check` pass. The
+  temporary emulator member was removed through the app afterward.
+
 ## Milestone: Member identity recovery
 
 ### `AUTH-005` Make Vercel authoritative for member names
