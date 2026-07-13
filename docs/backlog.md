@@ -24,6 +24,26 @@ Status values:
 
 ## Milestone: Navigation polish
 
+### `UX-026` Start rally creation from the Rallies empty state
+
+- [x] Make `Start a rally` enter the same map-selection state as the map page’s `New rally`
+      action.
+- [x] Keep normal map navigation and existing rally deep links unchanged.
+- [x] Verify the empty-state route, rally draft, and map spot selection at phone size.
+
+Implementation status:
+
+- `Start a rally` now links to the map with an explicit rally-creation query parameter, and the map
+  consumes that parameter by opening the existing rally draft state rather than creating a second
+  workflow.
+- Browser QA at 430×844 covered the empty-state link, pending `+` marker, selected-spot copy, normal
+  Map link, and existing `New rally` button. Normal map navigation stayed in pin-placement mode,
+  both rally entry points opened the same draft, and the console stayed free of warnings or errors.
+- The accepted Rallies hierarchy, copy, centered empty state, red action, typography, whitespace,
+  dividers, and bottom navigation remain visually faithful. `npm test` (24), `npm run build`,
+  `npm run typecheck:api`, and `git diff --check` pass; the temporary emulator member was removed
+  afterward.
+
 ### `UX-025` Add an app update and reload control
 
 - [x] Add a clear Settings action that checks for the latest service-worker version, activates it

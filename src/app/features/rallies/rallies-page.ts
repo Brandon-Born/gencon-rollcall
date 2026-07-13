@@ -10,6 +10,7 @@ import {
   RallyPointError,
   RallyPoints,
 } from '../../core/rallies/rally-points';
+import { START_RALLY_QUERY_PARAMS } from './rally-navigation';
 
 interface RallyListItem {
   id: string;
@@ -77,7 +78,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
           <span class="empty-marker" aria-hidden="true">+</span>
           <strong>No rallies yet</strong>
           <p>Pick a spot on the map and invite the crew.</p>
-          <a routerLink="/app/map">Start a rally</a>
+          <a routerLink="/app/map" [queryParams]="startRallyQueryParams">Start a rally</a>
         </section>
       } @else {
         <section class="list" aria-label="Active rally points">
@@ -565,6 +566,7 @@ const rallyResponseOptions: ReadonlyArray<{ value: RallyResponseStatus; label: s
   `,
 })
 export class RalliesPage {
+  readonly startRallyQueryParams = START_RALLY_QUERY_PARAMS;
   private readonly authSession = inject(AuthSession);
   private readonly memberProfile = inject(MemberProfile);
   private readonly rallyPoints = inject(RallyPoints);

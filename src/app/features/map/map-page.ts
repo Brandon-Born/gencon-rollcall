@@ -21,6 +21,7 @@ import {
 } from '../../core/rallies/rally-points';
 import { MemberStatus, STATUS_OPTIONS, statusLabel } from '../../shared/status/status-options';
 import { mapPercentWithinBounds } from '../../shared/map-canvas/map-coordinate';
+import { isRallyCreationRequested } from '../rallies/rally-navigation';
 
 interface MapPin {
   id: string;
@@ -1432,6 +1433,10 @@ export class MapPage {
       this.rallyResponseUnsubscribes.forEach((unsubscribe) => unsubscribe());
       this.rallyResponseUnsubscribes.clear();
     });
+
+    if (isRallyCreationRequested(this.route.snapshot.queryParamMap)) {
+      this.openRallyForm();
+    }
 
     void this.reloadMapConfig();
     void this.loadStatusDraft();
